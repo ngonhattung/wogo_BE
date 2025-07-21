@@ -13,6 +13,8 @@ public enum ErrorCode {
     INVALID_CREDENTIALS(1004, "Username or password not correct", HttpStatus.UNAUTHORIZED),
     INVALID_REFRESH_TOKEN(1005, "Invalid refresh token", HttpStatus.BAD_REQUEST),
     ERROR_REFRESH_TOKEN(1006, "Token invalid or expired", HttpStatus.BAD_REQUEST),
+    USER_ALREADY_EXISTS(1007, "User already exists", HttpStatus.BAD_REQUEST),
+    ROLE_NOT_FOUND(1008, "Role not found", HttpStatus.NOT_FOUND),
     ;
 
 
