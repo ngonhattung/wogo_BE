@@ -35,7 +35,7 @@ public class AuthController {
     private final JwtUtils jwtUtils;
     private final UserService authService;
 
-    @PostMapping("/register")
+    @PostMapping("/signup")
     public ApiResponse<UserResponseDTO> register(@Valid @RequestBody RegisterRequestDTO request) {
         return ApiResponse.<UserResponseDTO>builder()
                 .message("Create User Success!")
