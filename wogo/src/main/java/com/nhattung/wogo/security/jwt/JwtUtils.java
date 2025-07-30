@@ -109,19 +109,22 @@ public class JwtUtils {  // create and validate JWT tokens
     public void logout(LogoutRequestDTO request) {
         Claims claims = verifyToken(request.getToken());
         String jit = claims.getId();
-        Date expriryDate = claims.getExpiration();
+        Date expiryDate = claims.getExpiration();
 
         // Blacklist Access Token
         tokenBlacklistRepository.save(TokenBlacklist.builder()
                 .tokenJti(jit)
                 .userId(claims.get("id", Long.class))
-                .expiryDate(expriryDate)
+                .expiryDate(expiryDate)
                 .build());
 
+        Claims claimsFt = verifyToken(request.getRefreshToken());
+        Date expiryDateFt = claimsFt.getExpiration();
+
         //Revoke Refresh Token
-        refreshTokenRepository.findByToken(request.getToken()).ifPresent(refreshToken -> {
+        refreshTokenRepository.findByToken(request.getRefreshToken()).ifPresent(refreshToken -> {
             refreshToken.setRevoked(true);
-            refreshToken.setExpiryDate(expriryDate);
+            refreshToken.setExpiryDate(expiryDateFt);
             refreshTokenRepository.save(refreshToken);
         });
     }

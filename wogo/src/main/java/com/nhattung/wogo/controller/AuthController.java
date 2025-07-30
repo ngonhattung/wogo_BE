@@ -9,9 +9,12 @@ import com.nhattung.wogo.dto.response.ApiResponse;
 import com.nhattung.wogo.dto.response.JwtResponseDTO;
 import com.nhattung.wogo.dto.response.LogoutResponseDTO;
 import com.nhattung.wogo.dto.response.UserResponseDTO;
+import com.nhattung.wogo.entity.RefreshToken;
+import com.nhattung.wogo.repository.RefreshTokenRepository;
 import com.nhattung.wogo.security.jwt.JwtUtils;
 import com.nhattung.wogo.security.user.WogoUserDetailsService;
 import com.nhattung.wogo.service.auth.UserService;
+import com.nhattung.wogo.utils.SecurityUtils;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -34,6 +37,7 @@ public class AuthController {
     private final WogoUserDetailsService userDetailsService;
     private final JwtUtils jwtUtils;
     private final UserService authService;
+    private final RefreshTokenRepository refreshTokenRepository;
 
     @PostMapping("/signup")
     public ApiResponse<UserResponseDTO> register(@Valid @RequestBody RegisterRequestDTO request) {
@@ -53,6 +57,12 @@ public class AuthController {
             SecurityContextHolder.getContext().setAuthentication(authentication);
             String accessToken = jwtUtils.createAccessToken(authentication);
             String refreshToken = jwtUtils.createRefreshToken(authentication);
+            refreshTokenRepository.save(RefreshToken.builder()
+                            .token(refreshToken)
+                            .revoked(false)
+                            .userId(SecurityUtils.getCurrentUserId())
+                    .build());
+
             return ApiResponse.<JwtResponseDTO>builder()
                     .message("Login Success!")
                     .result(JwtResponseDTO.builder()
