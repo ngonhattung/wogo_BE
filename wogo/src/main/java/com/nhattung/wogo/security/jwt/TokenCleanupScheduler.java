@@ -7,6 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.Date;
@@ -20,6 +21,7 @@ public class TokenCleanupScheduler {
     private static final Logger logger = LoggerFactory.getLogger(TokenCleanupScheduler.class);
 
     @Scheduled(cron = "0 0 2 * * ?") // 2h AM every day
+    @Transactional
     public void cleanupExpiredTokens() {
         try {
             Date now = Date.from(LocalDateTime.now().atZone(java.time.ZoneId.systemDefault()).toInstant());

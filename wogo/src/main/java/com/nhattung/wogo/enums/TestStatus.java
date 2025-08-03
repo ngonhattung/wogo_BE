@@ -1,0 +1,19 @@
+package com.nhattung.wogo.enums;
+
+public enum TestStatus {
+    NOT_STARTED("Not Started"),
+    IN_PROGRESS("In Progress"),
+    COMPLETED("Completed"),
+    FAILED("Failed"),
+    PASSED("Passed");
+
+    private final String status;
+
+    TestStatus(String status) {
+        this.status = status;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+}
