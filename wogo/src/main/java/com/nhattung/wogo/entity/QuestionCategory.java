@@ -23,6 +23,7 @@ public class QuestionCategory {
     private int totalQuestions;
     private int questionsPerTest; // Số câu hỏi mỗi bài test
     private boolean isActive;
+    private String description;
 
     @CreationTimestamp
     private Timestamp createdAt;

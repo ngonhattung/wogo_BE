@@ -24,7 +24,6 @@ public class ServiceCategory {
     private String description;
     private Long parentId; // ID of the parent category, null if this is a top-level category
     private boolean isActive; // true if the category is active, false if it is inactive
-    private int sortOrder; // Used to determine the order of categories in lists, lower numbers appear first
     private String icon; // URL or path to the icon representing the category
 
     @CreationTimestamp
