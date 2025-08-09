@@ -13,7 +13,7 @@ import com.nhattung.wogo.entity.RefreshToken;
 import com.nhattung.wogo.repository.RefreshTokenRepository;
 import com.nhattung.wogo.security.jwt.JwtUtils;
 import com.nhattung.wogo.security.user.WogoUserDetailsService;
-import com.nhattung.wogo.service.auth.UserService;
+import com.nhattung.wogo.service.user.UserService;
 import com.nhattung.wogo.utils.SecurityUtils;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -57,10 +57,11 @@ public class AuthController {
             SecurityContextHolder.getContext().setAuthentication(authentication);
             String accessToken = jwtUtils.createAccessToken(authentication);
             String refreshToken = jwtUtils.createRefreshToken(authentication);
+            Long userId = SecurityUtils.getCurrentUserId();
             refreshTokenRepository.save(RefreshToken.builder()
                             .token(refreshToken)
                             .revoked(false)
-                            .userId(SecurityUtils.getCurrentUserId())
+                            .userId(userId)
                     .build());
 
             return ApiResponse.<JwtResponseDTO>builder()
@@ -69,6 +70,7 @@ public class AuthController {
                             .accessToken(accessToken)
                             .refreshToken(refreshToken)
                             .expirationDate(jwtUtils.verifyToken(accessToken).getExpiration())
+                            .user(authService.getUserById(userId))
                             .build())
                     .build();
         }catch (AuthenticationException e) {

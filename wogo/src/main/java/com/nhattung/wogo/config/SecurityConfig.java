@@ -31,8 +31,8 @@ public class SecurityConfig {
 
     private final WogoUserDetailsService userDetailsService;
     private final JwtAuthEntryPoint authEntryPoint;
-    private static final List<String> SECURED_URLS =
-            List.of("/admin/**");
+    private static final List<String> PUBLIC_URLS =
+            List.of("/api/v1/auth/**");
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -60,17 +60,20 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception { // cấu hình bảo mật
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 
         http.csrf(AbstractHttpConfigurer::disable)
-                .cors(Customizer.withDefaults()) //Set up CORS configuration
+                .cors(Customizer.withDefaults())
                 .exceptionHandling(exception -> exception.authenticationEntryPoint(authEntryPoint))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(auth ->auth.requestMatchers(SECURED_URLS.toArray(String[]::new)).authenticated()
-                        .anyRequest().permitAll());
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(PUBLIC_URLS.toArray(String[]::new)).permitAll()
+                        .anyRequest().authenticated() // tất cả URL khác yêu cầu login
+                );
+
         http.authenticationProvider(daoAuthenticationProvider());
         http.addFilterBefore(authTokenFilter(), UsernamePasswordAuthenticationFilter.class);
-        return http.build();
 
+        return http.build();
     }
 }

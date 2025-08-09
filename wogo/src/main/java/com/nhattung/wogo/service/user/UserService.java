@@ -1,6 +1,9 @@
-package com.nhattung.wogo.service.auth;
+package com.nhattung.wogo.service.user;
 
 import com.nhattung.wogo.dto.request.RegisterRequestDTO;
+import com.nhattung.wogo.dto.request.UserRequestDTO;
+import com.nhattung.wogo.dto.response.PageResponse;
+import com.nhattung.wogo.dto.response.ServiceCategoryResponseDTO;
 import com.nhattung.wogo.dto.response.UserResponseDTO;
 import com.nhattung.wogo.entity.Role;
 import com.nhattung.wogo.entity.User;
@@ -13,9 +16,14 @@ import com.nhattung.wogo.repository.UserRepository;
 import com.nhattung.wogo.repository.UserRoleRepository;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -54,6 +62,56 @@ public class UserService implements IUserService {
                     // Return the saved user as a DTO
                     return convertUserToDto(savedUser);
                 }).orElseThrow(() -> new AppException(ErrorCode.USER_ALREADY_EXISTS));
+    }
+
+    @Override
+    public UserResponseDTO getUserById(Long userId) {
+        return userRepository.findById(userId)
+                .map(this::convertUserToDto)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+    }
+
+    @Override
+    public PageResponse<UserResponseDTO> getAllUsers(int page, int size) {
+        if (page < 0 || size <= 0) {
+            throw new AppException(ErrorCode.INVALID_PAGE_SIZE);
+        }
+
+        Sort sort = Sort.by(Sort.Direction.DESC, "createdAt");
+        Pageable pageable = PageRequest.of(page - 1, size, sort);
+
+        Page<User> userPage = userRepository.findAll(pageable);
+        List<UserResponseDTO> userResponseDTOS = userPage.getContent().stream()
+                .map(this::convertUserToDto)
+                .toList();
+
+        return PageResponse.<UserResponseDTO>builder()
+                .currentPage(page)
+                .totalPages(userPage.getTotalPages())
+                .totalElements(userPage.getTotalElements())
+                .pageSize(userPage.getSize())
+                .data(userResponseDTOS)
+                .build();
+    }
+
+    @Override
+    public UserResponseDTO updateUser(UserRequestDTO user, Long id) {
+
+        User existingUser = userRepository.findById(id)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+
+        existingUser.setFullName(user.getFullName());
+        existingUser.setActive(user.isActive());
+        existingUser.setAvatarUrl(user.getAvatarUrl());
+
+        // If password is provided, encode and set it
+        if (user.getPassword() != null && !user.getPassword().isEmpty()) {
+            existingUser.setPassword(passwordEncoder.encode(user.getPassword()));
+        }
+
+        User updatedUser = userRepository.save(existingUser);
+        return convertUserToDto(updatedUser);
+
     }
 
     public UserResponseDTO convertUserToDto(User user) {

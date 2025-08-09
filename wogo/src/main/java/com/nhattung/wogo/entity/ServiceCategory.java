@@ -34,7 +34,7 @@ public class ServiceCategory {
     @OneToMany(mappedBy = "serviceCategory", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Service> services;
 
-    @OneToOne(mappedBy = "serviceCategory", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OneToOne(mappedBy = "serviceCategory", cascade = CascadeType.ALL)
     private QuestionCategory questionCategory;
 
 }

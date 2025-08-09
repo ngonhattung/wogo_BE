@@ -11,4 +11,5 @@ public class JwtResponseDTO {
     private String accessToken;
     private String refreshToken;
     private Date expirationDate;
+    private UserResponseDTO user;
 }

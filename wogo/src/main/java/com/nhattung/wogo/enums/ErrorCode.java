@@ -18,6 +18,7 @@ public enum ErrorCode {
     SERVICE_CATEGORY_NOT_FOUND(1009, "Service category not found", HttpStatus.NOT_FOUND),
     SERVICE_CATEGORY_NAME_EXISTS(1010, "Service category name already exists", HttpStatus.BAD_REQUEST),
     INVALID_PAGE_SIZE(1011, "Invalid page size", HttpStatus.BAD_REQUEST),
+    USER_NOT_FOUND(1012, "User not found", HttpStatus.NOT_FOUND),
     ;
 
 
