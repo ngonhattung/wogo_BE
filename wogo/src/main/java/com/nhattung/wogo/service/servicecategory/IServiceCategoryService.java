@@ -2,6 +2,7 @@ package com.nhattung.wogo.service.servicecategory;
 
 import com.nhattung.wogo.dto.request.ServiceCategoryRequestDTO;
 import com.nhattung.wogo.dto.response.PageResponse;
+import com.nhattung.wogo.dto.response.ParentCategoryResponseDTO;
 import com.nhattung.wogo.dto.response.ServiceCategoryResponseDTO;
 
 import java.util.List;
@@ -15,5 +16,5 @@ public interface IServiceCategoryService {
     List<String> getAllServiceCategoryNames();
     ServiceCategoryResponseDTO getCategoryById(Long id);
     PageResponse<ServiceCategoryResponseDTO> getAllServiceCategories(int page, int size);
-    PageResponse<ServiceCategoryResponseDTO> searchServiceCategoriesByName(String name, int page, int size);
+    PageResponse<ParentCategoryResponseDTO> searchServiceCategoriesByName(String name, int page, int size);
 }

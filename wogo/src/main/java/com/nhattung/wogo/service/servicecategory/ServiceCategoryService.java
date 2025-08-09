@@ -3,6 +3,7 @@ package com.nhattung.wogo.service.servicecategory;
 
 import com.nhattung.wogo.dto.request.ServiceCategoryRequestDTO;
 import com.nhattung.wogo.dto.response.PageResponse;
+import com.nhattung.wogo.dto.response.ParentCategoryResponseDTO;
 import com.nhattung.wogo.dto.response.ServiceCategoryResponseDTO;
 import com.nhattung.wogo.entity.ServiceCategory;
 import com.nhattung.wogo.enums.ErrorCode;
@@ -16,6 +17,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -112,7 +114,7 @@ public class ServiceCategoryService implements IServiceCategoryService {
     }
 
     @Override
-    public PageResponse<ServiceCategoryResponseDTO> searchServiceCategoriesByName(String name, int page, int size) {
+    public PageResponse<ParentCategoryResponseDTO> searchServiceCategoriesByName(String name, int page, int size) {
         if (page < 0 || size <= 0) {
             throw new AppException(ErrorCode.INVALID_PAGE_SIZE);
         }
@@ -120,17 +122,33 @@ public class ServiceCategoryService implements IServiceCategoryService {
         Sort sort = Sort.by(Sort.Direction.DESC, "createdAt");
         Pageable pageable = PageRequest.of(page - 1, size, sort);
 
-        Page<ServiceCategory> serviceCategoryPage = serviceCategoryRepository.findByCategoryNameContainingIgnoreCaseAndActiveTrueAndParentIdNull(name, pageable);
-        List<ServiceCategoryResponseDTO> serviceCategoryResponses = serviceCategoryPage.stream()
-                .map(this::convertToResponseDTO)
+        Page<ServiceCategory> serviceCategoryPage = serviceCategoryRepository.searchByCategoryOrParentName(name, pageable);
+        List<ServiceCategory> allCategories = serviceCategoryPage.getContent();
+
+        // Nhóm theo category cha (parentId null)
+        List<ParentCategoryResponseDTO> grouped = allCategories.stream()
+                .filter(c -> c.getParentId() == null) // chỉ lấy cha
+                .map(parent -> {
+
+                    // Tìm con của cha này
+                    List<ServiceCategoryResponseDTO> children = allCategories.stream()
+                            .filter(child -> Objects.equals(child.getParentId(), parent.getId()))
+                            .map(this::convertToResponseDTO)
+                            .toList();
+
+                    return ParentCategoryResponseDTO.builder()
+                            .parent(convertToResponseDTO(parent))
+                            .children(children)
+                            .build();
+                })
                 .toList();
 
-        return PageResponse.<ServiceCategoryResponseDTO>builder()
+        return PageResponse.<ParentCategoryResponseDTO>builder()
                 .currentPage(page)
                 .totalPages(serviceCategoryPage.getTotalPages())
                 .totalElements(serviceCategoryPage.getTotalElements())
                 .pageSize(serviceCategoryPage.getSize())
-                .data(serviceCategoryResponses)
+                .data(grouped)
                 .build();
     }
 

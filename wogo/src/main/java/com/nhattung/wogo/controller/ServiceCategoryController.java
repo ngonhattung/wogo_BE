@@ -3,6 +3,7 @@ package com.nhattung.wogo.controller;
 import com.nhattung.wogo.dto.request.ServiceCategoryRequestDTO;
 import com.nhattung.wogo.dto.response.ApiResponse;
 import com.nhattung.wogo.dto.response.PageResponse;
+import com.nhattung.wogo.dto.response.ParentCategoryResponseDTO;
 import com.nhattung.wogo.dto.response.ServiceCategoryResponseDTO;
 import com.nhattung.wogo.service.servicecategory.IServiceCategoryService;
 import lombok.RequiredArgsConstructor;
@@ -68,12 +69,12 @@ public class ServiceCategoryController {
 
     //Tìm kiếm danh mục dịch vụ theo tên cho phần thêm nghiệp vụ thợ
     @GetMapping("/searchByName")
-    public ApiResponse<PageResponse<ServiceCategoryResponseDTO>> searchServiceCategoriesByName(
+    public ApiResponse<PageResponse<ParentCategoryResponseDTO>> searchServiceCategoriesByName(
             @RequestParam String name,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size) {
 
-        return ApiResponse.<PageResponse<ServiceCategoryResponseDTO>>builder()
+        return ApiResponse.<PageResponse<ParentCategoryResponseDTO>>builder()
                 .message("Searched service categories by name successfully")
                 .result(serviceCategoryService.searchServiceCategoriesByName(name, page, size))
                 .build();
