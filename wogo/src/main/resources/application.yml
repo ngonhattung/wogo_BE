@@ -25,3 +25,11 @@ auth:
     expirationInMils: 600000
     refreshExpirationInMils: 3600000
     jwtSecret: 36763979244226452948404D635166546A576D5A7134743777217A25432A462D
+
+
+aws:
+  s3:
+    bucketName: wogobyphodev
+  region: ap-southeast-1
+  accessKey: AKIAYDWHTGML5JGM67E4
+  secretKey: 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
