@@ -14,6 +14,8 @@ import com.nhattung.wogo.exception.AppException;
 import com.nhattung.wogo.repository.RoleRepository;
 import com.nhattung.wogo.repository.UserRepository;
 import com.nhattung.wogo.repository.UserRoleRepository;
+import com.nhattung.wogo.utils.SecurityUtils;
+import com.nhattung.wogo.utils.UploadToS3;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
@@ -22,6 +24,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Optional;
@@ -35,16 +38,18 @@ public class UserService implements IUserService {
     private final ModelMapper modelMapper;
     private final RoleRepository roleRepository;
     private final UserRoleRepository userRoleRepository;
-
+    private final UploadToS3 uploadToS3;
     @Override
     public UserResponseDTO createUser(RegisterRequestDTO request) {
         return Optional.of(request)
                 .filter(user -> !userRepository.existsByPhone(user.getPhone()))
                 .map(req -> {
+
                     User user = User.builder()
                             .phone(request.getPhone())
                             .password(passwordEncoder.encode(request.getPassword()))
                             .isActive(true)
+                            .avatarUrl(request.getAvatarUrl())
                             .fullName(request.getFullName())
                             .build();
                     // Set default role if not provided
@@ -95,14 +100,18 @@ public class UserService implements IUserService {
     }
 
     @Override
-    public UserResponseDTO updateUser(UserRequestDTO user, Long id) {
+    public UserResponseDTO updateUser(UserRequestDTO user, MultipartFile avatar) {
 
-        User existingUser = userRepository.findById(id)
+        User existingUser = userRepository.findById(SecurityUtils.getCurrentUserId())
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
+        String avatarUrl = avatar != null && !avatar.isEmpty()
+                ? uploadToS3.uploadFileToS3(avatar)
+                : existingUser.getAvatarUrl();
+
+        existingUser.setAvatarUrl(avatarUrl);
         existingUser.setFullName(user.getFullName());
         existingUser.setActive(user.isActive());
-        existingUser.setAvatarUrl(user.getAvatarUrl());
 
         // If password is provided, encode and set it
         if (user.getPassword() != null && !user.getPassword().isEmpty()) {

@@ -15,5 +15,6 @@ public class QuestionCategoryRequestDTO {
     private double requiredScore;
     private int totalQuestion;
     private int questionPerTest;
+    private boolean isActive;
     private String description;
 }

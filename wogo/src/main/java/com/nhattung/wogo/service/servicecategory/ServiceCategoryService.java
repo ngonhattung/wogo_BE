@@ -10,6 +10,7 @@ import com.nhattung.wogo.enums.ErrorCode;
 import com.nhattung.wogo.exception.AppException;
 import com.nhattung.wogo.repository.ServiceCategoryRepository;
 import lombok.RequiredArgsConstructor;
+import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -24,6 +25,7 @@ import java.util.Objects;
 public class ServiceCategoryService implements IServiceCategoryService {
 
     private final ServiceCategoryRepository serviceCategoryRepository;
+    private final ModelMapper modelMapper;
 
     @Override
     public ServiceCategoryResponseDTO saveCategory(ServiceCategoryRequestDTO request) {
@@ -153,12 +155,6 @@ public class ServiceCategoryService implements IServiceCategoryService {
     }
 
     private ServiceCategoryResponseDTO convertToResponseDTO(ServiceCategory serviceCategory) {
-        return ServiceCategoryResponseDTO.builder()
-                .id(serviceCategory.getId())
-                .categoryName(serviceCategory.getCategoryName())
-                .description(serviceCategory.getDescription())
-                .parentId(serviceCategory.getParentId())
-                .icon(serviceCategory.getIcon())
-                .build();
+        return modelMapper.map(serviceCategory, ServiceCategoryResponseDTO.class);
     }
 }

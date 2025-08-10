@@ -19,6 +19,10 @@ public enum ErrorCode {
     SERVICE_CATEGORY_NAME_EXISTS(1010, "Service category name already exists", HttpStatus.BAD_REQUEST),
     INVALID_PAGE_SIZE(1011, "Invalid page size", HttpStatus.BAD_REQUEST),
     USER_NOT_FOUND(1012, "User not found", HttpStatus.NOT_FOUND),
+    QUESTION_CATEGORY_NOT_FOUND(1013, "Question category not found", HttpStatus.NOT_FOUND),
+    FILE_SIZE_TOO_LARGE(1014, "File size exceeds the limit of 5MB", HttpStatus.BAD_REQUEST),
+    INVALID_FILE_TYPE(1015, "Invalid file type", HttpStatus.BAD_REQUEST),
+    UPLOAD_IMAGE_ERROR(1016, "Error uploading image", HttpStatus.INTERNAL_SERVER_ERROR),
     ;
 
 

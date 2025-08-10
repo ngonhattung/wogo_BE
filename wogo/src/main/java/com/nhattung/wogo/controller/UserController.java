@@ -5,9 +5,11 @@ import com.nhattung.wogo.dto.response.ApiResponse;
 import com.nhattung.wogo.dto.response.PageResponse;
 import com.nhattung.wogo.dto.response.UserResponseDTO;
 import com.nhattung.wogo.service.user.IUserService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -30,13 +32,14 @@ public class UserController {
     }
 
 
-    @PutMapping("/update/{id}")
+    @PutMapping("/update")
     @PreAuthorize("hasRole('ROLE_ADMIN')")
     public ApiResponse<UserResponseDTO> updateUser(
-            @RequestBody UserRequestDTO user, @PathVariable Long id) {
+            @Valid @ModelAttribute UserRequestDTO user,
+            @RequestParam(value = "avatar", required = false) MultipartFile avatar) {
         return ApiResponse.<UserResponseDTO>builder()
                 .message("User updated successfully")
-                .result(userService.updateUser(user, id))
+                .result(userService.updateUser(user,avatar))
                 .build();
     }
 }
