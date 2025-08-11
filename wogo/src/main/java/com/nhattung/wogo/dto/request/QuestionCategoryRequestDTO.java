@@ -11,9 +11,8 @@ import lombok.NoArgsConstructor;
 @Builder
 public class QuestionCategoryRequestDTO {
 
-    private String categoryServiceName;
+    private Long categoryServiceId;
     private double requiredScore;
-    private int totalQuestion;
     private int questionPerTest;
     private boolean isActive;
     private String description;

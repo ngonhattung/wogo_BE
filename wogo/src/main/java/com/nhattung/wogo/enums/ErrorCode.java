@@ -23,6 +23,8 @@ public enum ErrorCode {
     FILE_SIZE_TOO_LARGE(1014, "File size exceeds the limit of 5MB", HttpStatus.BAD_REQUEST),
     INVALID_FILE_TYPE(1015, "Invalid file type", HttpStatus.BAD_REQUEST),
     UPLOAD_IMAGE_ERROR(1016, "Error uploading image", HttpStatus.INTERNAL_SERVER_ERROR),
+    QUESTION_NOT_FOUND(1017, "Question not found", HttpStatus.NOT_FOUND),
+    QUESTION_OPTION_NOT_FOUND(1018, "Question option not found", HttpStatus.NOT_FOUND),
     ;
 
 

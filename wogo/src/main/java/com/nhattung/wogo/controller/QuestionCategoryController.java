@@ -4,6 +4,7 @@ import com.nhattung.wogo.dto.request.QuestionCategoryRequestDTO;
 import com.nhattung.wogo.dto.response.ApiResponse;
 import com.nhattung.wogo.dto.response.PageResponse;
 import com.nhattung.wogo.dto.response.QuestionCategoryResponseDTO;
+import com.nhattung.wogo.dto.response.QuestionCategoryUpdateResponseDTO;
 import com.nhattung.wogo.service.questioncategory.IQuestionCategoryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -11,14 +12,13 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/v1/question-category-requests")
+@RequestMapping("/api/v1/question-categories")
 public class QuestionCategoryController {
 
     private final IQuestionCategoryService questionCategoryService;
 
 
     @GetMapping("/all")
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
     public ApiResponse<PageResponse<QuestionCategoryResponseDTO>> getAllQuestionCategories(
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size
@@ -30,9 +30,8 @@ public class QuestionCategoryController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
-    public ApiResponse<QuestionCategoryResponseDTO> getQuestionCategoryById(@PathVariable Long id) {
-        return ApiResponse.<QuestionCategoryResponseDTO>builder()
+    public ApiResponse<QuestionCategoryUpdateResponseDTO> getQuestionCategoryById(@PathVariable Long id) {
+        return ApiResponse.<QuestionCategoryUpdateResponseDTO>builder()
                 .message("Fetched question category successfully")
                 .result(questionCategoryService.getCategoryById(id))
                 .build();

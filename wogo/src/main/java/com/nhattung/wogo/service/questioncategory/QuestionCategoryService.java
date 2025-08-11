@@ -1,9 +1,7 @@
 package com.nhattung.wogo.service.questioncategory;
 
 import com.nhattung.wogo.dto.request.QuestionCategoryRequestDTO;
-import com.nhattung.wogo.dto.response.PageResponse;
-import com.nhattung.wogo.dto.response.QuestionCategoryResponseDTO;
-import com.nhattung.wogo.dto.response.ServiceCategoryResponseDTO;
+import com.nhattung.wogo.dto.response.*;
 import com.nhattung.wogo.entity.QuestionCategory;
 import com.nhattung.wogo.entity.ServiceCategory;
 import com.nhattung.wogo.enums.ErrorCode;
@@ -27,10 +25,10 @@ public class QuestionCategoryService implements IQuestionCategoryService{
     private final QuestionCategoryRepository questionCategoryRepository;
     private final ServiceCategoryRepository serviceCategoryService;
     private final ModelMapper modelMapper;
-
+    private final ServiceCategoryRepository serviceCategoryRepository;
     @Override
     public QuestionCategoryResponseDTO saveCategory(QuestionCategoryRequestDTO questionCategory) {
-        ServiceCategory serviceCategory = serviceCategoryService.findByCategoryName(questionCategory.getCategoryServiceName())
+        ServiceCategory serviceCategory = serviceCategoryService.findById(questionCategory.getCategoryServiceId())
                 .orElseThrow(() -> new AppException(ErrorCode.SERVICE_CATEGORY_NOT_FOUND));
 
         QuestionCategory savedQuestionCategory = questionCategoryRepository.save(createQuestionCategory(questionCategory, serviceCategory));
@@ -41,7 +39,6 @@ public class QuestionCategoryService implements IQuestionCategoryService{
         return QuestionCategory.builder()
                 .serviceCategory(serviceCategory)
                 .requiredScore(request.getRequiredScore())
-                .totalQuestions(request.getTotalQuestion())
                 .questionsPerTest(request.getQuestionPerTest())
                 .description(request.getDescription())
                 .isActive(true) // Assuming new categories are active by default
@@ -59,12 +56,11 @@ public class QuestionCategoryService implements IQuestionCategoryService{
     }
 
     public QuestionCategory updateExistingCategory(QuestionCategory existingCategory, QuestionCategoryRequestDTO request) {
-        ServiceCategory serviceCategory = serviceCategoryService.findByCategoryName(request.getCategoryServiceName())
+        ServiceCategory serviceCategory = serviceCategoryService.findById(request.getCategoryServiceId())
                 .orElseThrow(() -> new AppException(ErrorCode.SERVICE_CATEGORY_NOT_FOUND));
 
         existingCategory.setServiceCategory(serviceCategory);
         existingCategory.setRequiredScore(request.getRequiredScore());
-        existingCategory.setTotalQuestions(request.getTotalQuestion());
         existingCategory.setQuestionsPerTest(request.getQuestionPerTest());
         existingCategory.setDescription(request.getDescription());
         existingCategory.setActive(request.isActive());
@@ -73,10 +69,27 @@ public class QuestionCategoryService implements IQuestionCategoryService{
     }
 
     @Override
-    public QuestionCategoryResponseDTO getCategoryById(Long id) {
-        return questionCategoryRepository.findById(id)
-                .map(this::convertToResponseDTO)
+    public QuestionCategoryUpdateResponseDTO getCategoryById(Long id) {
+        QuestionCategory questionCategory = questionCategoryRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.QUESTION_CATEGORY_NOT_FOUND));
+
+        QuestionCategoryResponseDTO currentCategory = convertToResponseDTO(questionCategory);
+
+        // ServiceCategory options từ DB
+        List<OptionResponseDTO> serviceCategoryOptions = serviceCategoryRepository.findByParentIdIsNull()
+                .stream()
+                .map(serviceCategory -> OptionResponseDTO.builder()
+                        .value(String.valueOf(serviceCategory.getId()))
+                        .label(serviceCategory.getCategoryName())
+                        .build())
+                .toList();
+
+        return QuestionCategoryUpdateResponseDTO.builder()
+                .currentQuestionCategory(currentCategory)
+                .serviceCategoriesOptions(serviceCategoryOptions)
+                .build();
+
+
     }
 
     @Override

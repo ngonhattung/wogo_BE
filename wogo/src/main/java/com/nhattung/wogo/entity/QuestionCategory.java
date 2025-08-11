@@ -19,8 +19,8 @@ public class QuestionCategory {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+    private String questionCategoryName;
     private double requiredScore; // Điểm tối thiểu đạt
-    private int totalQuestions;
     private int questionsPerTest; // Số câu hỏi mỗi bài test
     private boolean isActive;
     private String description;

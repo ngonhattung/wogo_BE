@@ -8,9 +8,8 @@ import lombok.Data;
 public class QuestionCategoryResponseDTO {
 
     private Long id;
-    private ServiceCategory categoryService;
+    private ServiceCategoryResponseDTO categoryService;
     private double requiredScore;
     private String description;
-    private int totalQuestion;
     private int questionPerTest;
 }

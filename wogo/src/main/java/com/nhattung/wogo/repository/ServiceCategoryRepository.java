@@ -1,12 +1,14 @@
 package com.nhattung.wogo.repository;
 
 import com.nhattung.wogo.entity.ServiceCategory;
+import io.micrometer.common.KeyValues;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -23,4 +25,6 @@ public interface ServiceCategoryRepository extends JpaRepository<ServiceCategory
 """)
     Page<ServiceCategory> searchByCategoryOrParentName
             (String name, Pageable pageable);
+
+    List<ServiceCategory> findByParentIdIsNull();
 }
