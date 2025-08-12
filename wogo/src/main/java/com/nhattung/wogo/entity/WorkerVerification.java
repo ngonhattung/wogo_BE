@@ -47,8 +47,8 @@ public class WorkerVerification {
     private WorkerVerificationTest workerVerificationTest;
 
     @OneToOne
-    @JoinColumn(name = "service_category_id", nullable = false)
-    private ServiceCategory serviceCategory;
+    @JoinColumn(name = "service_id", nullable = false)
+    private ServiceWG service;
 
 
 }

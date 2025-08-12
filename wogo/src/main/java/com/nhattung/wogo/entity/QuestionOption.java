@@ -22,7 +22,6 @@ public class QuestionOption {
     private Long id;
     private String optionText;
     private boolean isCorrect;
-    private boolean isActive;
     private int orderIndex;
 
 

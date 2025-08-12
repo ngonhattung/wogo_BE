@@ -25,7 +25,7 @@ public class WorkerVerificationTest {
     private int totalQuestions;
     private int correctAnswers;
     private double scorePercentage;
-    private double passThreshold;
+    private double passThreshold; // Điểm tối thiểu để đạt bài test
     private boolean isPassed;
 
     @Enumerated(EnumType.STRING)

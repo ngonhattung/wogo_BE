@@ -51,7 +51,7 @@ public class Booking {
 
     @ManyToOne
     @JoinColumn(name = "service_id", nullable = false)
-    private Service service;
+    private ServiceWG service;
 
     @OneToMany(mappedBy = "booking", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Review> reviews;

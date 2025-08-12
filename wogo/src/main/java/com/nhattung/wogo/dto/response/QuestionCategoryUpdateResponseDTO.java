@@ -9,5 +9,5 @@ import java.util.List;
 @Builder
 public class QuestionCategoryUpdateResponseDTO {
     private QuestionCategoryResponseDTO currentQuestionCategory;
-    private List<OptionResponseDTO> serviceCategoriesOptions;
+    private List<OptionResponseDTO> serviceOptions;
 }

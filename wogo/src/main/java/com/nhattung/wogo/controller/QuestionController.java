@@ -7,8 +7,11 @@ import com.nhattung.wogo.dto.response.QuestionResponseDTO;
 import com.nhattung.wogo.dto.response.QuestionUpdateResponseDTO;
 import com.nhattung.wogo.service.question.IQuestionService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
 
 @RestController
 @RequiredArgsConstructor
@@ -36,20 +39,24 @@ public class QuestionController {
                 .build();
     }
 
-    @PostMapping("/save")
+    @PostMapping(value = "/save",consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasRole('ROLE_ADMIN')")
-    public ApiResponse<QuestionResponseDTO> saveQuestion(@RequestBody QuestionRequestDTO questionRequest) {
+    public ApiResponse<QuestionResponseDTO> saveQuestion(@ModelAttribute QuestionRequestDTO questionRequest,
+                                                         @RequestParam(value = "image", required = false) MultipartFile imageFile) {
+
         return ApiResponse.<QuestionResponseDTO>builder()
-                .result(questionService.saveQuestion(questionRequest))
+                .result(questionService.saveQuestion(questionRequest,imageFile))
                 .message("Successfully saved question")
                 .build();
     }
 
-    @PutMapping("/update/{id}")
+    @PutMapping(value = "/update/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasRole('ROLE_ADMIN')")
-    public ApiResponse<QuestionResponseDTO> updateQuestion(@PathVariable Long id, @RequestBody QuestionRequestDTO questionRequest) {
+    public ApiResponse<QuestionResponseDTO> updateQuestion(@PathVariable Long id,
+                                                           @ModelAttribute QuestionRequestDTO questionRequest,
+                                                           @RequestParam(value = "image", required = false) MultipartFile imageFile) {
         return ApiResponse.<QuestionResponseDTO>builder()
-                .result(questionService.updateQuestion(id, questionRequest))
+                .result(questionService.updateQuestion(id, questionRequest,imageFile))
                 .message("Successfully updated question with ID: " + id)
                 .build();
     }

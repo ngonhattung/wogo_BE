@@ -35,5 +35,5 @@ public class WorkerService {
 
     @ManyToOne
     @JoinColumn(name = "service_id", nullable = false)
-    private Service service;
+    private ServiceWG service;
 }

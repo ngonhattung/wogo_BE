@@ -1,6 +1,5 @@
 package com.nhattung.wogo.service.question;
 
-import com.nhattung.wogo.dto.request.QuestionOptionRequestDTO;
 import com.nhattung.wogo.dto.request.QuestionRequestDTO;
 import com.nhattung.wogo.dto.response.*;
 import com.nhattung.wogo.entity.Question;
@@ -9,11 +8,10 @@ import com.nhattung.wogo.enums.DifficultyLevel;
 import com.nhattung.wogo.enums.ErrorCode;
 import com.nhattung.wogo.enums.QuestionType;
 import com.nhattung.wogo.exception.AppException;
-import com.nhattung.wogo.repository.QuestionCategoryRepository;
 import com.nhattung.wogo.repository.QuestionRepository;
-import com.nhattung.wogo.repository.ServiceCategoryRepository;
-import com.nhattung.wogo.service.questioncategory.QuestionCategoryService;
+import com.nhattung.wogo.service.questioncategory.IQuestionCategoryService;
 import com.nhattung.wogo.service.questionoption.QuestionOptionService;
+import com.nhattung.wogo.utils.UploadToS3;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
@@ -21,6 +19,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -31,18 +30,17 @@ import java.util.List;
 public class QuestionService implements IQuestionService{
 
     private final QuestionRepository questionRepository;
-    private final QuestionCategoryRepository questionCategoryRepository;
+    private final IQuestionCategoryService questionCategoryService;
     private final ModelMapper modelMapper;
-    private final ServiceCategoryRepository serviceCategoryRepository;
     private final QuestionOptionService questionOptionService;
+    private final UploadToS3 uploadToS3;
     @Override
-    public QuestionResponseDTO saveQuestion(QuestionRequestDTO requestDTO) {
+    public QuestionResponseDTO saveQuestion(QuestionRequestDTO requestDTO, MultipartFile imageFile) {
 
-        QuestionCategory questionCategory = questionCategoryRepository.findById(requestDTO.getQuestionCategoryId())
-                .orElseThrow(() -> new AppException(ErrorCode.QUESTION_CATEGORY_NOT_FOUND));
+        QuestionCategory questionCategory = questionCategoryService.getCategoryEntityById(requestDTO.getQuestionCategoryId());
 
         Question savedQuestion = questionRepository.save(
-                createQuestion(requestDTO, questionCategory)
+                createQuestion(requestDTO, questionCategory,imageFile)
         );
 
         // Save question options if provided
@@ -61,40 +59,48 @@ public class QuestionService implements IQuestionService{
 
     }
 
-    private Question createQuestion(QuestionRequestDTO requestDTO, QuestionCategory questionCategory) {
+    private Question createQuestion(QuestionRequestDTO requestDTO, QuestionCategory questionCategory, MultipartFile imageFile) {
+
+        String imageUrl = imageFile != null && !imageFile.isEmpty()
+                ? uploadToS3.uploadFileToS3(imageFile)
+                : null;
+
         return Question.builder()
                 .questionCategory(questionCategory)
                 .questionText(requestDTO.getQuestionText())
                 .questionType(requestDTO.getQuestionType())
                 .difficultyLevel(requestDTO.getDifficultyLevel())
                 .explanation(requestDTO.getExplanation())
-                .imageUrl(requestDTO.getImageUrl())
+                .imageUrl(imageUrl)
                 .isActive(true)
                 .build();
     }
 
     @Override
-    public QuestionResponseDTO updateQuestion(Long id, QuestionRequestDTO requestDTO) {
+    public QuestionResponseDTO updateQuestion(Long id, QuestionRequestDTO requestDTO, MultipartFile imageFile) {
         Question existingQuestion = questionRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.QUESTION_NOT_FOUND));
 
-        Question updatedQuestion = updateExistingQuestion(existingQuestion, requestDTO);
+        Question updatedQuestion = updateExistingQuestion(existingQuestion, requestDTO, imageFile);
 
         return convertToResponseDTO(updatedQuestion);
     }
 
-    private Question updateExistingQuestion(Question existingQuestion, QuestionRequestDTO requestDTO) {
+    private Question updateExistingQuestion(Question existingQuestion, QuestionRequestDTO requestDTO, MultipartFile imageFile) {
 
-        QuestionCategory questionCategory = questionCategoryRepository.findById(requestDTO.getQuestionCategoryId())
-                .orElseThrow(() -> new AppException(ErrorCode.QUESTION_CATEGORY_NOT_FOUND));
+        QuestionCategory questionCategory = questionCategoryService.getCategoryEntityById(requestDTO.getQuestionCategoryId());
+
+        String imageUrl = imageFile != null && !imageFile.isEmpty()
+                ? uploadToS3.uploadFileToS3(imageFile)
+                : null;
 
         existingQuestion.setQuestionText(requestDTO.getQuestionText());
         existingQuestion.setQuestionType(requestDTO.getQuestionType());
         existingQuestion.setDifficultyLevel(requestDTO.getDifficultyLevel());
         existingQuestion.setExplanation(requestDTO.getExplanation());
-        existingQuestion.setImageUrl(requestDTO.getImageUrl());
+        existingQuestion.setImageUrl(imageUrl);
         existingQuestion.setQuestionCategory(questionCategory);
-        existingQuestion.setActive(requestDTO.isActive());
+        existingQuestion.setActive(requestDTO.getIsActive());
 
         return questionRepository.save(existingQuestion);
     }
@@ -106,14 +112,8 @@ public class QuestionService implements IQuestionService{
 
         QuestionResponseDTO currentData = convertToResponseDTO(question);
 
-        // ServiceCategory options từ DB
-        List<OptionResponseDTO> serviceCategoryOptions = serviceCategoryRepository.findAll()
-                .stream()
-                .map(serviceCategory -> OptionResponseDTO.builder()
-                        .value(String.valueOf(serviceCategory.getId()))
-                        .label(serviceCategory.getCategoryName())
-                        .build())
-                .toList();
+        // QuestionCategory options từ DB
+        List<OptionResponseDTO> serviceCategoryOptions = questionCategoryService.getAllCategoriesOptions();
 
         // QuestionType options từ enum
         List<OptionResponseDTO> questionTypeOptions = Arrays.stream(QuestionType.values())

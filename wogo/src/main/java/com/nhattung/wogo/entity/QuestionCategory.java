@@ -31,8 +31,8 @@ public class QuestionCategory {
     private Timestamp updatedAt;
 
     @OneToOne
-    @JoinColumn(name = "service_category_id", nullable = false)
-    private ServiceCategory serviceCategory;
+    @JoinColumn(name = "service_id", nullable = false)
+    private ServiceWG service;
 
     @OneToMany(mappedBy = "questionCategory", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Question> questions;

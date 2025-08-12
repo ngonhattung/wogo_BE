@@ -43,7 +43,6 @@ public class QuestionOptionService implements IQuestionOptionService{
                 .optionText(request.getOptionText())
                 .isCorrect(request.isCorrect())
                 .orderIndex(request.getOrderIndex())
-                .isActive(true)
                 .build();
     }
 
@@ -65,7 +64,6 @@ public class QuestionOptionService implements IQuestionOptionService{
         existingOption.setOptionText(request.getOptionText());
         existingOption.setCorrect(request.isCorrect());
         existingOption.setOrderIndex(request.getOrderIndex());
-        existingOption.setActive(request.isActive());
 
         return questionOptionRepository.save(existingOption);
     }

@@ -14,8 +14,7 @@ public class QuestionRequestDTO {
     private QuestionType questionType;    //combobox
     private DifficultyLevel difficultyLevel; //combobox
     private String explanation;
-    private String imageUrl;
     private Long questionCategoryId;
-    private boolean isActive;
+    private Boolean isActive;
     private List<QuestionOptionRequestDTO> questionOptions;
 }

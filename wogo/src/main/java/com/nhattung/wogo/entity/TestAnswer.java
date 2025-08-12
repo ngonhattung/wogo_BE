@@ -23,8 +23,6 @@ public class TestAnswer {
 
     @CreationTimestamp
     private Timestamp createdAt;
-    @UpdateTimestamp
-    private Timestamp updatedAt;
 
     @ManyToOne
     @JoinColumn(name = "question_id", nullable = false)

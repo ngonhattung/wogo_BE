@@ -3,11 +3,11 @@ package com.nhattung.wogo.service.questioncategory;
 import com.nhattung.wogo.dto.request.QuestionCategoryRequestDTO;
 import com.nhattung.wogo.dto.response.*;
 import com.nhattung.wogo.entity.QuestionCategory;
-import com.nhattung.wogo.entity.ServiceCategory;
+import com.nhattung.wogo.entity.ServiceWG;
 import com.nhattung.wogo.enums.ErrorCode;
 import com.nhattung.wogo.exception.AppException;
 import com.nhattung.wogo.repository.QuestionCategoryRepository;
-import com.nhattung.wogo.repository.ServiceCategoryRepository;
+import com.nhattung.wogo.service.service.IServiceService;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
@@ -23,25 +23,23 @@ import java.util.List;
 public class QuestionCategoryService implements IQuestionCategoryService{
 
     private final QuestionCategoryRepository questionCategoryRepository;
-    private final ServiceCategoryRepository serviceCategoryService;
     private final ModelMapper modelMapper;
-    private final ServiceCategoryRepository serviceCategoryRepository;
+    private final IServiceService serviceServiceWG;
     @Override
-    public QuestionCategoryResponseDTO saveCategory(QuestionCategoryRequestDTO questionCategory) {
-        ServiceCategory serviceCategory = serviceCategoryService.findById(questionCategory.getCategoryServiceId())
-                .orElseThrow(() -> new AppException(ErrorCode.SERVICE_CATEGORY_NOT_FOUND));
+    public QuestionCategoryResponseDTO saveCategory(QuestionCategoryRequestDTO request) {
+        ServiceWG service= serviceServiceWG.getServiceByIdEntity(request.getServiceId());
 
-        QuestionCategory savedQuestionCategory = questionCategoryRepository.save(createQuestionCategory(questionCategory, serviceCategory));
+        QuestionCategory savedQuestionCategory = questionCategoryRepository.save(createQuestionCategory(request, service));
 
         return convertToResponseDTO(savedQuestionCategory);
     }
-    private QuestionCategory createQuestionCategory(QuestionCategoryRequestDTO request, ServiceCategory serviceCategory) {
+    private QuestionCategory createQuestionCategory(QuestionCategoryRequestDTO request, ServiceWG service) {
         return QuestionCategory.builder()
-                .serviceCategory(serviceCategory)
+                .service(service)
                 .requiredScore(request.getRequiredScore())
                 .questionsPerTest(request.getQuestionPerTest())
                 .description(request.getDescription())
-                .isActive(true) // Assuming new categories are active by default
+                .isActive(true)
                 .build();
     }
 
@@ -56,10 +54,10 @@ public class QuestionCategoryService implements IQuestionCategoryService{
     }
 
     public QuestionCategory updateExistingCategory(QuestionCategory existingCategory, QuestionCategoryRequestDTO request) {
-        ServiceCategory serviceCategory = serviceCategoryService.findById(request.getCategoryServiceId())
-                .orElseThrow(() -> new AppException(ErrorCode.SERVICE_CATEGORY_NOT_FOUND));
+        ServiceWG service= serviceServiceWG.getServiceByIdEntity(request.getServiceId());
 
-        existingCategory.setServiceCategory(serviceCategory);
+        existingCategory.setService(service);
+        existingCategory.setQuestionCategoryName(request.getQuestionCategoryName());
         existingCategory.setRequiredScore(request.getRequiredScore());
         existingCategory.setQuestionsPerTest(request.getQuestionPerTest());
         existingCategory.setDescription(request.getDescription());
@@ -76,20 +74,20 @@ public class QuestionCategoryService implements IQuestionCategoryService{
         QuestionCategoryResponseDTO currentCategory = convertToResponseDTO(questionCategory);
 
         // ServiceCategory options từ DB
-        List<OptionResponseDTO> serviceCategoryOptions = serviceCategoryRepository.findByParentIdIsNull()
-                .stream()
-                .map(serviceCategory -> OptionResponseDTO.builder()
-                        .value(String.valueOf(serviceCategory.getId()))
-                        .label(serviceCategory.getCategoryName())
-                        .build())
-                .toList();
+        List<OptionResponseDTO> serviceOptions = serviceServiceWG.getServiceOptions();
 
         return QuestionCategoryUpdateResponseDTO.builder()
                 .currentQuestionCategory(currentCategory)
-                .serviceCategoriesOptions(serviceCategoryOptions)
+                .serviceOptions(serviceOptions)
                 .build();
 
 
+    }
+
+    @Override
+    public QuestionCategory getCategoryEntityById(Long id) {
+        return questionCategoryRepository.findById(id)
+                .orElseThrow(() -> new AppException(ErrorCode.QUESTION_CATEGORY_NOT_FOUND));
     }
 
     @Override
@@ -100,6 +98,17 @@ public class QuestionCategoryService implements IQuestionCategoryService{
                     throw new AppException(ErrorCode.QUESTION_CATEGORY_NOT_FOUND);
                 }
         );
+    }
+
+    @Override
+    public List<OptionResponseDTO> getAllCategoriesOptions() {
+        return questionCategoryRepository.findAll()
+                .stream()
+                .map(questionCategory -> OptionResponseDTO.builder()
+                        .value(String.valueOf(questionCategory.getId()))
+                        .label(questionCategory.getQuestionCategoryName())
+                        .build())
+                .toList();
     }
 
     @Override

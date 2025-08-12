@@ -5,11 +5,9 @@ import lombok.Data;
 
 @Data
 @Builder
-public class ServiceCategoryRequestDTO {
-
-    private String categoryName;
+public class ServiceRequestDTO {
+    private String serviceName;
     private String description;
+    private Boolean isActive;
     private Long parentId;
-    private boolean isActive;
-    private String icon;
 }

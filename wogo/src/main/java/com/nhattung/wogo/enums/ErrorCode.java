@@ -25,6 +25,8 @@ public enum ErrorCode {
     UPLOAD_IMAGE_ERROR(1016, "Error uploading image", HttpStatus.INTERNAL_SERVER_ERROR),
     QUESTION_NOT_FOUND(1017, "Question not found", HttpStatus.NOT_FOUND),
     QUESTION_OPTION_NOT_FOUND(1018, "Question option not found", HttpStatus.NOT_FOUND),
+    SERVICE_NAME_EXISTS(1019, "Service name already exists", HttpStatus.BAD_REQUEST),
+    SERVICE_NOT_FOUND(1020, "Service not found", HttpStatus.NOT_FOUND),
     ;
 
 

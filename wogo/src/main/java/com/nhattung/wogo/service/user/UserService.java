@@ -3,7 +3,6 @@ package com.nhattung.wogo.service.user;
 import com.nhattung.wogo.dto.request.RegisterRequestDTO;
 import com.nhattung.wogo.dto.request.UserRequestDTO;
 import com.nhattung.wogo.dto.response.PageResponse;
-import com.nhattung.wogo.dto.response.ServiceCategoryResponseDTO;
 import com.nhattung.wogo.dto.response.UserResponseDTO;
 import com.nhattung.wogo.entity.Role;
 import com.nhattung.wogo.entity.User;

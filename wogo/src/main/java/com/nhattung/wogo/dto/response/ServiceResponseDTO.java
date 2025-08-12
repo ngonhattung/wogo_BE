@@ -1,14 +1,13 @@
 package com.nhattung.wogo.dto.response;
 
-import lombok.Builder;
 import lombok.Data;
 
 @Data
-public class ServiceCategoryResponseDTO {
-
+public class ServiceResponseDTO {
     private Long id;
-    private String categoryName;
+    private String serviceName;
     private String description;
+    private String iconUrl;
     private Long parentId;
-    private String icon;
+    private boolean isActive;
 }
