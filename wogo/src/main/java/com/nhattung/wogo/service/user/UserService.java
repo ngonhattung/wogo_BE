@@ -122,6 +122,34 @@ public class UserService implements IUserService {
 
     }
 
+    @Override
+    public User getUserByIdEntity(Long userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+    }
+
+    @Override
+    public void addUserRole(Long userId, String roleName) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+
+        Role role = roleRepository.findByRoleName(roleName)
+                .orElseThrow(() -> new AppException(ErrorCode.ROLE_NOT_FOUND));
+
+        // Check if the user already has this role
+        if (userRoleRepository.existsByUserAndRole(user, role)) {
+            throw new AppException(ErrorCode.ROLE_ALREADY_EXISTS);
+        }
+
+        UserRole userRole = UserRole.builder()
+                .user(user)
+                .role(role)
+                .isActive(true)
+                .build();
+
+        userRoleRepository.save(userRole);
+    }
+
     public UserResponseDTO convertUserToDto(User user) {
         return modelMapper.map(user, UserResponseDTO.class);
     }

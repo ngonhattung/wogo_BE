@@ -173,6 +173,13 @@ public class QuestionService implements IQuestionService{
                 .build();
     }
 
+    @Override
+    public List<QuestionResponseDTO> findRandomQuestions(Long categoryId) {
+        return questionRepository.findRandomQuestions(categoryId).stream()
+                .map(this::convertToResponseDTO)
+                .toList();
+    }
+
 
     private QuestionResponseDTO convertToResponseDTO(Question question) {
         return modelMapper.map(question, QuestionResponseDTO.class);

@@ -27,6 +27,11 @@ public enum ErrorCode {
     QUESTION_OPTION_NOT_FOUND(1018, "Question option not found", HttpStatus.NOT_FOUND),
     SERVICE_NAME_EXISTS(1019, "Service name already exists", HttpStatus.BAD_REQUEST),
     SERVICE_NOT_FOUND(1020, "Service not found", HttpStatus.NOT_FOUND),
+    TEST_NOT_FOUND(1021, "Test not found", HttpStatus.NOT_FOUND),
+    VERIFICATION_NOT_FOUND(1022, "Verification not found", HttpStatus.NOT_FOUND),
+    ROLE_ALREADY_EXISTS(1023, "Role already exists", HttpStatus.BAD_REQUEST),
+    WORKER_SERVICE_EXISTS(1024, "Worker service already exists", HttpStatus.BAD_REQUEST),
+    WORKER_VERIFICATION_TEST_NOT_FOUND(1025, "Worker verification test not found", HttpStatus.NOT_FOUND),
     ;
 
 

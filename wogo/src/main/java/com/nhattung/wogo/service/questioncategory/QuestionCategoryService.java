@@ -91,6 +91,12 @@ public class QuestionCategoryService implements IQuestionCategoryService{
     }
 
     @Override
+    public QuestionCategory getCategoryEntityByServiceId(Long serviceId) {
+        return questionCategoryRepository.findByServiceId(serviceId)
+                .orElseThrow(() -> new AppException(ErrorCode.QUESTION_CATEGORY_NOT_FOUND));
+    }
+
+    @Override
     public void deleteCategory(Long id) {
         questionCategoryRepository.findById(id).ifPresentOrElse(
                 questionCategoryRepository::delete,

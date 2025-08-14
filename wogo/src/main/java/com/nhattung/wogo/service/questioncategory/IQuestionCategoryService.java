@@ -15,6 +15,7 @@ public interface IQuestionCategoryService {
     QuestionCategoryResponseDTO updateCategory(Long id, QuestionCategoryRequestDTO questionCategory);
     QuestionCategoryUpdateResponseDTO getCategoryById(Long id);
     QuestionCategory getCategoryEntityById(Long id);
+    QuestionCategory getCategoryEntityByServiceId(Long serviceId);
     void deleteCategory(Long id);
     List<OptionResponseDTO> getAllCategoriesOptions();
     PageResponse<QuestionCategoryResponseDTO> getAllCategories(int page, int size);

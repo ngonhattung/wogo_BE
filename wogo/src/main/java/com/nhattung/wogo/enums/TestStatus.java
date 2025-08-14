@@ -2,7 +2,6 @@ package com.nhattung.wogo.enums;
 
 public enum TestStatus {
     IN_PROGRESS("In Progress"),
-    COMPLETED("Completed"),
     FAILED("Failed"),
     PASSED("Passed");
 

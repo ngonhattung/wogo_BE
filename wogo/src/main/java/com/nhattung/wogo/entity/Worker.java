@@ -22,7 +22,7 @@ public class Worker {
     private Long id;
 
     private String description;
-    private int ratingAverage;
+    private double ratingAverage;
     private int totalJobs;
     private int totalReviews;
 

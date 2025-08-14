@@ -18,7 +18,6 @@ public class TestAnswer {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    private String answerText;
     private boolean isCorrect;
 
     @CreationTimestamp

@@ -24,7 +24,7 @@ public class WorkerVerificationTest {
     private String testCode;
     private int totalQuestions;
     private int correctAnswers;
-    private double scorePercentage;
+    private double scorePercentage; // Tỷ lệ phần trăm điểm số đạt được
     private double passThreshold; // Điểm tối thiểu để đạt bài test
     private boolean isPassed;
 
