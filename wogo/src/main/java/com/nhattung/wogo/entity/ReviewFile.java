@@ -19,10 +19,10 @@ public class ReviewFile {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+    private String fileName;
     private String fileUrl;
 
-    @Enumerated(EnumType.STRING)
-    private FileType fileType; // IMAGE, VIDEO
+    private String fileType;
     private String caption;
 
     @CreationTimestamp

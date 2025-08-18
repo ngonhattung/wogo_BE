@@ -15,4 +15,5 @@ public interface IUserService {
     User getUserByIdEntity(Long userId);
     //add userRole for user
     void addUserRole(Long userId, String roleName);
+    boolean isExistRole(Long userId, String roleName);
 }

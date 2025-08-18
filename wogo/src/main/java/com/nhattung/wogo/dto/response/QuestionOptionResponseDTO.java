@@ -7,7 +7,6 @@ import lombok.Data;
 public class QuestionOptionResponseDTO {
     private Long id;
     private String optionText;
-    private boolean isCorrect;
     private int orderIndex;
     private Long questionId;
 }

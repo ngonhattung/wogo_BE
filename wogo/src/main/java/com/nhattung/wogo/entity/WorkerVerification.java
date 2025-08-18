@@ -25,8 +25,6 @@ public class WorkerVerification {
     @Enumerated(EnumType.STRING)
     private VerificationType verificationType;
 
-    private boolean documentVerified;
-
     @Enumerated(EnumType.STRING)
     private VerificationStatus verificationStatus;
 
@@ -38,15 +36,19 @@ public class WorkerVerification {
     @UpdateTimestamp
     private Timestamp updatedAt;
 
-    @OneToOne
+    @ManyToOne
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @OneToOne
-    @JoinColumn(name = "worker_verification_test_id", nullable = false)
+    @OneToOne(cascade = CascadeType.ALL)
+    @JoinColumn(name = "worker_verification_test_id")
     private WorkerVerificationTest workerVerificationTest;
 
-    @OneToOne
+    @OneToOne(cascade = CascadeType.ALL)
+    @JoinColumn(name = "worker_document_id")
+    private WorkerDocument workerDocument;
+
+    @ManyToOne
     @JoinColumn(name = "service_id", nullable = false)
     private ServiceWG service;
 

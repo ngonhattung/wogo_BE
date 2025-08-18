@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 
 @Service
@@ -40,9 +41,11 @@ public class ServiceService implements IServiceService{
 
     private ServiceWG createService(ServiceRequestDTO request, MultipartFile imageFile) {
 
-        String iconUrl = imageFile != null && !imageFile.isEmpty()
-                ? uploadToS3.uploadFileToS3(imageFile)
-                : null;
+        String iconUrl = null;
+        if (imageFile != null && !imageFile.isEmpty()) {
+            UploadS3Response uploadResponse = uploadToS3.uploadFileToS3(imageFile);
+            iconUrl = uploadResponse != null ? uploadResponse.getFileUrl() : null;
+        }
 
         return ServiceWG.builder()
                 .serviceName(request.getServiceName())
@@ -64,9 +67,11 @@ public class ServiceService implements IServiceService{
     }
 
     private ServiceWG updateExistingService(ServiceWG existingService, ServiceRequestDTO request, MultipartFile imageFile) {
-        String iconUrl = imageFile != null && !imageFile.isEmpty()
-                ? uploadToS3.uploadFileToS3(imageFile)
-                : null;
+        String iconUrl = null;
+        if (imageFile != null && !imageFile.isEmpty()) {
+            UploadS3Response uploadResponse = uploadToS3.uploadFileToS3(imageFile);
+            iconUrl = uploadResponse != null ? uploadResponse.getFileUrl() : null;
+        }
 
         existingService.setServiceName(request.getServiceName());
         existingService.setDescription(request.getDescription());

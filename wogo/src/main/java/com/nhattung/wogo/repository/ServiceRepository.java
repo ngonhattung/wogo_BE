@@ -15,10 +15,13 @@ public interface ServiceRepository extends JpaRepository<ServiceWG, Long> {
 
 
     @Query("""
-    SELECT c FROM ServiceWG c
+    SELECT DISTINCT c
+    FROM ServiceWG c
     LEFT JOIN ServiceWG p ON c.parentId = p.id
+    LEFT JOIN ServiceWG ch ON ch.parentId = c.id
     WHERE LOWER(c.serviceName) LIKE LOWER(CONCAT('%', :serviceName, '%'))
-       OR LOWER(p.serviceName) LIKE LOWER(CONCAT('%', :serviceName, '%'))
+    OR LOWER(p.serviceName) LIKE LOWER(CONCAT('%', :serviceName, '%'))
+    OR LOWER(ch.serviceName) LIKE LOWER(CONCAT('%', :serviceName, '%'))
 """)
     Page<ServiceWG> searchByServiceOrParentName(String serviceName, Pageable pageable);
 

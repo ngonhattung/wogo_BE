@@ -1,53 +1,51 @@
 package com.nhattung.wogo.service.workerverification;
 
 import com.nhattung.wogo.dto.request.WorkerVerificationRequestDTO;
-import com.nhattung.wogo.dto.response.WorkerVerificationResponseDTO;
+import com.nhattung.wogo.entity.ServiceWG;
 import com.nhattung.wogo.entity.WorkerVerification;
-import com.nhattung.wogo.entity.WorkerVerificationTest;
 import com.nhattung.wogo.enums.ErrorCode;
 import com.nhattung.wogo.enums.VerificationStatus;
 import com.nhattung.wogo.exception.AppException;
 import com.nhattung.wogo.repository.WorkerVerificationRepository;
-import com.nhattung.wogo.repository.WorkerVerificationTestRepository;
+import com.nhattung.wogo.service.service.IServiceService;
 import lombok.RequiredArgsConstructor;
-import org.modelmapper.ModelMapper;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class WorkerVerificationService implements IWorkerVerificationService{
 
     private final WorkerVerificationRepository workerVerificationRepository;
-    private final WorkerVerificationTestRepository workerVerificationTestRepository;
-    private final ModelMapper modelMapper;
+    private final IServiceService serviceService;
     @Override
-    public WorkerVerificationResponseDTO saveWorkerVerification(WorkerVerificationRequestDTO request) {
+    public void saveWorkerVerification(WorkerVerificationRequestDTO request) {
 
-        WorkerVerification workerVerification = createWorkerVerification(request);
+        ServiceWG service = serviceService.getServiceByIdEntity(request.getServiceId());
 
-        return convertToResponseDTO(
-                workerVerificationRepository.save(workerVerification)
-        );
+        WorkerVerification workerVerification = createWorkerVerification(request,service);
+
+        workerVerificationRepository.save(workerVerification);
     }
 
-    private WorkerVerification createWorkerVerification(WorkerVerificationRequestDTO request) {
+    private WorkerVerification createWorkerVerification(WorkerVerificationRequestDTO request, ServiceWG service) {
         return WorkerVerification.builder()
                 .verificationType(request.getVerificationType())
-                .documentVerified(false)
                 .workerVerificationTest(request.getVerificationTest())
                 .verificationStatus(VerificationStatus.PENDING)
                 .user(request.getUser())
+                .service(service)
+                .workerDocument(request.getWorkerDocument())
                 .build();
     }
 
     @Override
-    public WorkerVerificationResponseDTO updateWorkerVerification(Long verificationId, WorkerVerificationRequestDTO request) {
+    public void updateWorkerVerification(Long verificationId, WorkerVerificationRequestDTO request) {
         WorkerVerification existingVerification = workerVerificationRepository.findById(verificationId)
                 .orElseThrow(() -> new AppException(ErrorCode.VERIFICATION_NOT_FOUND));
 
-        existingVerification.setDocumentVerified(request.isDocumentVerified());
         existingVerification.setVerificationStatus(request.getVerificationStatus());
         existingVerification.setRejectionReason(request.getRejectionReason());
 
@@ -56,9 +54,8 @@ public class WorkerVerificationService implements IWorkerVerificationService{
             existingVerification.setApprovedAt(request.getApprovedAt());
         }
 
-        return convertToResponseDTO(
-                workerVerificationRepository.save(existingVerification)
-        );
+
+        workerVerificationRepository.save(existingVerification);
     }
 
     @Override
@@ -67,8 +64,16 @@ public class WorkerVerificationService implements IWorkerVerificationService{
                 .orElseThrow(() -> new AppException(ErrorCode.VERIFICATION_NOT_FOUND));
     }
 
+    @Override
+    public WorkerVerification getWorkerVerificationById(Long id) {
+        return workerVerificationRepository.findById(id)
+                .orElseThrow(() -> new AppException(ErrorCode.VERIFICATION_NOT_FOUND));
+    }
 
-    private WorkerVerificationResponseDTO convertToResponseDTO(WorkerVerification workerVerification) {
-        return modelMapper.map(workerVerification, WorkerVerificationResponseDTO.class);
-        }
+    @Override
+    public WorkerVerification getWorkerVerificationByWorkerDocumentId(Long id) {
+        return workerVerificationRepository.findByWorkerDocumentId(id)
+                .orElseThrow(() -> new AppException(ErrorCode.VERIFICATION_NOT_FOUND));
+    }
+
 }

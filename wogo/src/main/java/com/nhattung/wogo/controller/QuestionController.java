@@ -22,8 +22,9 @@ public class QuestionController {
 
 
     @GetMapping("/all")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     public ApiResponse<PageResponse<QuestionResponseDTO>> getAllQuestions(
-            @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "page", defaultValue = "1") int page,
             @RequestParam(value = "size", defaultValue = "10") int size) {
         return ApiResponse.<PageResponse<QuestionResponseDTO>>builder()
                 .result(questionService.getAllQuestions(page, size))
@@ -32,6 +33,7 @@ public class QuestionController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     public ApiResponse<QuestionUpdateResponseDTO> getQuestionById(@PathVariable Long id) {
         return ApiResponse.<QuestionUpdateResponseDTO>builder()
                 .result(questionService.getQuestionById(id))

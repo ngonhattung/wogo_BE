@@ -7,7 +7,6 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 @Data
-@Builder
 public class WorkerVerificationTestResponseDTO {
     private Long id;
     private String testCode;

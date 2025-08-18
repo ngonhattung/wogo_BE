@@ -3,6 +3,7 @@ package com.nhattung.wogo.service.user;
 import com.nhattung.wogo.dto.request.RegisterRequestDTO;
 import com.nhattung.wogo.dto.request.UserRequestDTO;
 import com.nhattung.wogo.dto.response.PageResponse;
+import com.nhattung.wogo.dto.response.UploadS3Response;
 import com.nhattung.wogo.dto.response.UserResponseDTO;
 import com.nhattung.wogo.entity.Role;
 import com.nhattung.wogo.entity.User;
@@ -104,11 +105,13 @@ public class UserService implements IUserService {
         User existingUser = userRepository.findById(SecurityUtils.getCurrentUserId())
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
-        String avatarUrl = avatar != null && !avatar.isEmpty()
-                ? uploadToS3.uploadFileToS3(avatar)
-                : existingUser.getAvatarUrl();
+        String imageUrl = null;
+        if (avatar != null && !avatar.isEmpty()) {
+            UploadS3Response uploadResponse = uploadToS3.uploadFileToS3(avatar);
+            imageUrl = uploadResponse != null ? uploadResponse.getFileUrl() : null;
+        }
 
-        existingUser.setAvatarUrl(avatarUrl);
+        existingUser.setAvatarUrl(imageUrl);
         existingUser.setFullName(user.getFullName());
         existingUser.setActive(user.isActive());
 
@@ -148,6 +151,17 @@ public class UserService implements IUserService {
                 .build();
 
         userRoleRepository.save(userRole);
+    }
+
+    @Override
+    public boolean isExistRole(Long userId, String roleName) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+
+        Role role = roleRepository.findByRoleName(roleName)
+                .orElseThrow(() -> new AppException(ErrorCode.ROLE_NOT_FOUND));
+
+        return userRoleRepository.existsByUserAndRole(user, role);
     }
 
     public UserResponseDTO convertUserToDto(User user) {

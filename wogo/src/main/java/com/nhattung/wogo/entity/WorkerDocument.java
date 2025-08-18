@@ -38,6 +38,13 @@ public class WorkerDocument {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
+    @ManyToOne
+    @JoinColumn(name = "service_id", nullable = false)
+    private ServiceWG service;
+
+    @OneToOne(mappedBy = "workerDocument", cascade = CascadeType.ALL, orphanRemoval = true)
+    private WorkerVerification workerVerification;
+
     @OneToMany(mappedBy = "workerDocument", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<WorkerDocumentFile> workerDocumentFiles;
 }

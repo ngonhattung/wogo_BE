@@ -9,4 +9,6 @@ import java.util.Optional;
 @Repository
 public interface WorkerRepository extends JpaRepository<Worker, Long> {
     Optional<Worker> findByUserId(Long userId);
+
+    boolean existsByUserId(Long userId);
 }

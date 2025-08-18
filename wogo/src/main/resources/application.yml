@@ -38,3 +38,13 @@ aws:
   region: ap-southeast-1
   accessKey: AKIAYDWHTGML5JGM67E4
   secretKey: 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
+
+logging:
+  level:
+    org:
+      hibernate:
+        SQL: DEBUG
+        type:
+          descriptor:
+            sql:
+                BasicBinder: TRACE

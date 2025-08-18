@@ -61,9 +61,11 @@ public class QuestionService implements IQuestionService{
 
     private Question createQuestion(QuestionRequestDTO requestDTO, QuestionCategory questionCategory, MultipartFile imageFile) {
 
-        String imageUrl = imageFile != null && !imageFile.isEmpty()
-                ? uploadToS3.uploadFileToS3(imageFile)
-                : null;
+        String imageUrl = null;
+        if (imageFile != null && !imageFile.isEmpty()) {
+            UploadS3Response uploadResponse = uploadToS3.uploadFileToS3(imageFile);
+            imageUrl = uploadResponse != null ? uploadResponse.getFileUrl() : null;
+        }
 
         return Question.builder()
                 .questionCategory(questionCategory)
@@ -86,21 +88,23 @@ public class QuestionService implements IQuestionService{
         return convertToResponseDTO(updatedQuestion);
     }
 
-    private Question updateExistingQuestion(Question existingQuestion, QuestionRequestDTO requestDTO, MultipartFile imageFile) {
+    private Question updateExistingQuestion(Question existingQuestion, QuestionRequestDTO dto, MultipartFile imageFile) {
 
-        QuestionCategory questionCategory = questionCategoryService.getCategoryEntityById(requestDTO.getQuestionCategoryId());
+        QuestionCategory category = questionCategoryService.getCategoryEntityById(dto.getQuestionCategoryId());
 
-        String imageUrl = imageFile != null && !imageFile.isEmpty()
-                ? uploadToS3.uploadFileToS3(imageFile)
-                : null;
+        String imageUrl = null;
+        if (imageFile != null && !imageFile.isEmpty()) {
+            UploadS3Response uploadResponse = uploadToS3.uploadFileToS3(imageFile);
+            imageUrl = uploadResponse != null ? uploadResponse.getFileUrl() : null;
+        }
 
-        existingQuestion.setQuestionText(requestDTO.getQuestionText());
-        existingQuestion.setQuestionType(requestDTO.getQuestionType());
-        existingQuestion.setDifficultyLevel(requestDTO.getDifficultyLevel());
-        existingQuestion.setExplanation(requestDTO.getExplanation());
+        existingQuestion.setQuestionText(dto.getQuestionText());
+        existingQuestion.setQuestionType(dto.getQuestionType());
+        existingQuestion.setDifficultyLevel(dto.getDifficultyLevel());
+        existingQuestion.setExplanation(dto.getExplanation());
         existingQuestion.setImageUrl(imageUrl);
-        existingQuestion.setQuestionCategory(questionCategory);
-        existingQuestion.setActive(requestDTO.getIsActive());
+        existingQuestion.setQuestionCategory(category);
+        existingQuestion.setActive(dto.getIsActive());
 
         return questionRepository.save(existingQuestion);
     }

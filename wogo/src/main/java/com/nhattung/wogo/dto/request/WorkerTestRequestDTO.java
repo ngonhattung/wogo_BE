@@ -6,6 +6,5 @@ import lombok.Data;
 @Data
 @Builder
 public class WorkerTestRequestDTO {
-
     private Long serviceId;
 }

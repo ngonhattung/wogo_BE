@@ -8,6 +8,7 @@ import com.nhattung.wogo.dto.response.ServiceResponseDTO;
 import com.nhattung.wogo.service.service.IServiceService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -39,6 +40,7 @@ public class ServiceController {
     }
 
     @PostMapping(value = "/save",consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     public ApiResponse<ServiceResponseDTO> saveService(@ModelAttribute ServiceRequestDTO request,
                                                        @RequestParam(value = "image", required = false) MultipartFile imageFile) {
         return ApiResponse.<ServiceResponseDTO>builder()
@@ -48,6 +50,7 @@ public class ServiceController {
     }
 
     @PutMapping(value = "/update/{id}",consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     public ApiResponse<ServiceResponseDTO> updateService(@PathVariable Long id,
                                                          @RequestBody ServiceRequestDTO request,
                                                          @RequestParam(value = "image", required = false) MultipartFile imageFile) {
@@ -58,6 +61,7 @@ public class ServiceController {
     }
 
     @DeleteMapping("/delete/{id}")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     public ApiResponse<Void> deleteService(@PathVariable Long id) {
         serviceService.deleteService(id);
         return ApiResponse.<Void>builder()

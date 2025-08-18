@@ -1,5 +1,6 @@
 package com.nhattung.wogo.utils;
 
+import com.nhattung.wogo.dto.response.UploadS3Response;
 import com.nhattung.wogo.enums.ErrorCode;
 import com.nhattung.wogo.exception.AppException;
 import lombok.RequiredArgsConstructor;
@@ -24,9 +25,10 @@ public class UploadToS3 {
     private String bucketName;
     private static final Set<String> ALLOWED_MIME_TYPES = Set.of(
             "image/jpeg", "image/png", "image/gif", "image/webp",
-            "video/mp4", "video/mpeg", "video/quicktime", "video/x-msvideo"
+            "video/mp4", "video/mpeg", "video/quicktime", "video/x-msvideo",
+            "file/pdf"
     );
-    public String uploadFileToS3(MultipartFile file) {
+    public UploadS3Response uploadFileToS3(MultipartFile file) {
         String fileName = UUID.randomUUID() + "_" + System.currentTimeMillis() + "_" + file.getOriginalFilename();
         String fileType = file.getContentType();
         String fileUrl = "https://" + bucketName + ".s3.amazonaws.com/" + fileName;
@@ -48,7 +50,11 @@ public class UploadToS3 {
                     RequestBody.fromBytes(file.getBytes())
             );
 
-            return fileUrl;
+            return UploadS3Response.builder()
+                    .fileName(fileName)
+                    .fileType(fileType)
+                    .fileUrl(fileUrl)
+                    .build();
         } catch (IOException e) {
             throw new AppException(ErrorCode.UPLOAD_IMAGE_ERROR);
         }

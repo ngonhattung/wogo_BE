@@ -8,6 +8,5 @@ import java.util.List;
 @Data
 @Builder
 public class CreateTestResponseDTO {
-    private WorkerVerificationResponseDTO workerVerification;
     private List<QuestionResponseDTO> questions;
 }

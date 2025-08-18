@@ -19,17 +19,17 @@ public class WorkerDocumentFile {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+    private String fileName;
     private String fileUrl;
 
-    @Enumerated(EnumType.STRING)
-    private FileType fileType; // IMAGE, VIDEO
+    private String fileType;
 
     @CreationTimestamp
     private Timestamp createdAt;
     @UpdateTimestamp
     private Timestamp updatedAt;
 
-    @ManyToOne
+    @ManyToOne(cascade = CascadeType.ALL)
     @JoinColumn(name = "worker_document_id", nullable = false)
     private WorkerDocument workerDocument;
 

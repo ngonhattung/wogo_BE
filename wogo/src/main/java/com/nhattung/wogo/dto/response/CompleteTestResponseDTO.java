@@ -6,7 +6,7 @@ import lombok.Data;
 @Data
 @Builder
 public class CompleteTestResponseDTO {
-    private WorkerVerificationResponseDTO workerVerification;
-    private WorkerResponseDTO worker;
+    private boolean isPassed;
+    private double scorePercentage;
 
 }

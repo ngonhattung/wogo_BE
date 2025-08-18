@@ -32,6 +32,9 @@ public enum ErrorCode {
     ROLE_ALREADY_EXISTS(1023, "Role already exists", HttpStatus.BAD_REQUEST),
     WORKER_SERVICE_EXISTS(1024, "Worker service already exists", HttpStatus.BAD_REQUEST),
     WORKER_VERIFICATION_TEST_NOT_FOUND(1025, "Worker verification test not found", HttpStatus.NOT_FOUND),
+    WORKER_DOCUMENT_NOT_FOUND(1026, "Worker document not found", HttpStatus.NOT_FOUND),
+    FILE_UPLOAD_ERROR_EMPTY(1027, "File upload error: no files provided", HttpStatus.BAD_REQUEST),
+    WORKER_DOCUMENT_FILE_NOT_FOUND(1028, "Worker document file not found", HttpStatus.NOT_FOUND)
     ;
 
 

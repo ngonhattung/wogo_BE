@@ -16,19 +16,20 @@ public class WorkerService implements IWorkerService{
     private final WorkerRepository workerRepository;
     private final ModelMapper modelMapper;
     @Override
-    public WorkerResponseDTO saveWorker(WorkerRequestDTO request) {
+    public Worker saveWorker(WorkerRequestDTO request) {
         Worker worker = createWorker(request);
-
-        return convertToResponseDTO(
-                workerRepository.save(worker)
-        );
-
+        return workerRepository.save(worker);
     }
 
     @Override
     public Worker getWorkerByUserId(Long userId) {
         return workerRepository.findByUserId(userId)
                 .orElse(null);
+    }
+
+    @Override
+    public boolean isWorkerExists(Long userId) {
+        return workerRepository.existsByUserId(userId);
     }
 
     private Worker createWorker(WorkerRequestDTO request) {
