@@ -27,21 +27,4 @@ public class WorkerDocumentController {
                 .build();
     }
 
-    @GetMapping("/by-user-id")
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
-    public ApiResponse<WorkerDocumentResponseDTO> getWorkerDocumentByUserId(@RequestParam Long userId) {
-        return ApiResponse.<WorkerDocumentResponseDTO>builder()
-                .message("Get worker document by user ID successfully")
-                .result(workerDocumentService.getWorkerDocumentByUserId(userId))
-                .build();
-    }
-
-//    @PutMapping("/update")
-//    @PreAuthorize("hasRole('ROLE_ADMIN')")
-//    public ApiResponse<WorkerDocumentResponseDTO> updateWorkerDocument(@RequestBody WorkerDocumentRequestDTO request) {
-//        return ApiResponse.<WorkerDocumentResponseDTO>builder()
-//                .message("Update worker document successfully")
-//                .result(workerDocumentService.updateWorkerDocument(request))
-//                .build();
-//    }
 }

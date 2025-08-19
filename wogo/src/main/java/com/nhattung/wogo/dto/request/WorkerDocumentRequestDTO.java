@@ -13,6 +13,5 @@ public class WorkerDocumentRequestDTO {
     private DocumentType documentType;
     private String documentName;
     private VerificationStatus verificationStatus;
-    private User user;
     private Long serviceId;
 }

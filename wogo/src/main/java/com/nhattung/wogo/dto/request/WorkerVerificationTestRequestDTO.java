@@ -16,5 +16,4 @@ public class WorkerVerificationTestRequestDTO {
     private TestStatus testStatus;
     private int correctAnswers;
     private QuestionCategory questionCategory;
-    private User user;
 }

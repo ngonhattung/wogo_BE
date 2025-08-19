@@ -7,6 +7,5 @@ import lombok.Data;
 @Data
 @Builder
 public class WorkerRequestDTO {
-
     private User user;
 }

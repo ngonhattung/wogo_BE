@@ -41,10 +41,6 @@ public class WorkerVerificationTest {
     private Timestamp updatedAt;
 
     @ManyToOne
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
-
-    @ManyToOne
     @JoinColumn(name = "question_category_id", nullable = false)
     private QuestionCategory questionCategory;
 

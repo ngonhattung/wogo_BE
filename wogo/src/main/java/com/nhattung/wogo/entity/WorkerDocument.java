@@ -34,14 +34,6 @@ public class WorkerDocument {
     @UpdateTimestamp
     private Timestamp updatedAt;
 
-    @ManyToOne
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
-
-    @ManyToOne
-    @JoinColumn(name = "service_id", nullable = false)
-    private ServiceWG service;
-
     @OneToOne(mappedBy = "workerDocument", cascade = CascadeType.ALL, orphanRemoval = true)
     private WorkerVerification workerVerification;
 

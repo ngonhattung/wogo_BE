@@ -50,11 +50,5 @@ public class    User {
     private List<ChatRoom> chatRooms;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<WorkerVerificationTest> workerVerificationTests;
-
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<WorkerVerification> workerVerifications;
-
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<WorkerDocument> workerDocuments;
 }

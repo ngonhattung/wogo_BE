@@ -9,5 +9,4 @@ import java.util.Optional;
 
 @Repository
 public interface WorkerDocumentRepository extends JpaRepository<WorkerDocument, Long> {
-    Optional<WorkerDocument> findByUserId(Long userId);
 }

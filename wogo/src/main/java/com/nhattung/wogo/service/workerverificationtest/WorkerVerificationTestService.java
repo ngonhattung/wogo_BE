@@ -38,12 +38,11 @@ public class WorkerVerificationTestService implements IWorkerVerificationTestSer
                 .timeLimitMinutes(WogoConstants.TEST_TIME_LIMIT_MINUTES)
                 .passThreshold(WogoConstants.PASSING_SCORE)
                 .startedAt(LocalDateTime.now())
-                .user(request.getUser())
                 .build();
     }
 
     @Override
-    public WorkerVerificationTestResponseDTO updateWorkerVerificationTest(Long testId, WorkerVerificationTestRequestDTO request) {
+    public void updateWorkerVerificationTest(Long testId, WorkerVerificationTestRequestDTO request) {
         WorkerVerificationTest existingTest = workerVerificationTestRepository.findById(testId)
                 .orElseThrow(() -> new AppException(ErrorCode.TEST_NOT_FOUND));
 
@@ -52,19 +51,13 @@ public class WorkerVerificationTestService implements IWorkerVerificationTestSer
         existingTest.setTestStatus(request.getTestStatus());
         existingTest.setCompletedAt(LocalDateTime.now());
 
-        return convertToResponseDTO(
-                workerVerificationTestRepository.save(existingTest)
-        );
+        workerVerificationTestRepository.save(existingTest);
     }
 
     @Override
     public WorkerVerificationTest getWorkerVerificationTestById(Long testId) {
         return workerVerificationTestRepository.findById(testId)
                 .orElseThrow(() -> new AppException(ErrorCode.TEST_NOT_FOUND));
-    }
-
-    private WorkerVerificationTestResponseDTO convertToResponseDTO(WorkerVerificationTest workerVerificationTest) {
-        return modelMapper.map(workerVerificationTest, WorkerVerificationTestResponseDTO.class);
     }
 
     private String generateTestCode() {

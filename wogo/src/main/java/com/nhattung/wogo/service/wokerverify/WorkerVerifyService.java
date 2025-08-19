@@ -59,7 +59,6 @@ public class WorkerVerifyService implements IWorkerVerifyService {
         // Tạo bài test
         WorkerVerificationTest workerVerificationTest = workerVerificationTestService.saveWorkerVerificationTest(
                 WorkerVerificationTestRequestDTO.builder()
-                        .user(user)
                         .questionCategory(questionCategory)
                         .build()
         );
@@ -138,11 +137,8 @@ public class WorkerVerifyService implements IWorkerVerifyService {
 
         User user = userService.getUserByIdEntity(currentUserId);
 
-
-
         WorkerDocument workerDocument = workerDocumentService.saveWorkerDocument(
                 WorkerDocumentRequestDTO.builder()
-                        .user(user)
                         .documentType(request.getDocumentType())
                         .documentName(request.getDocumentName())
                         .verificationStatus(VerificationStatus.PENDING)

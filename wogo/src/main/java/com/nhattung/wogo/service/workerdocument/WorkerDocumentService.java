@@ -33,33 +33,20 @@ public class WorkerDocumentService implements IWorkerDocumentService{
     private final IServiceService serviceService;
     @Override
     public WorkerDocument saveWorkerDocument(WorkerDocumentRequestDTO request, List<MultipartFile> files) {
-
-        ServiceWG serviceWG = serviceService.getServiceByIdEntity(
-                request.getServiceId()
-        );
-
-        WorkerDocument workerDocument = createWorkerDocument(request,serviceWG);
+        WorkerDocument workerDocument = createWorkerDocument(request);
         workerDocumentFileService.saveWorkerDocumentFile(files, workerDocument);
 
         return workerDocumentRepository.save(workerDocument);
     }
 
-    private WorkerDocument createWorkerDocument(WorkerDocumentRequestDTO request,ServiceWG service) {
+    private WorkerDocument createWorkerDocument(WorkerDocumentRequestDTO request) {
         return WorkerDocument.builder()
-                .user(request.getUser())
                 .documentType(request.getDocumentType())
                 .documentName(request.getDocumentName())
                 .verificationStatus(request.getVerificationStatus())
-                .service(service)
                 .build();
     }
 
-    @Override
-    public WorkerDocumentResponseDTO getWorkerDocumentByUserId(Long userId) {
-        return workerDocumentRepository.findByUserId(userId)
-                .map(this::convertToResponseDTO)
-                .orElseThrow(() -> new AppException(ErrorCode.WORKER_DOCUMENT_NOT_FOUND));
-    }
 
     @Override
     public WorkerDocumentResponseDTO getWorkerDocumentById(Long id) {
