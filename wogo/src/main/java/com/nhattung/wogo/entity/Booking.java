@@ -34,6 +34,8 @@ public class Booking {
     private LocalDateTime startDate;
     private LocalDateTime endDate;
     private String bookingAddress;
+    private int durationMinutes;
+    private double distanceKm;
 
 
     @CreationTimestamp

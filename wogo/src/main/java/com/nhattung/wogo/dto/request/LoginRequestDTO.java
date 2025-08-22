@@ -17,6 +17,6 @@ public class LoginRequestDTO {
     private String phone;
 
     @NotBlank(message = "EMPTY_PASSWORD")
-    @Size(min = 6, max = 20, message = "PASSWORD_LENGTH")
+//    @Size(min = 6, max = 20, message = "PASSWORD_LENGTH")
     private String password;
 }
