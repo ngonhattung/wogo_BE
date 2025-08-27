@@ -85,14 +85,14 @@ public class AuthController {
     public ApiResponse<JwtResponseDTO> refresh(@Valid @RequestBody RefreshTokenRequestDTO request) {
 
         try {
-            if(jwtUtils.validateJwtToken(request.getAccessToken())){
+            if(jwtUtils.validateJwtToken(request.getRefreshToken())){
 
-                if(jwtUtils.isTokenBlacklisted(request.getAccessToken())){
+                if(jwtUtils.isTokenBlacklisted(request.getRefreshToken())){
                     return ApiResponse.<JwtResponseDTO>builder()
                             .message("Token has been blacklisted")
                             .build();
                 }
-                String phone = jwtUtils.getPhoneFromJwtToken(request.getAccessToken());
+                String phone = jwtUtils.getPhoneFromJwtToken(request.getRefreshToken());
                 UserDetails userDetails = userDetailsService.loadUserByUsername(phone);
                 var auth = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
                 SecurityContextHolder.getContext().setAuthentication(auth);
@@ -102,7 +102,7 @@ public class AuthController {
                         .message("Token refreshed successfully")
                         .result(JwtResponseDTO.builder()
                                 .accessToken(accessToken)
-                                .refreshToken(request.getAccessToken())
+                                .refreshToken(request.getRefreshToken())
                                 .expirationDate(jwtUtils.verifyToken(accessToken).getExpiration())
                                 .build())
                         .build();

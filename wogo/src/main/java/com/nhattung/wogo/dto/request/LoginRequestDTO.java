@@ -10,13 +10,13 @@ import lombok.Data;
 public class LoginRequestDTO {
 
     @NotBlank(message = "EMPTY_PHONE")
-    @Pattern(
-            regexp = "^(0|\\+84)(\\d{9})$",
-            message = "PHONE_INVALID"
-    )
+//    @Pattern(
+//            regexp = "^(0|\\+84)(\\d{9})$",
+//            message = "PHONE_INVALID"
+//    )
     private String phone;
 
     @NotBlank(message = "EMPTY_PASSWORD")
-    @Size(min = 6, max = 20, message = "PASSWORD_LENGTH")
+//    @Size(min = 6, max = 20, message = "PASSWORD_LENGTH")
     private String password;
 }

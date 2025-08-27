@@ -12,6 +12,7 @@ public class WorkerResponseDTO {
     private String description;
     private int totalJobs;
     private int totalReviews;
+    private double averageRating;
     private WorkStatus status;
     private UserResponseDTO user;
 

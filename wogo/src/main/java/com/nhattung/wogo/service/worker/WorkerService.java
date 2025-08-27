@@ -43,7 +43,4 @@ public class WorkerService implements IWorkerService{
                 .build();
     }
 
-    private WorkerResponseDTO convertToResponseDTO(Worker worker) {
-        return modelMapper.map(worker, WorkerResponseDTO.class);
-    }
 }

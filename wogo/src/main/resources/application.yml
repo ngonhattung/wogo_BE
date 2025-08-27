@@ -25,12 +25,18 @@ spring:
       max-file-size: 10MB
       max-request-size: 20MB
 
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+  cache:
+    type: redis
 auth:
   token:
     expirationInMils: 6000000
     refreshExpirationInMils: 36000000
     jwtSecret: 36763979244226452948404D635166546A576D5A7134743777217A25432A462D
-
 
 aws:
   s3:
