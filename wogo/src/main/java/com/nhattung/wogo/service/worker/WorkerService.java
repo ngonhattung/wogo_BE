@@ -14,7 +14,6 @@ import org.springframework.stereotype.Service;
 public class WorkerService implements IWorkerService{
 
     private final WorkerRepository workerRepository;
-    private final ModelMapper modelMapper;
     @Override
     public Worker saveWorker(WorkerRequestDTO request) {
         Worker worker = createWorker(request);

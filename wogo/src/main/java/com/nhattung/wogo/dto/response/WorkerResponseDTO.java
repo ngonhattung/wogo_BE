@@ -7,13 +7,9 @@ import lombok.Data;
 @Data
 @Builder
 public class WorkerResponseDTO {
-
     private Long id;
     private String description;
     private int totalJobs;
     private int totalReviews;
     private double averageRating;
-    private WorkStatus status;
-    private UserResponseDTO user;
-
 }

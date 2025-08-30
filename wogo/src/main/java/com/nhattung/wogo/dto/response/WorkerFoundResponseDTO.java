@@ -11,5 +11,5 @@ public class WorkerFoundResponseDTO {
 
     private WorkerResponseDTO worker;
     private Double distance; // in kilometers
-    private BigDecimal estimatedPrice;
+    private BigDecimal quotedPrice;
 }

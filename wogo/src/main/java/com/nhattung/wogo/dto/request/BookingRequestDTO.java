@@ -23,7 +23,7 @@ public class BookingRequestDTO {
     private BookingStatus bookingStatus;
     private int durationMinutes;
     private double distanceKm;
-    private User user;
+    private Long userId;
     private Long workerId;
     private ServiceWG service;
 }

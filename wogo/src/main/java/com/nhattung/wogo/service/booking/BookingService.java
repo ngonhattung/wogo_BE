@@ -1,19 +1,17 @@
 package com.nhattung.wogo.service.booking;
 
+import com.nhattung.wogo.dto.request.AcceptJobRequestDTO;
 import com.nhattung.wogo.dto.request.BookingRequestDTO;
 import com.nhattung.wogo.dto.request.FindServiceRequestDTO;
-import com.nhattung.wogo.dto.response.JobRequestResponseDTO;
-import com.nhattung.wogo.dto.response.UploadS3Response;
-import com.nhattung.wogo.dto.response.UserResponseDTO;
-import com.nhattung.wogo.dto.response.WorkerFoundResponseDTO;
-import com.nhattung.wogo.entity.Booking;
-import com.nhattung.wogo.entity.ServiceWG;
-import com.nhattung.wogo.entity.User;
-import com.nhattung.wogo.entity.WorkerService;
+import com.nhattung.wogo.dto.response.*;
+import com.nhattung.wogo.entity.*;
 import com.nhattung.wogo.enums.BookingStatus;
+import com.nhattung.wogo.enums.JobRequestStatus;
 import com.nhattung.wogo.repository.BookingRepository;
 import com.nhattung.wogo.service.service.IServiceService;
-import com.nhattung.wogo.service.user.UserService;
+import com.nhattung.wogo.service.user.IUserService;
+import com.nhattung.wogo.service.worker.IWorkerService;
+import com.nhattung.wogo.utils.RedisKeyUtil;
 import com.nhattung.wogo.utils.SecurityUtils;
 import com.nhattung.wogo.utils.UploadToS3;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +19,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -33,75 +32,166 @@ public class BookingService implements IBookingService {
     private final IServiceService serviceService;
     private final UploadToS3 uploadToS3;
     private final BookingRepository bookingRepository;
-    private static final String JOB_KEY_PREFIX = "service:%d:jobs";
-    private static final long JOB_EXPIRATION_MINUTES = 5;
-    private final UserService userService;
-//    private final WorkerService workerService;
+    private final IUserService userService;
+    private final IWorkerService workerService;
+//    private final JobListener jobListener;
+    private static final long JOB_EXPIRATION_MINUTES = 30;
+        @Override
+        public JobRequestResponseDTO createJob(FindServiceRequestDTO request, List<MultipartFile> files) {
+            ServiceWG service = serviceService.getServiceByIdEntity(request.getServiceId());
+            UserResponseDTO user = userService.getUserById(SecurityUtils.getCurrentUserId());
+
+//            List<String> imageUrls = Optional.ofNullable(files)
+//                    .orElseGet(Collections::emptyList)
+//                    .stream()
+//                    .map(uploadToS3::uploadFileToS3)
+//                    .filter(Objects::nonNull)
+//                    .map(UploadS3Response::getFileUrl)
+//                    .filter(Objects::nonNull)
+//                    .toList();
+
+            //Tạo tạm list rỗng để test
+            List<String> imageUrls = new ArrayList<>();
+
+            // build job request
+            String code = generateJobRequestCode();
+            JobRequestResponseDTO job = JobRequestResponseDTO.builder()
+                    .jobRequestCode(code)
+                    .serviceId(service.getId())
+                    .serviceName(service.getServiceName())
+                    .description(request.getDescription())
+                    .bookingDate(request.getBookingDate())
+                    .estimatedPrice(request.getEstimatedPrice())
+                    .bookingAddress(request.getAddress())
+                    .distance(request.getDistance())
+                    .fileUrls(imageUrls)
+                    .user(user)
+                    .status(JobRequestStatus.PENDING)
+                    .build();
+
+            // 1) Lưu detail job
+            String jobDetailKey = RedisKeyUtil.jobDetailKey(code);
+            redisTemplate.opsForValue().set(jobDetailKey, job, JOB_EXPIRATION_MINUTES, TimeUnit.MINUTES);
+
+            // 2) Ghi code job vào list theo service
+            String serviceKey = RedisKeyUtil.jobListByServiceKey(service.getId());
+            redisTemplate.opsForList().rightPush(serviceKey, code);
+            redisTemplate.expire(serviceKey, JOB_EXPIRATION_MINUTES, TimeUnit.MINUTES);
+
+            return job;
+
+        }
+
     @Override
-    public void findWorkers(FindServiceRequestDTO request, List<MultipartFile> files) {
-        ServiceWG service = serviceService.getServiceByIdEntity(request.getServiceId());
-        UserResponseDTO user = userService.getUserById(SecurityUtils.getCurrentUserId());
-        List<String> imageUrls = Optional.ofNullable(files)
-                .orElseGet(Collections::emptyList)
-                .stream()
-                .map(uploadToS3::uploadFileToS3)
-                .filter(Objects::nonNull)
-                .map(UploadS3Response::getFileUrl)
-                .filter(Objects::nonNull)
-                .toList();
-
-        JobRequestResponseDTO jobRequest = JobRequestResponseDTO.builder()
-                .serviceName(service.getServiceName())
-                .description(request.getDescription())
-                .bookingDate(request.getBookingDate())
-                .estimatedPrice(request.getEstimatedPrice())
-                .distance(request.getDistance())
-                .fileUrls(imageUrls)
-                .user(user)
-                .build();
-
-        String key = String.format(JOB_KEY_PREFIX, service.getId());
-        redisTemplate.opsForList().rightPush(key, jobRequest);
-        redisTemplate.expire(key, JOB_EXPIRATION_MINUTES, TimeUnit.MINUTES);
-
-//        //save booking with status PENDING
-//        saveBooking(BookingRequestDTO.builder()
-//                .userId(SecurityUtils.getCurrentUserId())
-//                .service(service)
-//                .bookingDate(LocalDateTime.now())
-//                .description(request.getDescription())
-//                .distanceKm(request.getDistance())
-//                .bookingAddress(request.getAddress())
-//                .build());
-    }
-
-    @Override
-    public List<JobRequestResponseDTO> getJobRequestsByListServiceId(List<Long> serviceIds) {
+    public List<JobRequestResponseDTO> listPendingJobsByServiceIds(List<Long> serviceIds) {
         if (serviceIds == null || serviceIds.isEmpty()) {
             return Collections.emptyList();
         }
 
         return serviceIds.stream()
-                .map(serviceId -> String.format(JOB_KEY_PREFIX, serviceId))
+                // tạo key Redis từ serviceId
+                .map(RedisKeyUtil::jobListByServiceKey)
+                // lấy danh sách jobCode trong list của Redis
                 .map(key -> redisTemplate.opsForList().range(key, 0, -1))
                 .filter(Objects::nonNull)
                 .flatMap(List::stream)
                 .filter(Objects::nonNull)
-                .map(o -> (JobRequestResponseDTO) o)
+                // chuyển jobCode thành job object
+                .map(code -> (JobRequestResponseDTO) redisTemplate.opsForValue()
+                        .get(RedisKeyUtil.jobDetailKey((String) code)))
+                .filter(Objects::nonNull)
+                // lọc theo trạng thái PENDING
+                .filter(job -> JobRequestStatus.PENDING.equals(job.getStatus()))
                 .toList();
+    }
+    @Override
+    public boolean verifyJobRequest(AcceptJobRequestDTO request) {
+        Long workerId = SecurityUtils.getCurrentUserId();
+        String code = request.getJobRequestCode();
+        String lockKey = RedisKeyUtil.jobLockKey(code);
+
+        // lock (SETNX) để chỉ 1 worker nhận
+        Boolean locked = redisTemplate.opsForValue().setIfAbsent(lockKey, workerId, Duration.ofSeconds(10));
+        if (Boolean.FALSE.equals(locked)) {
+            return false; // đã có người lock trước
+        }
+
+        try {
+            JobRequestResponseDTO job = getJobAndValidate(code, JobRequestStatus.PENDING);
+            job.setStatus(JobRequestStatus.ACCEPTED);
+            job.setAcceptedBy(workerId);
+
+            redisTemplate.opsForValue().set(RedisKeyUtil.jobDetailKey(code), job, JOB_EXPIRATION_MINUTES, TimeUnit.MINUTES);
+            return true;
+        } finally {
+            redisTemplate.delete(lockKey);
+        }
     }
 
     @Override
-    public Booking saveBooking(BookingRequestDTO request) {
-        return bookingRepository.save(createBooking(request));
+    public WorkerFoundResponseDTO acceptJobRequest(AcceptJobRequestDTO request) {
+        Long workerId = SecurityUtils.getCurrentUserId();
+        String code = request.getJobRequestCode();
+
+        Worker worker = workerService.getWorkerByUserId(workerId);
+        JobRequestResponseDTO job = getJobAndValidate(code, JobRequestStatus.ACCEPTED);
+        ServiceWG service = serviceService.getServiceByIdEntity(job.getServiceId());
+
+        // tạo booking
+        saveBooking(BookingRequestDTO.builder()
+                .userId(job.getUser().getId())
+                .workerId(workerId)
+                .service(service)
+                .bookingDate(LocalDateTime.now())
+                .description(job.getDescription())
+                .distanceKm(job.getDistance())
+                .bookingAddress(job.getBookingAddress())
+                .build());
+
+        // xoá job detail sau khi booking thành công
+        redisTemplate.delete(RedisKeyUtil.jobDetailKey(code));
+
+        return WorkerFoundResponseDTO.builder()
+                .worker(WorkerResponseDTO.builder()
+                        .id(worker.getId())
+                        .averageRating(worker.getRatingAverage())
+                        .totalJobs(worker.getTotalJobs())
+                        .totalReviews(worker.getTotalReviews())
+                        .description(worker.getDescription())
+                        .build())
+                .distance(job.getDistance())
+                .quotedPrice(request.getQuotedPrice())
+                .build();
     }
 
-    private Booking createBooking(BookingRequestDTO request) {
+
+    public JobRequestResponseDTO getJobByCode(String jobRequestCode) {
+        return (JobRequestResponseDTO) redisTemplate.opsForValue().get(RedisKeyUtil.jobDetailKey(jobRequestCode));
+    }
+
+    @Override
+    public void saveBooking(BookingRequestDTO request) {
+        User user = userService.getUserByIdEntity(request.getUserId());
+        Worker worker = workerService.getWorkerByUserId(request.getWorkerId());
+
+        bookingRepository.save(createBooking(request, user, worker));
+    }
+
+
+    private JobRequestResponseDTO getJobAndValidate(String code, JobRequestStatus expected) {
+        JobRequestResponseDTO job = getJobByCode(code);
+        if (job == null || !expected.equals(job.getStatus())) {
+            throw new IllegalStateException("Job invalid or not in expected status");
+        }
+        return job;
+    }
+
+    private Booking createBooking(BookingRequestDTO request,User user, Worker worker) {
         return Booking.builder()
                 .bookingCode(generateBookingCode())
                 .service(request.getService())
-                .user(request.getUser())
-                .worker(null) // Chưa gán worker lúc tạo booking
+                .user(user)
+                .worker(worker) // Chưa gán worker lúc tạo booking
                 .bookingDate(request.getBookingDate())
                 .startDate(null)
                 .endDate(null)
@@ -113,9 +203,16 @@ public class BookingService implements IBookingService {
                 .bookingAddress(request.getBookingAddress())
                 .build();
     }
+
     private String generateBookingCode() {
         String uuid = UUID.randomUUID().toString().replace("-", "").toUpperCase();
         return "BK-" + uuid.substring(0, 8) + "-" + LocalDateTime.now().getYear();
     }
+
+    private String generateJobRequestCode() {
+        String uuid = UUID.randomUUID().toString().replace("-", "").toUpperCase();
+        return "JR-" + uuid.substring(0, 8) + "-" + LocalDateTime.now().getYear();
+    }
+
 
 }

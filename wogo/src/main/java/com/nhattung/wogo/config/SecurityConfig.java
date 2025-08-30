@@ -32,7 +32,7 @@ public class SecurityConfig {
     private final WogoUserDetailsService userDetailsService;
     private final JwtAuthEntryPoint authEntryPoint;
     private static final List<String> PUBLIC_URLS =
-            List.of("/api/v1/auth/**");
+            List.of("/api/v1/auth/**","/api/v1/bookings/job-requests/**","/ws/**");
 
     @Bean
     public PasswordEncoder passwordEncoder() {
