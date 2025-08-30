@@ -23,7 +23,7 @@ public interface ServiceRepository extends JpaRepository<ServiceWG, Long> {
     OR LOWER(p.serviceName) LIKE LOWER(CONCAT('%', :serviceName, '%'))
     OR LOWER(ch.serviceName) LIKE LOWER(CONCAT('%', :serviceName, '%'))
 """)
-    Page<ServiceWG> searchByServiceOrParentName(String serviceName, Pageable pageable);
+    List<ServiceWG> searchByServiceOrParentName(String serviceName);
 
     List<ServiceWG> findAllByIsActiveTrueAndParentIdIsNull();
 }

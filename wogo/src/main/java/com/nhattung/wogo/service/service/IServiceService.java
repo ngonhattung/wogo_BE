@@ -15,7 +15,7 @@ public interface IServiceService {
     ServiceResponseDTO getServiceById(Long id);
     ServiceWG getServiceByIdEntity(Long id);
     List<OptionResponseDTO> getServiceOptions();
-    PageResponse<ServiceResponseDTO> getAllServices(int page, int size);
-    PageResponse<ParentServiceResponseDTO> searchByServiceName(String serviceName, int page, int size);
+    List<ServiceResponseDTO> getAllServices();
+    List<ParentServiceResponseDTO> searchByServiceName(String serviceName);
 
 }

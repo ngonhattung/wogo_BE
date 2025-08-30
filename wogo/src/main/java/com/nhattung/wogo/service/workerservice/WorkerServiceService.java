@@ -4,7 +4,10 @@ import com.nhattung.wogo.dto.response.WorkerServiceResponseDTO;
 import com.nhattung.wogo.entity.ServiceWG;
 import com.nhattung.wogo.entity.Worker;
 import com.nhattung.wogo.entity.WorkerService;
+import com.nhattung.wogo.enums.ErrorCode;
+import com.nhattung.wogo.exception.AppException;
 import com.nhattung.wogo.repository.WorkerServiceRepository;
+import com.nhattung.wogo.utils.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
@@ -35,8 +38,8 @@ public class WorkerServiceService implements IWorkerServiceService{
     }
 
     @Override
-    public List<WorkerServiceResponseDTO> getAllWorkerServicesByWorkerId(Long workerId) {
-        return workerServiceRepository.findAllByWorkerId(workerId)
+    public List<WorkerServiceResponseDTO> getAllWorkerServicesByWorkerId() {
+        return workerServiceRepository.findByUserId(SecurityUtils.getCurrentUserId())
                 .stream()
                 .map(this::convertToResponseDTO)
                 .toList();

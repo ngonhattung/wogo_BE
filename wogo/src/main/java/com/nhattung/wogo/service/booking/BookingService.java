@@ -41,17 +41,17 @@ public class BookingService implements IBookingService {
             ServiceWG service = serviceService.getServiceByIdEntity(request.getServiceId());
             UserResponseDTO user = userService.getUserById(SecurityUtils.getCurrentUserId());
 
-//            List<String> imageUrls = Optional.ofNullable(files)
-//                    .orElseGet(Collections::emptyList)
-//                    .stream()
-//                    .map(uploadToS3::uploadFileToS3)
-//                    .filter(Objects::nonNull)
-//                    .map(UploadS3Response::getFileUrl)
-//                    .filter(Objects::nonNull)
-//                    .toList();
+            List<String> imageUrls = Optional.ofNullable(files)
+                    .orElseGet(Collections::emptyList)
+                    .stream()
+                    .map(uploadToS3::uploadFileToS3)
+                    .filter(Objects::nonNull)
+                    .map(UploadS3Response::getFileUrl)
+                    .filter(Objects::nonNull)
+                    .toList();
 
-            //Tạo tạm list rỗng để test
-            List<String> imageUrls = new ArrayList<>();
+//            //Tạo tạm list rỗng để test
+//            List<String> imageUrls = new ArrayList<>();
 
             // build job request
             String code = generateJobRequestCode();

@@ -12,6 +12,8 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
+
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/services")
@@ -21,12 +23,10 @@ public class ServiceController {
 
 
     @GetMapping("/all")
-    public ApiResponse<PageResponse<ServiceResponseDTO>> getAllServices(
-            @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "10") int size
+    public ApiResponse<List<ServiceResponseDTO>> getAllServices(
     ) {
-        return ApiResponse.<PageResponse<ServiceResponseDTO>>builder()
-                .result(serviceService.getAllServices(page, size))
+        return ApiResponse.<List<ServiceResponseDTO>>builder()
+                .result(serviceService.getAllServices())
                 .message("Get all services successfully")
                 .build();
     }
@@ -71,13 +71,11 @@ public class ServiceController {
     }
 
     @GetMapping("/searchByName")
-    public ApiResponse<PageResponse<ParentServiceResponseDTO>> searchServicesByName(
-            @RequestParam String name,
-            @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "10") int size
+    public ApiResponse<List<ParentServiceResponseDTO>> searchServicesByName(
+            @RequestParam String name
     ) {
-        return ApiResponse.<PageResponse<ParentServiceResponseDTO>>builder()
-                .result(serviceService.searchByServiceName(name, page, size))
+        return ApiResponse.<List<ParentServiceResponseDTO>>builder()
+                .result(serviceService.searchByServiceName(name))
                 .message("Search services by name successfully")
                 .build();
     }

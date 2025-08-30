@@ -11,12 +11,7 @@ public class UserRequestDTO {
 
     @NotBlank(message = "FULLNAME_NOT_BLANK_MESSAGE")
     private String fullName;
-
     private String avatarUrl;
-
-    @NotBlank(message = "EMPTY_PASSWORD")
-    @Size(min = 6, max = 20, message = "PASSWORD_LENGTH")
     private String password;
-
     private boolean isActive;
 }

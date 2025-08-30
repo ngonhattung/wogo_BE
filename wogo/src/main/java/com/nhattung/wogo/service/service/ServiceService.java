@@ -19,6 +19,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -120,45 +121,26 @@ public class ServiceService implements IServiceService{
     }
 
     @Override
-    public PageResponse<ServiceResponseDTO> getAllServices(int page, int size) {
-        if( page < 0 || size <= 0) {
-            throw new AppException(ErrorCode.INVALID_PAGE_SIZE);
-        }
-
-        Sort sort = Sort.by(Sort.Direction.DESC, "createdAt");
-        Pageable pageable = PageRequest.of(page - 1, size, sort);
-
-        Page<ServiceWG> servicePage = serviceRepository.findAll(pageable);
-        List<ServiceResponseDTO> serviceResponseList = servicePage.stream()
+    public List<ServiceResponseDTO> getAllServices() {
+        return serviceRepository.findAll()
+                .stream()
                 .map(this::convertToResponseDTO)
-                .toList();
-
-        return PageResponse.<ServiceResponseDTO>builder()
-                .currentPage(page)
-                .totalPages(servicePage.getTotalPages())
-                .totalElements(servicePage.getTotalElements())
-                .pageSize(servicePage.getSize())
-                .data(serviceResponseList)
-                .build();
+                .collect(Collectors.toList());
 
     }
 
     @Override
-    public PageResponse<ParentServiceResponseDTO> searchByServiceName(String serviceName, int page, int size) {
-        if (page < 0 || size <= 0) {
-            throw new AppException(ErrorCode.INVALID_PAGE_SIZE);
-        }
+    public List<ParentServiceResponseDTO> searchByServiceName(String serviceName) {
+        // Tìm tất cả service phù hợp
+        List<ServiceWG> services = (serviceName == null || serviceName.trim().isEmpty())
+                ? serviceRepository.findAll()
+                : serviceRepository.searchByServiceOrParentName(serviceName);
 
-        Sort sort = Sort.by(Sort.Direction.DESC, "createdAt");
-        Pageable pageable = PageRequest.of(page - 1, size, sort);
-
-        Page<ServiceWG> servicePage = serviceRepository.searchByServiceOrParentName(serviceName, pageable);
-        List<ServiceWG> services = servicePage.getContent();
-
-        List<ParentServiceResponseDTO> grouped = services.stream()
-                .filter(c -> c.getParentId() == null)
+        // Lọc ra tất cả service cha và gán con tương ứng
+        return services.stream()
+                .filter(c -> c.getParentId() == null) // cha
                 .map(parent -> {
-                    // Tìm con của cha này
+                    // Tìm con của cha này trong danh sách services
                     List<ServiceResponseDTO> children = services.stream()
                             .filter(child -> Objects.equals(child.getParentId(), parent.getId()))
                             .map(this::convertToResponseDTO)
@@ -168,15 +150,8 @@ public class ServiceService implements IServiceService{
                             .parentService(convertToResponseDTO(parent))
                             .childServices(children)
                             .build();
-                }).toList();
-
-        return PageResponse.<ParentServiceResponseDTO>builder()
-                .currentPage(page)
-                .totalPages(servicePage.getTotalPages())
-                .totalElements(servicePage.getTotalElements())
-                .pageSize(servicePage.getSize())
-                .data(grouped)
-                .build();
+                })
+                .toList(); // Trả về danh sách nhiều cha + con
     }
 
 
