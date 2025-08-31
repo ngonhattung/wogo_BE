@@ -1,8 +1,9 @@
 package com.nhattung.wogo.service.booking;
 
-import com.nhattung.wogo.dto.request.AcceptJobRequestDTO;
+import com.nhattung.wogo.dto.request.JobRequestDTO;
 import com.nhattung.wogo.dto.request.BookingRequestDTO;
 import com.nhattung.wogo.dto.request.FindServiceRequestDTO;
+import com.nhattung.wogo.dto.request.PlaceJobRequestDTO;
 import com.nhattung.wogo.dto.response.*;
 import com.nhattung.wogo.entity.*;
 import com.nhattung.wogo.enums.BookingStatus;
@@ -15,6 +16,7 @@ import com.nhattung.wogo.utils.RedisKeyUtil;
 import com.nhattung.wogo.utils.SecurityUtils;
 import com.nhattung.wogo.utils.UploadToS3;
 import lombok.RequiredArgsConstructor;
+import org.modelmapper.ModelMapper;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -34,8 +36,8 @@ public class BookingService implements IBookingService {
     private final BookingRepository bookingRepository;
     private final IUserService userService;
     private final IWorkerService workerService;
-//    private final JobListener jobListener;
     private static final long JOB_EXPIRATION_MINUTES = 30;
+    private final ModelMapper modelMapper;
         @Override
         public JobRequestResponseDTO createJob(FindServiceRequestDTO request, List<MultipartFile> files) {
             ServiceWG service = serviceService.getServiceByIdEntity(request.getServiceId());
@@ -61,7 +63,8 @@ public class BookingService implements IBookingService {
                     .serviceName(service.getServiceName())
                     .description(request.getDescription())
                     .bookingDate(request.getBookingDate())
-                    .estimatedPrice(request.getEstimatedPrice())
+                    .estimatedPriceLower(request.getEstimatedPriceLower())
+                    .estimatedPriceHigher(request.getEstimatedPriceHigher())
                     .bookingAddress(request.getAddress())
                     .distance(request.getDistance())
                     .fileUrls(imageUrls)
@@ -105,7 +108,7 @@ public class BookingService implements IBookingService {
                 .toList();
     }
     @Override
-    public boolean verifyJobRequest(AcceptJobRequestDTO request) {
+    public boolean verifyJobRequest(JobRequestDTO request) {
         Long workerId = SecurityUtils.getCurrentUserId();
         String code = request.getJobRequestCode();
         String lockKey = RedisKeyUtil.jobLockKey(code);
@@ -129,27 +132,10 @@ public class BookingService implements IBookingService {
     }
 
     @Override
-    public WorkerFoundResponseDTO acceptJobRequest(AcceptJobRequestDTO request) {
+    public WorkerFoundResponseDTO sendQuote(JobRequestDTO request) {
         Long workerId = SecurityUtils.getCurrentUserId();
-        String code = request.getJobRequestCode();
 
         Worker worker = workerService.getWorkerByUserId(workerId);
-        JobRequestResponseDTO job = getJobAndValidate(code, JobRequestStatus.ACCEPTED);
-        ServiceWG service = serviceService.getServiceByIdEntity(job.getServiceId());
-
-        // tạo booking
-        saveBooking(BookingRequestDTO.builder()
-                .userId(job.getUser().getId())
-                .workerId(workerId)
-                .service(service)
-                .bookingDate(LocalDateTime.now())
-                .description(job.getDescription())
-                .distanceKm(job.getDistance())
-                .bookingAddress(job.getBookingAddress())
-                .build());
-
-        // xoá job detail sau khi booking thành công
-        redisTemplate.delete(RedisKeyUtil.jobDetailKey(code));
 
         return WorkerFoundResponseDTO.builder()
                 .worker(WorkerResponseDTO.builder()
@@ -159,7 +145,6 @@ public class BookingService implements IBookingService {
                         .totalReviews(worker.getTotalReviews())
                         .description(worker.getDescription())
                         .build())
-                .distance(job.getDistance())
                 .quotedPrice(request.getQuotedPrice())
                 .build();
     }
@@ -170,11 +155,33 @@ public class BookingService implements IBookingService {
     }
 
     @Override
-    public void saveBooking(BookingRequestDTO request) {
+    public BookingResponseDTO placeJob(PlaceJobRequestDTO request) {
+        JobRequestResponseDTO job = getJobAndValidate(request.getJobRequestCode(), JobRequestStatus.ACCEPTED);
+        ServiceWG service = serviceService.getServiceByIdEntity(job.getServiceId());
+
+        // tạo booking
+        Booking booking = saveBooking(BookingRequestDTO.builder()
+                .userId(job.getUser().getId())
+                .workerId(request.getWorkerId())
+                .service(service)
+                .bookingDate(LocalDateTime.now())
+                .description(job.getDescription())
+                .distanceKm(job.getDistance())
+                .bookingAddress(job.getBookingAddress())
+                .totalAmount(request.getQuotedPrice())
+                .build());
+
+        // xoá job detail sau khi booking thành công
+        redisTemplate.delete(RedisKeyUtil.jobDetailKey(request.getJobRequestCode()));
+
+        return convertToBookingResponseDTO(booking,job.getFileUrls());
+    }
+
+    @Override
+    public Booking saveBooking(BookingRequestDTO request) {
         User user = userService.getUserByIdEntity(request.getUserId());
         Worker worker = workerService.getWorkerByUserId(request.getWorkerId());
-
-        bookingRepository.save(createBooking(request, user, worker));
+        return bookingRepository.save(createBooking(request, user, worker));
     }
 
 
@@ -191,7 +198,7 @@ public class BookingService implements IBookingService {
                 .bookingCode(generateBookingCode())
                 .service(request.getService())
                 .user(user)
-                .worker(worker) // Chưa gán worker lúc tạo booking
+                .worker(worker)
                 .bookingDate(request.getBookingDate())
                 .startDate(null)
                 .endDate(null)
@@ -214,5 +221,9 @@ public class BookingService implements IBookingService {
         return "JR-" + uuid.substring(0, 8) + "-" + LocalDateTime.now().getYear();
     }
 
-
+    private BookingResponseDTO convertToBookingResponseDTO(Booking booking,List<String> fileUrls) {
+        BookingResponseDTO responseDTO = modelMapper.map(booking, BookingResponseDTO.class);
+        responseDTO.setFileUrls(fileUrls);
+        return responseDTO;
+    }
 }

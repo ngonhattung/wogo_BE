@@ -23,7 +23,8 @@ public class JobRequestResponseDTO {
     private String bookingDate;
     private double distance;
     private String bookingAddress;
-    private BigDecimal estimatedPrice;
+    private BigDecimal estimatedPriceLower;
+    private BigDecimal estimatedPriceHigher;
     private List<String> fileUrls;
     private UserResponseDTO user;
     private JobRequestStatus status;

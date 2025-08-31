@@ -8,6 +8,7 @@ import lombok.Data;
 import org.springframework.context.annotation.Primary;
 import software.amazon.awssdk.services.s3.endpoints.internal.Value;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Data
@@ -21,6 +22,7 @@ public class BookingRequestDTO {
     private LocalDateTime endDate;
     private String bookingAddress;
     private BookingStatus bookingStatus;
+    private BigDecimal totalAmount;
     private int durationMinutes;
     private double distanceKm;
     private Long userId;

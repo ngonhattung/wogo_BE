@@ -16,7 +16,8 @@ public class FindServiceRequestDTO {
 
     @NotBlank(message = "EMPTY_ADDRESS")
     private String address;
-    private BigDecimal estimatedPrice;
+    private BigDecimal estimatedPriceLower;
+    private BigDecimal estimatedPriceHigher;
     private String bookingDate;
     private double distance;
 }

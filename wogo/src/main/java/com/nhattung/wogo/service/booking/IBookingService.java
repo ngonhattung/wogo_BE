@@ -1,8 +1,10 @@
 package com.nhattung.wogo.service.booking;
 
-import com.nhattung.wogo.dto.request.AcceptJobRequestDTO;
+import com.nhattung.wogo.dto.request.JobRequestDTO;
 import com.nhattung.wogo.dto.request.BookingRequestDTO;
 import com.nhattung.wogo.dto.request.FindServiceRequestDTO;
+import com.nhattung.wogo.dto.request.PlaceJobRequestDTO;
+import com.nhattung.wogo.dto.response.BookingResponseDTO;
 import com.nhattung.wogo.dto.response.JobRequestResponseDTO;
 import com.nhattung.wogo.dto.response.WorkerFoundResponseDTO;
 import com.nhattung.wogo.entity.Booking;
@@ -14,8 +16,9 @@ public interface IBookingService {
 
     JobRequestResponseDTO createJob(FindServiceRequestDTO request, List<MultipartFile> files);
     List<JobRequestResponseDTO> listPendingJobsByServiceIds(List<Long> serviceIds);
-    void saveBooking(BookingRequestDTO request);
-    boolean verifyJobRequest(AcceptJobRequestDTO request);
-    WorkerFoundResponseDTO acceptJobRequest(AcceptJobRequestDTO request);
+    Booking saveBooking(BookingRequestDTO request);
+    boolean verifyJobRequest(JobRequestDTO request);
+    WorkerFoundResponseDTO sendQuote(JobRequestDTO request);
     JobRequestResponseDTO getJobByCode(String jobRequestCode);
+    BookingResponseDTO placeJob(PlaceJobRequestDTO request);
 }
