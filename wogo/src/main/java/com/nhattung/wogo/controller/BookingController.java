@@ -108,7 +108,7 @@ public class BookingController {
 
     @PostMapping("/cancel-job")
     public ApiResponse<Void> cancelJob(@RequestBody PlaceJobRequestDTO request) {
-
+        //Sau 2p nếu khách không quyết định tự cancel
         //Push realtime cho tất cả thợ là job đã bị huỷ (subscribe theo requestCode (để gửi cho tất cả thợ báo giá) ngay sau khi gửi quote )
         messagingTemplate.convertAndSend(
                 "/topic/job-placed/" + request.getJobRequestCode(),
