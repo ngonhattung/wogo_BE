@@ -5,6 +5,7 @@ import com.nhattung.wogo.dto.response.ApiResponse;
 import com.nhattung.wogo.dto.response.PageResponse;
 import com.nhattung.wogo.dto.response.UserResponseDTO;
 import com.nhattung.wogo.service.user.IUserService;
+import com.nhattung.wogo.utils.SecurityUtils;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -38,6 +39,14 @@ public class UserController {
         return ApiResponse.<UserResponseDTO>builder()
                 .message("User updated successfully")
                 .result(userService.updateUser(user,avatar))
+                .build();
+    }
+
+    @GetMapping("/my-profile")
+    public ApiResponse<UserResponseDTO> getUser() {
+        return ApiResponse.<UserResponseDTO>builder()
+                .message("User updated successfully")
+                .result(userService.getUserById(SecurityUtils.getCurrentUserId()))
                 .build();
     }
 }
