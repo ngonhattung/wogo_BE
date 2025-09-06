@@ -78,6 +78,7 @@ public class WorkerVerifyService implements IWorkerVerifyService {
 
         return CreateTestResponseDTO.builder()
                 .questions(randomQuestions)
+                .testId(workerVerificationTest.getId())
                 .build();
     }
 
@@ -131,6 +132,18 @@ public class WorkerVerifyService implements IWorkerVerifyService {
         if (checkWorkerServiceExists(currentUserId, request.getServiceId())) {
             throw new AppException(ErrorCode.WORKER_SERVICE_EXISTS);
         }
+
+        List<WorkerVerification> existingVerifications = workerVerificationService
+                .getWorkerVerificationByServiceIdAndUserIdAndType(
+                        request.getServiceId(),
+                        currentUserId,
+                        VerificationType.DOCUMENT
+                );
+
+        if( existingVerifications != null && !existingVerifications.isEmpty()) {
+            throw new AppException(ErrorCode.WORKER_DOCUMENT_EXISTS);
+        }
+
         if (files == null || files.isEmpty()) {
             throw new AppException(ErrorCode.FILE_UPLOAD_ERROR_EMPTY);
         }

@@ -30,7 +30,6 @@ public class WorkerDocumentService implements IWorkerDocumentService{
     private final WorkerDocumentRepository workerDocumentRepository;
     private final ModelMapper modelMapper;
     private final IWorkerDocumentFileService workerDocumentFileService;
-    private final IServiceService serviceService;
     @Override
     public WorkerDocument saveWorkerDocument(WorkerDocumentRequestDTO request, List<MultipartFile> files) {
         WorkerDocument workerDocument = createWorkerDocument(request);
@@ -108,4 +107,7 @@ public class WorkerDocumentService implements IWorkerDocumentService{
         return responseDTO;
 
     }
+
+
+
 }

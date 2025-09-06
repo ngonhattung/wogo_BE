@@ -9,4 +9,5 @@ import java.util.List;
 @Builder
 public class CreateTestResponseDTO {
     private List<QuestionResponseDTO> questions;
+    private Long testId;
 }

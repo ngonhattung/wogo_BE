@@ -40,10 +40,10 @@ auth:
 
 aws:
   s3:
-    bucketName: wogobyphodev
+    bucketName: wogo-app
   region: ap-southeast-1
-  accessKey: AKIAYDWHTGML5JGM67E4
-  secretKey: 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
+  accessKey: AKIAXNGUU5D6G5FHWH63
+  secretKey: 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
 
 logging:
   level:

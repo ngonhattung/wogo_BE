@@ -13,6 +13,5 @@ public class WorkerDocumentResponseDTO {
     private String documentName;
     private DocumentType documentType;
     private VerificationStatus verificationStatus;
-    private UserResponseDTO user;
     private List<WorkerDocumentFileResponseDTO> documentFiles;
 }

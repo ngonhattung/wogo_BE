@@ -5,12 +5,15 @@ import com.nhattung.wogo.entity.ServiceWG;
 import com.nhattung.wogo.entity.WorkerVerification;
 import com.nhattung.wogo.enums.ErrorCode;
 import com.nhattung.wogo.enums.VerificationStatus;
+import com.nhattung.wogo.enums.VerificationType;
 import com.nhattung.wogo.exception.AppException;
 import com.nhattung.wogo.repository.WorkerVerificationRepository;
 import com.nhattung.wogo.service.service.IServiceService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 
 @Service
@@ -65,10 +68,10 @@ public class WorkerVerificationService implements IWorkerVerificationService{
     }
 
     @Override
-    public WorkerVerification getWorkerVerificationById(Long id) {
-        return workerVerificationRepository.findById(id)
-                .orElseThrow(() -> new AppException(ErrorCode.VERIFICATION_NOT_FOUND));
+    public List<WorkerVerification> getWorkerVerificationByServiceIdAndUserIdAndType(Long serviceId, Long userId, VerificationType type) {
+        return workerVerificationRepository.findByServiceIdAndUserIdAndVerificationType(serviceId, userId, type);
     }
+
 
     @Override
     public WorkerVerification getWorkerVerificationByWorkerDocumentId(Long id) {

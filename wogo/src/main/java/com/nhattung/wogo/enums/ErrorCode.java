@@ -65,6 +65,7 @@ public enum ErrorCode {
     SERVICE_NAME_EXISTS(3003, "Service name already exists", HttpStatus.BAD_REQUEST),
     ROLE_ALREADY_EXISTS(3004, "Role already exists", HttpStatus.BAD_REQUEST),
     WORKER_SERVICE_EXISTS(3005, "Worker service already exists", HttpStatus.BAD_REQUEST),
+    WORKER_DOCUMENT_EXISTS(3006, "Worker document already exists for this user and service", HttpStatus.BAD_REQUEST),
 
 
     // file errors
