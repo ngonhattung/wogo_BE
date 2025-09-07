@@ -26,4 +26,6 @@ public interface ServiceRepository extends JpaRepository<ServiceWG, Long> {
     List<ServiceWG> searchByServiceOrParentName(String serviceName);
 
     List<ServiceWG> findAllByIsActiveTrueAndParentIdIsNull();
+
+    List<ServiceWG> findByParentIdOrId(Long id, Long id1);
 }

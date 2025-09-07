@@ -15,7 +15,7 @@ import java.util.List;
 public interface IBookingService {
 
     JobRequestResponseDTO createJob(FindServiceRequestDTO request, List<MultipartFile> files);
-    List<JobRequestResponseDTO> listPendingJobsByServiceIds(List<Long> serviceIds);
+    List<JobRequestResponseDTO> getListPendingJobsMatchWorker();
     Booking saveBooking(BookingRequestDTO request);
     boolean verifyJobRequest(JobRequestDTO request);
     WorkerFoundResponseDTO sendQuote(JobRequestDTO request);

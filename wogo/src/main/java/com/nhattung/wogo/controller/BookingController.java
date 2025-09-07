@@ -44,12 +44,10 @@ public class BookingController {
     }
 
     @GetMapping("/job-requests")
-    public ApiResponse<List<JobRequestResponseDTO>> listJobs(
-            @RequestParam List<Long> serviceIds) {
-
+    public ApiResponse<List<JobRequestResponseDTO>> listJobs() {
         return ApiResponse.<List<JobRequestResponseDTO>>builder()
                 .message("Pending jobs retrieved successfully")
-                .result(bookingService.listPendingJobsByServiceIds(serviceIds))
+                .result(bookingService.getListPendingJobsMatchWorker())
                 .build();
     }
 

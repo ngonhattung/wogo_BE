@@ -25,6 +25,7 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Stream;
 
 @Service
 @RequiredArgsConstructor
@@ -86,8 +87,22 @@ public class BookingService implements IBookingService {
         }
 
     @Override
-    public List<JobRequestResponseDTO> listPendingJobsByServiceIds(List<Long> serviceIds) {
-        if (serviceIds == null || serviceIds.isEmpty()) {
+    public List<JobRequestResponseDTO> getListPendingJobsMatchWorker() {
+
+        List<Long> serviceIds = serviceService.getAllServicesOfWorker()
+                .stream()
+                .flatMap(dto -> {
+                    List<ServiceResponseDTO> children = dto.getService().getChildServices();
+                    if (children == null || children.isEmpty()) {
+                        // Không có child → lấy luôn parent
+                        return Stream.of(dto.getService().getParentService());
+                    }
+                    return children.stream();
+                }) // lấy tất cả childServices
+                .map(ServiceResponseDTO::getId)
+                .toList();
+
+        if (serviceIds.isEmpty()) {
             return Collections.emptyList();
         }
 
@@ -106,6 +121,8 @@ public class BookingService implements IBookingService {
                 // lọc theo trạng thái PENDING
                 .filter(job -> JobRequestStatus.PENDING.equals(job.getStatus()))
                 .toList();
+
+
     }
     @Override
     public boolean verifyJobRequest(JobRequestDTO request) {

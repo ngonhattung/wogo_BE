@@ -12,6 +12,6 @@ public class WorkerServiceResponseDTO {
     private BigDecimal totalRevenue;
     private boolean isActive;
     private WorkerResponseDTO worker;
-    private ServiceResponseDTO service;
+    private ParentServiceResponseDTO service;
 
 }

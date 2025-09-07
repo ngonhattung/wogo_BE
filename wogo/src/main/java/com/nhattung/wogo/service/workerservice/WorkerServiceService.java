@@ -1,5 +1,7 @@
 package com.nhattung.wogo.service.workerservice;
 
+import com.nhattung.wogo.dto.response.ParentServiceResponseDTO;
+import com.nhattung.wogo.dto.response.ServiceResponseDTO;
 import com.nhattung.wogo.dto.response.WorkerServiceResponseDTO;
 import com.nhattung.wogo.entity.ServiceWG;
 import com.nhattung.wogo.entity.Worker;
@@ -14,6 +16,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -37,20 +40,20 @@ public class WorkerServiceService implements IWorkerServiceService{
                 .build();
     }
 
-    @Override
-    public List<WorkerServiceResponseDTO> getAllWorkerServicesByWorkerId() {
-        return workerServiceRepository.findByUserId(SecurityUtils.getCurrentUserId())
-                .stream()
-                .map(this::convertToResponseDTO)
-                .toList();
-    }
 
     @Override
     public boolean checkWorkerServiceExists(Long workerId, Long serviceId) {
         return workerServiceRepository.existsByWorkerIdAndServiceId(workerId, serviceId);
     }
 
-    private WorkerServiceResponseDTO convertToResponseDTO(WorkerService workerService) {
+    @Override
+    public WorkerServiceResponseDTO convertToResponseDTO(WorkerService workerService) {
         return modelMapper.map(workerService, WorkerServiceResponseDTO.class);
     }
+
+    @Override
+    public List<WorkerService> getWorkerServicesByUserId() {
+        return workerServiceRepository.findByUserId(SecurityUtils.getCurrentUserId());
+    }
+
 }
