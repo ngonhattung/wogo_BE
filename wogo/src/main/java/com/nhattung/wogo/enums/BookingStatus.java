@@ -1,12 +1,13 @@
 package com.nhattung.wogo.enums;
 
 public enum BookingStatus {
-    PENDING("Pending"),
-    CONFIRMED("Confirmed"),
-    WOKE_COME_HOME("Woke Come Home"),
-    IN_PROGRESS("In Progress"),
-    COMPLETED("Completed"),
-    CANCELLED("Canceled");
+    COMING("COMING"),
+    ARRIVED("ARRIVED"),
+    NEGOTIATING("NEGOTIATING"),
+    WORKING("WORKING"),
+    PAYING("PAYING"),
+    COMPLETED("COMPLETED"),
+    CANCELLED("CANCELLED");
 
     private final String status;
 

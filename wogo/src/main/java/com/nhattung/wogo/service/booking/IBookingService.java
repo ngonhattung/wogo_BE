@@ -1,9 +1,6 @@
 package com.nhattung.wogo.service.booking;
 
-import com.nhattung.wogo.dto.request.JobRequestDTO;
-import com.nhattung.wogo.dto.request.BookingRequestDTO;
-import com.nhattung.wogo.dto.request.FindServiceRequestDTO;
-import com.nhattung.wogo.dto.request.PlaceJobRequestDTO;
+import com.nhattung.wogo.dto.request.*;
 import com.nhattung.wogo.dto.response.BookingResponseDTO;
 import com.nhattung.wogo.dto.response.JobRequestResponseDTO;
 import com.nhattung.wogo.dto.response.WorkerFoundResponseDTO;
@@ -21,4 +18,9 @@ public interface IBookingService {
     WorkerFoundResponseDTO sendQuote(JobRequestDTO request);
     JobRequestResponseDTO getJobByCode(String jobRequestCode);
     BookingResponseDTO placeJob(PlaceJobRequestDTO request);
+    void saveLocation(String bookingCode,RealtimeLocationDTO request);
+    RealtimeLocationDTO getLocation(String bookingCode);
+    void updateStatusBooking(UpdateStatusBookingRequestDTO request);
+    double haversine(HaversineRequestDTO request);
+
 }

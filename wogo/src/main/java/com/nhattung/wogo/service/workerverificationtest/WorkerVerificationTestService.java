@@ -2,6 +2,7 @@ package com.nhattung.wogo.service.workerverificationtest;
 
 import com.nhattung.wogo.constants.WogoConstants;
 import com.nhattung.wogo.dto.request.WorkerVerificationTestRequestDTO;
+import com.nhattung.wogo.dto.response.PageResponse;
 import com.nhattung.wogo.dto.response.WorkerVerificationTestResponseDTO;
 import com.nhattung.wogo.entity.WorkerVerificationTest;
 import com.nhattung.wogo.enums.ErrorCode;
@@ -10,10 +11,15 @@ import com.nhattung.wogo.exception.AppException;
 import com.nhattung.wogo.repository.WorkerVerificationTestRepository;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -59,6 +65,31 @@ public class WorkerVerificationTestService implements IWorkerVerificationTestSer
         return workerVerificationTestRepository.findById(testId)
                 .orElseThrow(() -> new AppException(ErrorCode.TEST_NOT_FOUND));
     }
+
+    @Override
+    public PageResponse<WorkerVerificationTestResponseDTO> getAllWorkerVerificationTests(int page, int size) {
+        if(page < 0 || size <= 0) {
+            throw new AppException(ErrorCode.INVALID_PAGE_SIZE);
+        }
+        Sort sort = Sort.by(Sort.Direction.DESC, "createdAt");
+        Pageable pageable = PageRequest.of(page - 1, size, sort);
+        Page<WorkerVerificationTest> tests = workerVerificationTestRepository.findAll(pageable);
+        List<WorkerVerificationTestResponseDTO> testDTOs = tests.stream()
+                .map(this::convertToResponseDTO)
+                .toList();
+        return PageResponse.<WorkerVerificationTestResponseDTO>builder()
+                .currentPage(page)
+                .pageSize(size)
+                .totalElements(tests.getTotalElements())
+                .totalPages(tests.getTotalPages())
+                .data(testDTOs)
+                .build();
+    }
+
+    private WorkerVerificationTestResponseDTO convertToResponseDTO(WorkerVerificationTest test) {
+        return modelMapper.map(test, WorkerVerificationTestResponseDTO.class);
+    }
+
 
     private String generateTestCode() {
         // Logic to generate a unique test code

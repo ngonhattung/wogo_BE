@@ -1,12 +1,14 @@
 package com.nhattung.wogo.controller;
 
-import com.nhattung.wogo.dto.request.FindServiceRequestDTO;
-import com.nhattung.wogo.dto.request.JobRequestDTO;
-import com.nhattung.wogo.dto.request.PlaceJobRequestDTO;
+import com.nhattung.wogo.dto.request.*;
 import com.nhattung.wogo.dto.response.ApiResponse;
 import com.nhattung.wogo.dto.response.BookingResponseDTO;
 import com.nhattung.wogo.dto.response.JobRequestResponseDTO;
 import com.nhattung.wogo.dto.response.WorkerFoundResponseDTO;
+import com.nhattung.wogo.entity.Address;
+import com.nhattung.wogo.enums.BookingStatus;
+import com.nhattung.wogo.service.address.AddressService;
+import com.nhattung.wogo.service.address.IAddressService;
 import com.nhattung.wogo.service.booking.IBookingService;
 import com.nhattung.wogo.utils.SecurityUtils;
 import jakarta.validation.Valid;
@@ -30,6 +32,7 @@ public class BookingController {
 
         JobRequestResponseDTO job = bookingService.createJob(request, files);
 
+        //FE tính khoảng cách trước khi hiện thị
         //Push realtime cho thợ đang subscribe
         messagingTemplate.convertAndSend(
                 "/topic/new-job/" + job.getServiceId(),
@@ -54,6 +57,8 @@ public class BookingController {
     @PostMapping("/send-quote")
     public ApiResponse<WorkerFoundResponseDTO> acceptJobRequest(@RequestBody JobRequestDTO request) {
 
+
+        Long workerId = SecurityUtils.getCurrentUserId();
         boolean isValid = bookingService.verifyJobRequest(request);
 
         if(isValid){
@@ -73,7 +78,7 @@ public class BookingController {
                     .build();
         }else {
             //subscribe ngay khi connect với socket
-            messagingTemplate.convertAndSendToUser(SecurityUtils.getCurrentUserId().toString(), "/queue/errors",
+            messagingTemplate.convertAndSendToUser(workerId.toString(), "/queue/errors",
                     "Job is not available");
             return ApiResponse.<WorkerFoundResponseDTO>builder()
                     .message("Job request is no longer available")
@@ -118,5 +123,44 @@ public class BookingController {
                 .build();
     }
 
+    // Driver gửi GPS
+    @PostMapping("/send-location/{bookingCode}")
+    public ApiResponse<Void> sendLocation(@PathVariable String bookingCode,
+                                          @RequestBody @Valid RealtimeLocationDTO request) {
+
+        request.setUpdatedAt(System.currentTimeMillis());
+        bookingService.saveLocation(bookingCode, request);
+
+        //Push realtime cho khách hàng (subscribe theo bookingCode)
+        messagingTemplate.convertAndSend(
+                "/topic/driverLocation/" + bookingCode, request
+        );
+        return ApiResponse.<Void>builder()
+                .message("Location sent successfully")
+                .build();
+    }
+
+    @GetMapping("/get-location/{bookingCode}")
+    public ApiResponse<RealtimeLocationDTO> getLocation(@PathVariable String bookingCode) {
+        return ApiResponse.<RealtimeLocationDTO>builder()
+                .message("Location retrieved successfully")
+                .result(bookingService.getLocation(bookingCode))
+                .build();
+    }
+
+    @PutMapping("/updateStatus")
+    public ApiResponse<Void> updateStatusComeHome(@RequestBody UpdateStatusBookingRequestDTO request) {
+
+        bookingService.updateStatusBooking(request);
+
+        //Push realtime status cho khách hàng và worker (subscribe theo bookingCode)
+        messagingTemplate.convertAndSend(
+                "/topic/bookingStatus/" + request.getBookingCode(), request.getStatus()
+        );
+
+        return ApiResponse.<Void>builder()
+                .message("Status updated successfully")
+                .build();
+    }
 
 }

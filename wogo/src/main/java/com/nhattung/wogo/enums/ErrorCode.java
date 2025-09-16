@@ -30,7 +30,8 @@ public enum ErrorCode {
     WORKER_VERIFICATION_TEST_NOT_FOUND(1010, "Worker verification test not found", HttpStatus.NOT_FOUND),
     WORKER_DOCUMENT_NOT_FOUND(1011, "Worker document not found", HttpStatus.NOT_FOUND),
     WORKER_DOCUMENT_FILE_NOT_FOUND(1012, "Worker document file not found", HttpStatus.NOT_FOUND),
-
+    BOOKING_NOT_FOUND(1013, "Booking not found", HttpStatus.NOT_FOUND),
+    ADDRESS_NOT_FOUND(1014, "Address not found", HttpStatus.NOT_FOUND),
 
     //validation errors
     EMPTY_PHONE(2001, "Phone number cannot be empty", HttpStatus.BAD_REQUEST),
