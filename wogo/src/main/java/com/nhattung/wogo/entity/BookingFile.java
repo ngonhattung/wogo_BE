@@ -1,6 +1,6 @@
 package com.nhattung.wogo.entity;
 
-import com.nhattung.wogo.enums.PaymentMethodE;
+
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -14,27 +14,23 @@ import java.sql.Timestamp;
 @NoArgsConstructor
 @Builder
 @Entity
-public class PaymentMethod {
+public class BookingFile {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+    private String fileName;
+    private String fileUrl;
 
-    @Enumerated(EnumType.STRING)
-    private PaymentMethodE paymentMethod;
-
-    private String description;
-    private boolean isActive;
+    private String fileType;
 
     @CreationTimestamp
     private Timestamp createdAt;
     @UpdateTimestamp
     private Timestamp updatedAt;
 
-    @OneToOne(mappedBy = "paymentMethod", cascade = CascadeType.ALL, orphanRemoval = true)
-    private BookingPayment bookingPayment;
 
-    @OneToOne(mappedBy = "paymentMethod", cascade = CascadeType.ALL, orphanRemoval = true)
-    private TopupRequest topupRequest;
-
+    @ManyToOne(cascade = CascadeType.ALL)
+    @JoinColumn(name = "booking_id", nullable = false)
+    private Booking booking;
 }

@@ -1,6 +1,6 @@
 package com.nhattung.wogo.enums;
 
-public enum PaymentMethodE {
+public enum PaymentMethod {
     CASH("Cash"),
     MOMO("Momo"),
     PAYPAL("PayPal"),
@@ -8,7 +8,7 @@ public enum PaymentMethodE {
 
     private final String method;
 
-    PaymentMethodE(String method) {
+    PaymentMethod(String method) {
         this.method = method;
     }
 

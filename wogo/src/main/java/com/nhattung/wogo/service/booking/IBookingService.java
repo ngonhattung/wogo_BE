@@ -3,6 +3,7 @@ package com.nhattung.wogo.service.booking;
 import com.nhattung.wogo.dto.request.*;
 import com.nhattung.wogo.dto.response.BookingResponseDTO;
 import com.nhattung.wogo.dto.response.JobRequestResponseDTO;
+import com.nhattung.wogo.dto.response.TransactionResponseDTO;
 import com.nhattung.wogo.dto.response.WorkerFoundResponseDTO;
 import com.nhattung.wogo.entity.Booking;
 import org.springframework.web.multipart.MultipartFile;
@@ -22,5 +23,7 @@ public interface IBookingService {
     RealtimeLocationDTO getLocation(String bookingCode);
     void updateStatusBooking(UpdateStatusBookingRequestDTO request);
     double haversine(HaversineRequestDTO request);
+    TransactionResponseDTO createBookingTransaction(String bookingCode);
+    BookingResponseDTO confirmPrice(ConfirmPriceRequestDTO request);
 
 }

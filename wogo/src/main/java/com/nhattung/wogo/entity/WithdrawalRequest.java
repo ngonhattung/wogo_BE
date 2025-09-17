@@ -1,5 +1,6 @@
 package com.nhattung.wogo.entity;
 
+import com.nhattung.wogo.enums.PaymentMethod;
 import com.nhattung.wogo.enums.PaymentStatus;
 import jakarta.persistence.*;
 import lombok.*;
@@ -28,6 +29,9 @@ public class WithdrawalRequest {
     @Enumerated(EnumType.STRING)
     private PaymentStatus paymentStatus;
 
+    @Enumerated(EnumType.STRING)
+    private PaymentMethod withdrawalMethod;
+
     private LocalDateTime requestedAt;
     private LocalDateTime processedAt;
     private String rejectionReason;
@@ -39,9 +43,9 @@ public class WithdrawalRequest {
     @JoinColumn(name = "worker_id", nullable = false)
     private Worker worker;
 
-    @OneToOne
-    @JoinColumn(name = "payment_method_id", nullable = false)
-    private PaymentMethod paymentMethod;
+//    @OneToOne
+//    @JoinColumn(name = "payment_method_id", nullable = false)
+//    private PaymentMethod paymentMethod;
 
     @OneToOne(mappedBy = "withdrawalRequest", cascade = CascadeType.ALL, orphanRemoval = true)
     private WalletTransaction walletTransaction;

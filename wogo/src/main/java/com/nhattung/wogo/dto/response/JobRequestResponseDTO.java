@@ -25,7 +25,7 @@ public class JobRequestResponseDTO {
     private String bookingAddress;
     private BigDecimal estimatedPriceLower;
     private BigDecimal estimatedPriceHigher;
-    private List<String> fileUrls;
+    private List<UploadS3Response> files;
     private UserResponseDTO user;
     private JobRequestStatus status;
     private Long acceptedBy;

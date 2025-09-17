@@ -45,6 +45,10 @@ aws:
   accessKey: AKIAXNGUU5D6G5FHWH63
   secretKey: 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
 
+
+sepay:
+  key: KBaIFNmtMGgk7rNtnoRTl1LMFEaOIr5uu+xBtzhaiK258/RRq3XRKap0/iEZEkbs
+
 logging:
   level:
     org:

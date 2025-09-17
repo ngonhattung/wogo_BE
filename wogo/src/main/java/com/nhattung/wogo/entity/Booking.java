@@ -30,12 +30,14 @@ public class Booking {
     private BookingStatus bookingStatus;
 
     private BigDecimal totalAmount;
+    private BigDecimal platformFee;
     private LocalDateTime bookingDate;
     private LocalDateTime startDate;
     private LocalDateTime endDate;
     private String bookingAddress;
     private int durationMinutes;
     private double distanceKm;
+    private String extraServicesNotes;
 
 
     @CreationTimestamp
@@ -69,5 +71,8 @@ public class Booking {
 
     @OneToOne(mappedBy = "booking", cascade = CascadeType.ALL, orphanRemoval = true)
     private WalletTransaction walletTransaction;
+
+    @OneToMany(mappedBy = "booking", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<BookingFile> bookingFiles;
 
 }

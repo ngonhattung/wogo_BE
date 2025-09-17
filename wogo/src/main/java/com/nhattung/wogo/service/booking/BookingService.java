@@ -1,14 +1,18 @@
 package com.nhattung.wogo.service.booking;
 
+import com.nhattung.wogo.constants.WogoConstants;
 import com.nhattung.wogo.dto.request.*;
 import com.nhattung.wogo.dto.response.*;
 import com.nhattung.wogo.entity.*;
 import com.nhattung.wogo.enums.BookingStatus;
 import com.nhattung.wogo.enums.ErrorCode;
 import com.nhattung.wogo.enums.JobRequestStatus;
+import com.nhattung.wogo.enums.PaymentMethod;
 import com.nhattung.wogo.exception.AppException;
 import com.nhattung.wogo.repository.BookingRepository;
 import com.nhattung.wogo.service.address.IAddressService;
+import com.nhattung.wogo.service.bookingfile.IBookingFileService;
+import com.nhattung.wogo.service.payment.IPaymentService;
 import com.nhattung.wogo.service.service.IServiceService;
 import com.nhattung.wogo.service.user.IUserService;
 import com.nhattung.wogo.service.worker.IWorkerService;
@@ -21,6 +25,9 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.math.BigDecimal;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -37,22 +44,22 @@ public class BookingService implements IBookingService {
     private final BookingRepository bookingRepository;
     private final IUserService userService;
     private final IWorkerService workerService;
-    private static final long JOB_EXPIRATION_MINUTES = 30;
-    private final ModelMapper modelMapper;
-    private static final double EARTH_RADIUS_KM = 6371.0;
     private final IAddressService addressService;
+    private final IBookingFileService bookingFileService;
+    private final ModelMapper modelMapper;
+    private final IPaymentService paymentService;
+    private static final long JOB_EXPIRATION_MINUTES = 30;
+    private static final double EARTH_RADIUS_KM = 6371.0;
         @Override
         public JobRequestResponseDTO createJob(FindServiceRequestDTO request, List<MultipartFile> files) {
             Long userId = SecurityUtils.getCurrentUserId();
             ServiceWG service = serviceService.getServiceByIdEntity(request.getServiceId());
             UserResponseDTO user = userService.getUserById(userId);
 
-            List<String> imageUrls = Optional.ofNullable(files)
+            List<UploadS3Response> uploadResponses = Optional.ofNullable(files)
                     .orElseGet(Collections::emptyList)
                     .stream()
                     .map(uploadToS3::uploadFileToS3)
-                    .filter(Objects::nonNull)
-                    .map(UploadS3Response::getFileUrl)
                     .filter(Objects::nonNull)
                     .toList();
 
@@ -68,7 +75,7 @@ public class BookingService implements IBookingService {
                     .estimatedPriceHigher(request.getEstimatedPriceHigher())
                     .bookingAddress(request.getAddress())
                     .distance(0.0)
-                    .fileUrls(imageUrls)
+                    .files(uploadResponses)
                     .user(user)
                     .status(JobRequestStatus.PENDING)
                     .build();
@@ -199,10 +206,13 @@ public class BookingService implements IBookingService {
                 .totalAmount(request.getQuotedPrice())
                 .build());
 
+        // lưu file
+        bookingFileService.saveFiles(job.getFiles(), booking);
+
         // xoá job detail sau khi booking thành công
         redisTemplate.delete(RedisKeyUtil.jobDetailKey(request.getJobRequestCode()));
 
-        return convertToBookingResponseDTO(booking,job.getFileUrls());
+        return convertToBookingResponseDTO(booking);
     }
 
     @Override
@@ -239,6 +249,69 @@ public class BookingService implements IBookingService {
 
         return EARTH_RADIUS_KM * c; // km
 
+    }
+
+    @Override
+    public TransactionResponseDTO createBookingTransaction(String bookingCode) {
+        Booking booking = bookingRepository.findByBookingCode(bookingCode)
+                .orElseThrow(() -> new AppException(ErrorCode.BOOKING_NOT_FOUND));
+
+        if (booking.getTotalAmount() == null || booking.getTotalAmount().doubleValue() <= 0) {
+            throw new AppException(ErrorCode.INVALID_BOOKING_AMOUNT);
+        }
+
+
+        String linkQR = generateQRLink(booking);
+
+        return TransactionResponseDTO.builder()
+                .linkTransaction(linkQR)
+                .minDateTransaction(LocalDateTime.now())
+                .maxDateTransaction(LocalDateTime.now().plusMinutes(5))
+                .transactionStatus(false)
+                .build();
+    }
+
+    @Override
+    public BookingResponseDTO confirmPrice(ConfirmPriceRequestDTO request) {
+        Booking booking = bookingRepository.findByBookingCode(request.getBookingCode())
+                .orElseThrow(() -> new AppException(ErrorCode.BOOKING_NOT_FOUND));
+
+        if (booking.getBookingStatus() != BookingStatus.ARRIVED) {
+            throw new AppException(ErrorCode.BOOKING_CANNOT_CONFIRM_PRICE);
+        }
+
+        BigDecimal platformFee = booking.getTotalAmount()
+                .multiply(BigDecimal.valueOf(WogoConstants.PLATFORM_FEE_PERCENTAGE))
+                .setScale(2, BigDecimal.ROUND_HALF_UP);
+
+        booking.setPlatformFee(platformFee);
+        booking.setTotalAmount(request.getFinalPrice());
+        booking.setExtraServicesNotes(request.getNotes());
+        booking.setBookingStatus(BookingStatus.NEGOTIATING);
+
+        if(booking.getBookingPayment() == null){
+            paymentService.savePayment(PaymentRequestDTO.builder()
+                            .bookingCode(booking.getBookingCode())
+                            .amount(booking.getTotalAmount())
+                            .paymentMethod(PaymentMethod.BANK_TRANSFER)
+                            .paidAt(null)
+                    .build());
+        }
+
+        return convertToBookingResponseDTO(bookingRepository.save(booking));
+    }
+
+    private String generateQRLink(Booking booking) {
+        try {
+            return String.format("https://qr.sepay.vn/img?acc=%s&bank=%s&amount=%s&des=%s",
+                    URLEncoder.encode(WogoConstants.ACCOUNT_NUMBER, StandardCharsets.UTF_8),
+                    URLEncoder.encode(WogoConstants.BANK_NAME, StandardCharsets.UTF_8),
+                    URLEncoder.encode(booking.getTotalAmount().toString(), StandardCharsets.UTF_8),
+                    URLEncoder.encode("TTDV" + booking.getBookingCode(), StandardCharsets.UTF_8)
+            );
+        } catch (Exception e) {
+            throw new AppException(ErrorCode.QR_LINK_GENERATION_FAILED);
+        }
     }
 
     @Override
@@ -285,9 +358,10 @@ public class BookingService implements IBookingService {
         return "JR-" + uuid.substring(0, 8) + "-" + LocalDateTime.now().getYear();
     }
 
-    private BookingResponseDTO convertToBookingResponseDTO(Booking booking,List<String> fileUrls) {
-        BookingResponseDTO responseDTO = modelMapper.map(booking, BookingResponseDTO.class);
-        responseDTO.setFileUrls(fileUrls);
-        return responseDTO;
+    private BookingResponseDTO convertToBookingResponseDTO(Booking booking) {
+            BookingResponseDTO response = modelMapper.map(booking, BookingResponseDTO.class);
+            List<BookingFileDTO> files = bookingFileService.getFilesByBookingId(booking.getId());
+            response.setFiles(files);
+            return response;
     }
 }

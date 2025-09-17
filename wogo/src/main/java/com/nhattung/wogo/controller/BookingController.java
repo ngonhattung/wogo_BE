@@ -1,10 +1,7 @@
 package com.nhattung.wogo.controller;
 
 import com.nhattung.wogo.dto.request.*;
-import com.nhattung.wogo.dto.response.ApiResponse;
-import com.nhattung.wogo.dto.response.BookingResponseDTO;
-import com.nhattung.wogo.dto.response.JobRequestResponseDTO;
-import com.nhattung.wogo.dto.response.WorkerFoundResponseDTO;
+import com.nhattung.wogo.dto.response.*;
 import com.nhattung.wogo.entity.Address;
 import com.nhattung.wogo.enums.BookingStatus;
 import com.nhattung.wogo.service.address.AddressService;
@@ -26,6 +23,8 @@ public class BookingController {
 
     private final IBookingService bookingService;
     private final SimpMessagingTemplate messagingTemplate;
+
+
     @PostMapping("/create-job")
     public ApiResponse<Void> findWorkers(@Valid @ModelAttribute FindServiceRequestDTO request,
                                          @RequestParam(value = "files", required = false) List<MultipartFile> files) {
@@ -160,6 +159,29 @@ public class BookingController {
 
         return ApiResponse.<Void>builder()
                 .message("Status updated successfully")
+                .build();
+    }
+
+    @PostMapping("/create-payment/{bookingCode}")
+    public ApiResponse<TransactionResponseDTO> createPayment(@PathVariable String bookingCode) {
+        return ApiResponse.<TransactionResponseDTO>builder()
+                .message("Create payment successfully")
+                .result(bookingService.createBookingTransaction(bookingCode))
+                .build();
+    }
+
+    @PostMapping("/confirm-price")
+    public ApiResponse<Void> confirmPrice(@RequestBody ConfirmPriceRequestDTO request) {
+        bookingService.confirmPrice(request);
+
+
+        //Push realtime cho khách hàng
+        messagingTemplate.convertAndSend(
+                "/topic/confirmPrice/" + request.getBookingCode(), request.getFinalPrice()
+        );
+
+        return ApiResponse.<Void>builder()
+                .message("Confirm price successfully")
                 .build();
     }
 

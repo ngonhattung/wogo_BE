@@ -19,5 +19,5 @@ public class BookingResponseDTO {
     private BigDecimal totalAmount;
     private ServiceResponseDTO service;
     private WorkerResponseDTO worker;
-    private List<String> fileUrls;
+    private List<BookingFileDTO> files;
 }

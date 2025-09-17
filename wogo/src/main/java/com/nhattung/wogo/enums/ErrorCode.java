@@ -77,6 +77,9 @@ public enum ErrorCode {
 
     // general errors
     INVALID_PAGE_SIZE(5001, "Page size must be greater than 0", HttpStatus.BAD_REQUEST),
+    INVALID_BOOKING_AMOUNT(5002, "Booking amount must be greater than 0", HttpStatus.BAD_REQUEST),
+    QR_LINK_GENERATION_FAILED(5003, "QR link generation failed", HttpStatus.INTERNAL_SERVER_ERROR),
+    BOOKING_CANNOT_CONFIRM_PRICE(5004, "Cannot confirm price for this booking", HttpStatus.BAD_REQUEST)
 
     ;
 

@@ -1,5 +1,6 @@
 package com.nhattung.wogo.entity;
 
+import com.nhattung.wogo.enums.PaymentMethod;
 import com.nhattung.wogo.enums.PaymentStatus;
 import jakarta.persistence.*;
 import lombok.*;
@@ -25,11 +26,11 @@ public class BookingPayment {
     @Enumerated(EnumType.STRING)
     private PaymentStatus paymentStatus;
 
+    @Enumerated(EnumType.STRING)
+    private PaymentMethod paymentMethod;
+
     private LocalDateTime paymentDate;
-    private BigDecimal serviceFee;
-    private BigDecimal platformFee;
-    private BigDecimal workerReceiveAmount;
-    private String note;
+
     private LocalDateTime paidAt;
 
     @CreationTimestamp
@@ -39,8 +40,8 @@ public class BookingPayment {
     @JoinColumn(name = "booking_id", nullable = false)
     private Booking booking;
 
-    @OneToOne
-    @JoinColumn(name = "payment_method_id", nullable = false)
-    private PaymentMethod paymentMethod;
+//    @OneToOne
+//    @JoinColumn(name = "payment_method_id", nullable = false)
+//    private PaymentMethod paymentMethod;
 
 }
