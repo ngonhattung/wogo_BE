@@ -79,4 +79,13 @@ public class ServiceController {
                 .message("Search services by name successfully")
                 .build();
     }
+
+    @GetMapping("/parent-unique")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    public ApiResponse<List<ServiceResponseDTO>> getServicesParentUnique() {
+        return ApiResponse.<List<ServiceResponseDTO>>builder()
+                .result(serviceService.getServicesParentUnique())
+                .message("Get parent unique services successfully")
+                .build();
+    }
 }

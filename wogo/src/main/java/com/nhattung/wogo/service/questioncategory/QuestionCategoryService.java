@@ -35,6 +35,7 @@ public class QuestionCategoryService implements IQuestionCategoryService{
     }
     private QuestionCategory createQuestionCategory(QuestionCategoryRequestDTO request, ServiceWG service) {
         return QuestionCategory.builder()
+                .questionCategoryName(request.getQuestionCategoryName())
                 .service(service)
                 .requiredScore(request.getRequiredScore())
                 .questionsPerTest(request.getQuestionPerTest())

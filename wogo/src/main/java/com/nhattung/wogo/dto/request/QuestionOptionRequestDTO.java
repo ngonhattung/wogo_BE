@@ -19,6 +19,5 @@ public class QuestionOptionRequestDTO {
     @Min(value = 1, message = "ORDER_INDEX_MIN_MESSAGE")
     private int orderIndex;
 
-    @NotNull(message = "QUESTION_ID_NOT_NULL_MESSAGE")
     private Long questionId;
 }

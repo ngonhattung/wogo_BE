@@ -15,7 +15,8 @@ public class CorsConfig {
     public static final List<String> ALLOWED_ORIGINS = List.of(
             "http://localhost:8081",
             "http://172.28.64.1:8081",
-            "http://127.0.0.1:5500"
+            "http://127.0.0.1:5500",
+            "http://localhost:3000"
     );
 
     @Bean

@@ -28,4 +28,9 @@ public interface ServiceRepository extends JpaRepository<ServiceWG, Long> {
     List<ServiceWG> findAllByIsActiveTrueAndParentIdIsNull();
 
     List<ServiceWG> findByParentIdOrId(Long id, Long id1);
+
+    @Query("SELECT s FROM ServiceWG s " +
+            "LEFT JOIN QuestionCategory qc ON qc.service = s " +
+            "WHERE s.parentId IS NULL AND qc.id IS NULL")
+    List<ServiceWG> findParentServicesWithoutQuestionCategory();
 }

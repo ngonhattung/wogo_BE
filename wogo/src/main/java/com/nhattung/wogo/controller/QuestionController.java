@@ -43,8 +43,8 @@ public class QuestionController {
 
     @PostMapping(value = "/save",consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasRole('ROLE_ADMIN')")
-    public ApiResponse<QuestionResponseDTO> saveQuestion(@ModelAttribute QuestionRequestDTO questionRequest,
-                                                         @RequestParam(value = "image", required = false) MultipartFile imageFile) {
+    public ApiResponse<QuestionResponseDTO> saveQuestion(@RequestPart QuestionRequestDTO questionRequest,
+                                                         @RequestPart(value = "image", required = false) MultipartFile imageFile) {
 
         return ApiResponse.<QuestionResponseDTO>builder()
                 .result(questionService.saveQuestion(questionRequest,imageFile))

@@ -172,6 +172,14 @@ public class ServiceService implements IServiceService{
                 .toList();
     }
 
+    @Override
+    public List<ServiceResponseDTO> getServicesParentUnique() {
+        return serviceRepository.findParentServicesWithoutQuestionCategory()
+                .stream()
+                .map(this::convertToResponseDTO)
+                .toList();
+    }
+
 
     private WorkerServiceResponseDTO convertToResponseDTOWithService(WorkerService workerService) {
         WorkerServiceResponseDTO dto = workerServiceService.convertToResponseDTO(workerService);

@@ -19,5 +19,6 @@ public interface IServiceService {
     List<ParentServiceResponseDTO> searchByServiceName(String serviceName);
     List<WorkerServiceResponseDTO> getAllServicesOfWorker();
     List<Long> getAllWorkerChildServiceIdsByWorkerId();
+    List<ServiceResponseDTO> getServicesParentUnique();
 
 }
