@@ -9,7 +9,5 @@ import java.time.LocalDateTime;
 @Builder
 public class TransactionResponseDTO {
     private String linkTransaction;
-    private LocalDateTime minDateTransaction;
-    private LocalDateTime maxDateTransaction;
     private Boolean transactionStatus;
 }

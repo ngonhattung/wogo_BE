@@ -32,6 +32,9 @@ public enum ErrorCode {
     WORKER_DOCUMENT_FILE_NOT_FOUND(1012, "Worker document file not found", HttpStatus.NOT_FOUND),
     BOOKING_NOT_FOUND(1013, "Booking not found", HttpStatus.NOT_FOUND),
     ADDRESS_NOT_FOUND(1014, "Address not found", HttpStatus.NOT_FOUND),
+    WORKER_NOT_FOUND(1015, "Worker not found", HttpStatus.NOT_FOUND),
+    PAYMENT_NOT_FOUND(1016, "Payment not found", HttpStatus.NOT_FOUND),
+
 
     //validation errors
     EMPTY_PHONE(2001, "Phone number cannot be empty", HttpStatus.BAD_REQUEST),
@@ -79,8 +82,11 @@ public enum ErrorCode {
     INVALID_PAGE_SIZE(5001, "Page size must be greater than 0", HttpStatus.BAD_REQUEST),
     INVALID_BOOKING_AMOUNT(5002, "Booking amount must be greater than 0", HttpStatus.BAD_REQUEST),
     QR_LINK_GENERATION_FAILED(5003, "QR link generation failed", HttpStatus.INTERNAL_SERVER_ERROR),
-    BOOKING_CANNOT_CONFIRM_PRICE(5004, "Cannot confirm price for this booking", HttpStatus.BAD_REQUEST)
-
+    BOOKING_CANNOT_CONFIRM_PRICE(5004, "Cannot confirm price for this booking", HttpStatus.BAD_REQUEST),
+    JOB_CANNOT_BE_PLACED(5005, "Cannot place this job request", HttpStatus.BAD_REQUEST),
+    YOU_ALREADY_SEND_QUOTE(5006, "You have already sent a quote for this job request", HttpStatus.BAD_REQUEST),
+    CANNOT_ACCEPT_OWN_JOB(5007, "You cannot accept your own job request", HttpStatus.BAD_REQUEST),
+    INVALID_PAYMENT_STATUS(5008, "Invalid payment status", HttpStatus.BAD_REQUEST)
     ;
 
 

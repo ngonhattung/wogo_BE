@@ -16,4 +16,5 @@ public class WorkerResponseDTO {
     private int totalJobs;
     private int totalReviews;
     private double averageRating;
+    private UserResponseDTO user;
 }

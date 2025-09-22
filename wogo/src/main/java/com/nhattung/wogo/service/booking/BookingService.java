@@ -4,16 +4,14 @@ import com.nhattung.wogo.constants.WogoConstants;
 import com.nhattung.wogo.dto.request.*;
 import com.nhattung.wogo.dto.response.*;
 import com.nhattung.wogo.entity.*;
-import com.nhattung.wogo.enums.BookingStatus;
-import com.nhattung.wogo.enums.ErrorCode;
-import com.nhattung.wogo.enums.JobRequestStatus;
-import com.nhattung.wogo.enums.PaymentMethod;
+import com.nhattung.wogo.enums.*;
 import com.nhattung.wogo.exception.AppException;
 import com.nhattung.wogo.repository.BookingRepository;
 import com.nhattung.wogo.service.address.IAddressService;
 import com.nhattung.wogo.service.bookingfile.IBookingFileService;
 import com.nhattung.wogo.service.payment.IPaymentService;
 import com.nhattung.wogo.service.service.IServiceService;
+import com.nhattung.wogo.service.suggest.ISuggestService;
 import com.nhattung.wogo.service.user.IUserService;
 import com.nhattung.wogo.service.worker.IWorkerService;
 import com.nhattung.wogo.utils.RedisKeyUtil;
@@ -28,7 +26,6 @@ import org.springframework.web.multipart.MultipartFile;
 import java.math.BigDecimal;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -48,6 +45,7 @@ public class BookingService implements IBookingService {
     private final IBookingFileService bookingFileService;
     private final ModelMapper modelMapper;
     private final IPaymentService paymentService;
+    private final ISuggestService suggestService;
     private static final long JOB_EXPIRATION_MINUTES = 30;
     private static final double EARTH_RADIUS_KM = 6371.0;
         @Override
@@ -63,7 +61,22 @@ public class BookingService implements IBookingService {
                     .filter(Objects::nonNull)
                     .toList();
 
-            // build job request
+
+            //Lưu vị trí của KHACHS hàng
+            addressService.saveOrUpdateAddress(AddressRequestDTO.builder()
+                    .userId(userId)
+                    .latitude(request.getLatitudeUser())
+                    .longitude(request.getLongitudeUser())
+                    .role(ROLE.CUSTOMER.getValue())
+                    .build());
+
+            //Goi suggest de tinh gia
+            EstimatedResponseDTO estimated = suggestService.suggestPrice(EstimatedPriceRequestDTO.builder()
+                    .serviceId(request.getServiceId())
+                    .distanceKm(1.0)
+                    .build());
+            
+            // build job request con
             String code = generateJobRequestCode();
             JobRequestResponseDTO job = JobRequestResponseDTO.builder()
                     .jobRequestCode(code)
@@ -71,9 +84,10 @@ public class BookingService implements IBookingService {
                     .serviceName(service.getServiceName())
                     .description(request.getDescription())
                     .bookingDate(request.getBookingDate())
-                    .estimatedPriceLower(request.getEstimatedPriceLower())
-                    .estimatedPriceHigher(request.getEstimatedPriceHigher())
                     .bookingAddress(request.getAddress())
+                    .estimatedPriceLower(estimated.getEstimatedPriceLower())
+                    .estimatedPriceHigher(estimated.getEstimatedPriceHigher())
+                    .estimatedDurationMinutes(estimated.getEstimatedDurationMinutes())
                     .distance(0.0)
                     .files(uploadResponses)
                     .user(user)
@@ -81,8 +95,7 @@ public class BookingService implements IBookingService {
                     .build();
 
             // 1) Lưu detail job
-            String jobDetailKey = RedisKeyUtil.jobDetailKey(code);
-            redisTemplate.opsForValue().set(jobDetailKey, job, JOB_EXPIRATION_MINUTES, TimeUnit.MINUTES);
+            saveRedisJobDetail(code, job);
 
             // 2) Ghi code job vào list theo service
             String serviceKey = RedisKeyUtil.jobListByServiceKey(service.getId());
@@ -96,6 +109,7 @@ public class BookingService implements IBookingService {
     @Override
     public List<JobRequestResponseDTO> getListPendingJobsMatchWorker() {
 
+            //Lay dia chi cua tho
         Long workerId = SecurityUtils.getCurrentUserId();
 
         List<Long> serviceIds = serviceService.getAllServicesOfWorker()
@@ -138,32 +152,17 @@ public class BookingService implements IBookingService {
                             .build());
 
                     job.setDistance(distance);
+
                 })
                 .toList();
 
     }
     @Override
     public boolean verifyJobRequest(JobRequestDTO request) {
-        Long workerId = SecurityUtils.getCurrentUserId();
         String code = request.getJobRequestCode();
-        String lockKey = RedisKeyUtil.jobLockKey(code);
+        JobRequestResponseDTO job = getJobAndValidate(code);
 
-        // lock (SETNX) để chỉ 1 worker nhận
-        Boolean locked = redisTemplate.opsForValue().setIfAbsent(lockKey, workerId, Duration.ofSeconds(10));
-        if (Boolean.FALSE.equals(locked)) {
-            return false; // đã có người lock trước
-        }
-
-        try {
-            JobRequestResponseDTO job = getJobAndValidate(code, JobRequestStatus.PENDING);
-            job.setStatus(JobRequestStatus.ACCEPTED);
-            job.setAcceptedBy(workerId);
-
-            redisTemplate.opsForValue().set(RedisKeyUtil.jobDetailKey(code), job, JOB_EXPIRATION_MINUTES, TimeUnit.MINUTES);
-            return true;
-        } finally {
-            redisTemplate.delete(lockKey);
-        }
+        return job != null;
     }
 
     @Override
@@ -191,7 +190,15 @@ public class BookingService implements IBookingService {
 
     @Override
     public BookingResponseDTO placeJob(PlaceJobRequestDTO request) {
-        JobRequestResponseDTO job = getJobAndValidate(request.getJobRequestCode(), JobRequestStatus.ACCEPTED);
+        JobRequestResponseDTO job = getJobAndValidate(request.getJobRequestCode());
+        if (job == null) {
+            throw new AppException(ErrorCode.JOB_CANNOT_BE_PLACED);
+        }
+        // cập nhật trạng thái job đã được đặt
+        job.setStatus(JobRequestStatus.ACCEPTED);
+        job.setAcceptedBy(request.getWorkerId());
+        saveRedisJobDetail(request.getJobRequestCode(), job);
+
         ServiceWG service = serviceService.getServiceByIdEntity(job.getServiceId());
 
         // tạo booking
@@ -265,8 +272,6 @@ public class BookingService implements IBookingService {
 
         return TransactionResponseDTO.builder()
                 .linkTransaction(linkQR)
-                .minDateTransaction(LocalDateTime.now())
-                .maxDateTransaction(LocalDateTime.now().plusMinutes(5))
                 .transactionStatus(false)
                 .build();
     }
@@ -322,12 +327,44 @@ public class BookingService implements IBookingService {
     }
 
 
-    private JobRequestResponseDTO getJobAndValidate(String code, JobRequestStatus expected) {
+    private JobRequestResponseDTO getJobAndValidate(String code) {
         JobRequestResponseDTO job = getJobByCode(code);
-        if (job == null || !expected.equals(job.getStatus())) {
-            throw new IllegalStateException("Job invalid or not in expected status");
+
+        if (!JobRequestStatus.PENDING.equals(job.getStatus())) {
+            return null;
         }
+
+        Long userId = SecurityUtils.getCurrentUserId();
+        Worker currentWorker = workerService.getWorkerByUserId(userId);
+
+        if (currentWorker == null) {
+            throw new AppException(ErrorCode.WORKER_NOT_FOUND);
+        }
+
+        Long jobWorkerId = job.getWorker() != null ? job.getWorker().getId() : null;
+        Long jobOwnerId = job.getUser() != null ? job.getUser().getId() : null;
+        Long currentWorkerId = currentWorker.getId();
+
+        if (Objects.equals(jobWorkerId, currentWorkerId)) {
+            throw new AppException(ErrorCode.YOU_ALREADY_SEND_QUOTE);
+        }
+
+        if (Objects.equals(jobOwnerId, userId)) {
+            throw new AppException(ErrorCode.CANNOT_ACCEPT_OWN_JOB);
+        }
+
+        WorkerResponseDTO workerDTO = modelMapper.map(currentWorker, WorkerResponseDTO.class);
+//        UserResponseDTO userDTO = modelMapper.map(userService.getUserByIdEntity(currentWorker.getUser().getId()), UserResponseDTO.class);
+//        workerDTO.setWorkerInfo(userDTO);
+        job.setWorker(workerDTO);
+        saveRedisJobDetail(code, job);
         return job;
+    }
+
+
+    private void saveRedisJobDetail(String code, JobRequestResponseDTO job) {
+        String jobDetailKey = RedisKeyUtil.jobDetailKey(code);
+        redisTemplate.opsForValue().set(jobDetailKey, job, JOB_EXPIRATION_MINUTES, TimeUnit.MINUTES);
     }
 
     private Booking createBooking(BookingRequestDTO request,User user, Worker worker) {

@@ -48,6 +48,11 @@ aws:
 
 sepay:
   key: KBaIFNmtMGgk7rNtnoRTl1LMFEaOIr5uu+xBtzhaiK258/RRq3XRKap0/iEZEkbs
+  token: RPXS3OBCLMQGXFJY3ODGUIWS7XEFQMIKBPNOKUTBC7VGP2V2TZXWWFACOGA6I1YN
+  historyUrl: https://my.sepay.vn/userapi/transactions/list
+
+suggest:
+  url: http://localhost:8000/api/v1/pricing/suggest-random
 
 logging:
   level:

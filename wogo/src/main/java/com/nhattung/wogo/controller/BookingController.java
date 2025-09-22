@@ -4,9 +4,12 @@ import com.nhattung.wogo.dto.request.*;
 import com.nhattung.wogo.dto.response.*;
 import com.nhattung.wogo.entity.Address;
 import com.nhattung.wogo.enums.BookingStatus;
+import com.nhattung.wogo.enums.PaymentMethod;
 import com.nhattung.wogo.service.address.AddressService;
 import com.nhattung.wogo.service.address.IAddressService;
 import com.nhattung.wogo.service.booking.IBookingService;
+import com.nhattung.wogo.service.payment.IPaymentService;
+import com.nhattung.wogo.service.sepay.ISepayVerifyService;
 import com.nhattung.wogo.utils.SecurityUtils;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -23,8 +26,8 @@ public class BookingController {
 
     private final IBookingService bookingService;
     private final SimpMessagingTemplate messagingTemplate;
-
-
+    private final ISepayVerifyService sepayVerifyService;
+    private final IPaymentService paymentService;
     @PostMapping("/create-job")
     public ApiResponse<Void> findWorkers(@Valid @ModelAttribute FindServiceRequestDTO request,
                                          @RequestParam(value = "files", required = false) List<MultipartFile> files) {
@@ -38,7 +41,7 @@ public class BookingController {
                 job
         );
 
-        //Khách subscribe để nhận thông báo thợ đã nhận job
+        //Khách subscribe để nhận thông báo thợ đã nhận job (/topic/send-quote/" + job.getServiceId(),)
 
         return ApiResponse.<Void>builder()
                 .message("Find workers request sent successfully")
@@ -58,6 +61,9 @@ public class BookingController {
 
 
         Long workerId = SecurityUtils.getCurrentUserId();
+
+        //Lưu thêm địa chỉ thợ cho trường hợp realtime
+
         boolean isValid = bookingService.verifyJobRequest(request);
 
         if(isValid){
@@ -69,7 +75,7 @@ public class BookingController {
                     job
             );
 
-            //Thợ subscribe để nhận thông báo chấp nhận hay từ chối
+            //Thợ subscribe để nhận thông báo chấp nhận hay từ chối (/topic/job-placed/ + requestCode)
 
             return ApiResponse.<WorkerFoundResponseDTO>builder()
                     .message("Job accepted successfully")
@@ -96,6 +102,7 @@ public class BookingController {
                 booking
         );
 
+
         //Push realtime cho các thợ khác là job đã được đặt (subscribe theo requestCode (để gửi cho tất cả thợ báo giá) ngay sau khi gửi quote )
         messagingTemplate.convertAndSend(
                 "/topic/job-placed/" + request.getJobRequestCode(),
@@ -116,6 +123,7 @@ public class BookingController {
                 "/topic/job-placed/" + request.getJobRequestCode(),
                 "Job has been cancelled"
         );
+
 
         return ApiResponse.<Void>builder()
                 .message("Cancel job successfully")
@@ -148,7 +156,14 @@ public class BookingController {
     }
 
     @PutMapping("/updateStatus")
-    public ApiResponse<Void> updateStatusComeHome(@RequestBody UpdateStatusBookingRequestDTO request) {
+    public ApiResponse<Void> updateStatus(@RequestBody UpdateStatusBookingRequestDTO request) {
+
+        if(request.getPaymentMethod() != null && request.getStatus() == BookingStatus.COMPLETED){
+            paymentService.updatePaymentStatus(PaymentRequestDTO.builder()
+                    .bookingCode(request.getBookingCode())
+                    .paymentMethod(request.getPaymentMethod())
+                    .build());
+        }
 
         bookingService.updateStatusBooking(request);
 
@@ -162,6 +177,23 @@ public class BookingController {
                 .build();
     }
 
+
+    @PostMapping("/confirm-price")
+    public ApiResponse<BookingResponseDTO> confirmPrice(@RequestBody ConfirmPriceRequestDTO request) {
+
+        BookingResponseDTO booking = bookingService.confirmPrice(request);
+
+        //Push realtime cho khách hàng
+        messagingTemplate.convertAndSend(
+                "/topic/confirmPrice/" + request.getBookingCode(), request
+        );
+
+        return ApiResponse.<BookingResponseDTO>builder()
+                .message("Confirm price successfully")
+                .result(booking)
+                .build();
+    }
+
     @PostMapping("/create-payment/{bookingCode}")
     public ApiResponse<TransactionResponseDTO> createPayment(@PathVariable String bookingCode) {
         return ApiResponse.<TransactionResponseDTO>builder()
@@ -170,18 +202,30 @@ public class BookingController {
                 .build();
     }
 
-    @PostMapping("/confirm-price")
-    public ApiResponse<Void> confirmPrice(@RequestBody ConfirmPriceRequestDTO request) {
-        bookingService.confirmPrice(request);
+    @PostMapping("/verify-payment/{bookingCode}")
+    public ApiResponse<Boolean> verifyPayment(@PathVariable String bookingCode) {
+        boolean isPaid = sepayVerifyService.checkTransaction(bookingCode);
 
+        if(isPaid){
 
-        //Push realtime cho khách hàng
-        messagingTemplate.convertAndSend(
-                "/topic/confirmPrice/" + request.getBookingCode(), request.getFinalPrice()
-        );
+            //Cập nhật trạng thái đã thanh toán
+            bookingService.updateStatusBooking(
+                    UpdateStatusBookingRequestDTO.builder()
+                            .bookingCode(bookingCode)
+                            .status(BookingStatus.PAID)
+                            .build()
+            );
 
-        return ApiResponse.<Void>builder()
-                .message("Confirm price successfully")
+            //Cập nhật trạng thái thanh toán
+
+            //Push realtime status cho khách hàng và worker (subscribe theo bookingCode)
+            messagingTemplate.convertAndSend(
+                    "/topic/bookingStatus/" + bookingCode, BookingStatus.PAID
+            );
+        }
+        return ApiResponse.<Boolean>builder()
+                .message(isPaid ? "Payment verified successfully" : "Payment verification failed")
+                .result(isPaid)
                 .build();
     }
 

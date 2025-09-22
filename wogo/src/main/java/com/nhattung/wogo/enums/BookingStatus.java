@@ -6,6 +6,7 @@ public enum BookingStatus {
     NEGOTIATING("NEGOTIATING"),
     WORKING("WORKING"),
     PAYING("PAYING"),
+    PAID("PAID"),
     COMPLETED("COMPLETED"),
     CANCELLED("CANCELLED");
 

@@ -35,7 +35,6 @@ public class PaymentService  implements IPaymentService{
                         .totalAmount(request.getAmount())
                         .paymentMethod(request.getPaymentMethod())
                         .paymentStatus(PaymentStatus.PENDING)
-                        .paymentDate(LocalDateTime.now())
                         .paidAt(request.getPaidAt())
                 .build());
 
@@ -47,6 +46,32 @@ public class PaymentService  implements IPaymentService{
         return null;
     }
 
+    @Override
+    public void updatePaymentStatus(PaymentRequestDTO request) {
+        Booking booking = bookingRepository.findByBookingCode(request.getBookingCode())
+                .orElseThrow(() -> new AppException(ErrorCode.BOOKING_NOT_FOUND));
+        BookingPayment payment = paymentRepository.findByBooking(booking)
+                .orElseThrow(() -> new AppException(ErrorCode.PAYMENT_NOT_FOUND));
+
+        // Xử lý cập nhật trạng thái thanh toán
+        if (isValidPaymentMethod(request.getPaymentMethod())) {
+            updatePayment(payment);
+        } else {
+            throw new AppException(ErrorCode.INVALID_PAYMENT_STATUS);
+        }
+    }
+
+    // Kiểm tra tính hợp lệ của phương thức thanh toán
+    private boolean isValidPaymentMethod(PaymentMethod paymentMethod) {
+        return paymentMethod == PaymentMethod.CASH || paymentMethod == PaymentMethod.BANK_TRANSFER;
+    }
+
+    // Cập nhật trạng thái thanh toán
+    private void updatePayment(BookingPayment payment) {
+        payment.setPaymentStatus(PaymentStatus.COMPLETED);
+        payment.setPaidAt(LocalDateTime.now());
+        paymentRepository.save(payment);
+    }
 
 
 }

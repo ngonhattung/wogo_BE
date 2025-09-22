@@ -29,8 +29,6 @@ public class BookingPayment {
     @Enumerated(EnumType.STRING)
     private PaymentMethod paymentMethod;
 
-    private LocalDateTime paymentDate;
-
     private LocalDateTime paidAt;
 
     @CreationTimestamp

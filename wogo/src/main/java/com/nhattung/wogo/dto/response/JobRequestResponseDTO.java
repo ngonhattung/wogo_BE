@@ -1,6 +1,7 @@
 package com.nhattung.wogo.dto.response;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.nhattung.wogo.entity.Worker;
 import com.nhattung.wogo.enums.JobRequestStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -25,8 +26,10 @@ public class JobRequestResponseDTO {
     private String bookingAddress;
     private BigDecimal estimatedPriceLower;
     private BigDecimal estimatedPriceHigher;
+    private int estimatedDurationMinutes;
     private List<UploadS3Response> files;
     private UserResponseDTO user;
+    private WorkerResponseDTO worker;
     private JobRequestStatus status;
     private Long acceptedBy;
 }
