@@ -15,4 +15,5 @@ public final class WogoConstants {
     public static final double PLATFORM_FEE_PERCENTAGE = 0.10; // 10%
     public static final double ROAD_WAY = 1.3;
     public static final double EARTH_RADIUS_KM = 6371.0;
+    public static final BigDecimal INITIAL_WALLET_BALANCE = BigDecimal.valueOf(0.00);
 }

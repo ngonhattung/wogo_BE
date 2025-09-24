@@ -24,9 +24,6 @@ public class WalletTransaction {
     private Long id;
 
     @Enumerated(EnumType.STRING)
-    private WalletType walletType;
-
-    @Enumerated(EnumType.STRING)
     private TransactionType transactionType;
 
     private BigDecimal amount;
@@ -55,5 +52,13 @@ public class WalletTransaction {
     @OneToOne
     @JoinColumn(name = "withdrawal_request_id", nullable = false)
     private WithdrawalRequest withdrawalRequest;
+
+    @ManyToOne
+    @JoinColumn(name = "walletRevenue_id", nullable = false)
+    private WorkerWalletRevenue walletRevenue;
+
+    @ManyToOne
+    @JoinColumn(name = "walletExpense_id", nullable = false)
+    private WorkerWalletExpense walletExpense;
 
 }

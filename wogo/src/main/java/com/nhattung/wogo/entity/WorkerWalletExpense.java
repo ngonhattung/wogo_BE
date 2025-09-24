@@ -7,6 +7,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
 import java.sql.Timestamp;
+import java.util.List;
 
 @Getter
 @Setter
@@ -32,4 +33,7 @@ public class WorkerWalletExpense {
     @OneToOne
     @JoinColumn(name = "worker_id", nullable = false)
     private Worker worker;
+
+    @OneToMany(mappedBy = "walletExpense", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<WalletTransaction> walletTransactions;
 }

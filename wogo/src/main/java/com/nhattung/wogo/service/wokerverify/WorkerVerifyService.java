@@ -11,6 +11,8 @@ import com.nhattung.wogo.service.question.IQuestionService;
 import com.nhattung.wogo.service.questioncategory.IQuestionCategoryService;
 import com.nhattung.wogo.service.testanswer.ITestAnswerService;
 import com.nhattung.wogo.service.user.IUserService;
+import com.nhattung.wogo.service.walletexpense.IWorkerWalletExpense;
+import com.nhattung.wogo.service.walletrevenue.IWorkerWalletRevenue;
 import com.nhattung.wogo.service.worker.IWorkerService;
 import com.nhattung.wogo.service.workerdocument.IWorkerDocumentService;
 import com.nhattung.wogo.service.workerservice.IWorkerServiceService;
@@ -41,6 +43,8 @@ public class WorkerVerifyService implements IWorkerVerifyService {
     private final IWorkerServiceService workerServiceService;
     private final ITestAnswerService testAnswerService;
     private final IWorkerDocumentService workerDocumentService;
+    private final IWorkerWalletExpense workerWalletExpenseService;
+    private final IWorkerWalletRevenue workerWalletRevenueService;
 
     @Override
     @Transactional
@@ -105,7 +109,7 @@ public class WorkerVerifyService implements IWorkerVerifyService {
 
         if (isPassed) {
             ensureUserHasWorkerRole(workerVerification.getUser().getId());
-            ensureWorkerAndService(workerVerification.getUser(), workerVerificationTest.getQuestionCategory().getService());
+            ensureWorkerAndServiceAndWallet(workerVerification.getUser(), workerVerificationTest.getQuestionCategory().getService());
         }
 
         workerVerificationTestService.updateWorkerVerificationTest(
@@ -199,7 +203,7 @@ public class WorkerVerifyService implements IWorkerVerifyService {
 
         if (status == VerificationStatus.APPROVED) {
             ensureUserHasWorkerRole(workerVerification.getUser().getId());
-            ensureWorkerAndService(workerVerification.getUser(), workerVerification.getService());
+            ensureWorkerAndServiceAndWallet(workerVerification.getUser(), workerVerification.getService());
         }
 
         // Update and return WorkerDocument
@@ -221,12 +225,33 @@ public class WorkerVerifyService implements IWorkerVerifyService {
         );
     }
 
-    private void ensureWorkerAndService(User user, ServiceWG service) {
+    private void ensureWorkerAndServiceAndWallet(User user, ServiceWG service) {
         Worker worker = workerService.isWorkerExists(user.getId())
                 ? workerService.getWorkerByUserId(user.getId())
                 : workerService.saveWorker(WorkerRequestDTO.builder().user(user).build());
 
         workerServiceService.saveWorkerService(worker, service);
+
+        //check xem có ví chưa
+        if(!workerWalletExpenseService.checkExistWalletByWorkerId(worker.getId()) && !workerWalletRevenueService.checkExistWalletByWorkerId(worker.getId())){
+            workerWalletExpenseService.saveWorkerWalletExpense(
+                    WorkerWalletExpenseRequestDTO.builder()
+                            .worker(worker)
+                            .totalExpense(WogoConstants.INITIAL_WALLET_BALANCE)
+                            .expenseBalance(WogoConstants.INITIAL_WALLET_BALANCE)
+                            .isActive(true)
+                            .build()
+            );
+
+            workerWalletRevenueService.saveWorkerWalletRevenue(
+                    WorkerWalletRevenueRequestDTO.builder()
+                            .worker(worker)
+                            .totalRevenue(WogoConstants.INITIAL_WALLET_BALANCE)
+                            .revenueBalance(WogoConstants.INITIAL_WALLET_BALANCE)
+                            .isActive(true)
+                            .build()
+            );
+        }
     }
 
     private void ensureUserHasWorkerRole(Long userId) {
