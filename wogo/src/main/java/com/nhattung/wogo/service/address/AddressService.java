@@ -8,6 +8,7 @@ import com.nhattung.wogo.enums.ROLE;
 import com.nhattung.wogo.exception.AppException;
 import com.nhattung.wogo.repository.AddressRepository;
 import com.nhattung.wogo.repository.UserRepository;
+import com.nhattung.wogo.utils.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,7 +27,8 @@ public class AddressService implements IAddressService{
     @Override
     @Transactional
     public void saveOrUpdateAddress(AddressRequestDTO request) {
-        User user = userRepository.findById(request.getUserId())
+        Long userId = SecurityUtils.getCurrentUserId();
+        User user = userRepository.findById(userId)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
         // Kiểm tra có address nào cùng role không

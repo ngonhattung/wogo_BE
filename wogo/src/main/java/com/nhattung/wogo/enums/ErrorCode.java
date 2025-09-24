@@ -34,7 +34,8 @@ public enum ErrorCode {
     ADDRESS_NOT_FOUND(1014, "Address not found", HttpStatus.NOT_FOUND),
     WORKER_NOT_FOUND(1015, "Worker not found", HttpStatus.NOT_FOUND),
     PAYMENT_NOT_FOUND(1016, "Payment not found", HttpStatus.NOT_FOUND),
-
+    JOB_FILE_NOT_FOUND(1017, "Job file not found", HttpStatus.NOT_FOUND),
+    JOB_NOT_FOUND(1018, "Job not found", HttpStatus.NOT_FOUND),
 
     //validation errors
     EMPTY_PHONE(2001, "Phone number cannot be empty", HttpStatus.BAD_REQUEST),
@@ -70,7 +71,7 @@ public enum ErrorCode {
     ROLE_ALREADY_EXISTS(3004, "Role already exists", HttpStatus.BAD_REQUEST),
     WORKER_SERVICE_EXISTS(3005, "Worker service already exists", HttpStatus.BAD_REQUEST),
     WORKER_DOCUMENT_EXISTS(3006, "Worker document already exists for this user and service", HttpStatus.BAD_REQUEST),
-
+    EXISTING_PENDING_JOB_REQUEST(3007, "You have an existing pending job request for this service", HttpStatus.BAD_REQUEST),
 
     // file errors
     FILE_SIZE_TOO_LARGE(4001, "File size exceeds the limit of 5MB", HttpStatus.BAD_REQUEST),

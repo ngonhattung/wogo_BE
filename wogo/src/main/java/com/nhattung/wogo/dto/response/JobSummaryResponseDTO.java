@@ -1,7 +1,5 @@
 package com.nhattung.wogo.dto.response;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
-import com.nhattung.wogo.entity.Worker;
 import com.nhattung.wogo.enums.JobRequestStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -9,27 +7,25 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
-
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class JobRequestResponseDTO {
+public class JobSummaryResponseDTO {
+    private Long id;
     private String jobRequestCode;
-    private Long serviceId;
-    private String serviceName;
-    private String description;
-    private String bookingDate;
+    private LocalDateTime bookingDate;
     private double distance;
+    private String description;
     private String bookingAddress;
     private BigDecimal estimatedPriceLower;
     private BigDecimal estimatedPriceHigher;
     private int estimatedDurationMinutes;
-    private List<UploadS3Response> files;
-    private UserResponseDTO user;
-    private WorkerResponseDTO worker;
     private JobRequestStatus status;
-    private Long acceptedBy;
+    private List<JobFileResponseDTO> files;
+    private UserResponseDTO user;
+    private ServiceResponseDTO service;
 }

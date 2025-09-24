@@ -2,6 +2,7 @@ package com.nhattung.wogo.service.booking;
 
 import com.nhattung.wogo.constants.WogoConstants;
 import com.nhattung.wogo.dto.request.*;
+import com.nhattung.wogo.dto.request.SendQuoteRequestDTO;
 import com.nhattung.wogo.dto.response.*;
 import com.nhattung.wogo.entity.*;
 import com.nhattung.wogo.enums.*;
@@ -9,15 +10,17 @@ import com.nhattung.wogo.exception.AppException;
 import com.nhattung.wogo.repository.BookingRepository;
 import com.nhattung.wogo.service.address.IAddressService;
 import com.nhattung.wogo.service.bookingfile.IBookingFileService;
+import com.nhattung.wogo.service.job.IJobService;
 import com.nhattung.wogo.service.payment.IPaymentService;
+import com.nhattung.wogo.service.sendquote.ISendQuoteService;
 import com.nhattung.wogo.service.service.IServiceService;
 import com.nhattung.wogo.service.suggest.ISuggestService;
 import com.nhattung.wogo.service.user.IUserService;
 import com.nhattung.wogo.service.worker.IWorkerService;
 import com.nhattung.wogo.utils.RedisKeyUtil;
 import com.nhattung.wogo.utils.SecurityUtils;
-import com.nhattung.wogo.utils.UploadToS3;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
@@ -33,11 +36,11 @@ import java.util.stream.Stream;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class BookingService implements IBookingService {
 
     private final RedisTemplate<String, Object> redisTemplate;
     private final IServiceService serviceService;
-    private final UploadToS3 uploadToS3;
     private final BookingRepository bookingRepository;
     private final IUserService userService;
     private final IWorkerService workerService;
@@ -46,81 +49,60 @@ public class BookingService implements IBookingService {
     private final ModelMapper modelMapper;
     private final IPaymentService paymentService;
     private final ISuggestService suggestService;
-    private static final long JOB_EXPIRATION_MINUTES = 30;
-    private static final double EARTH_RADIUS_KM = 6371.0;
-        @Override
-        public JobRequestResponseDTO createJob(FindServiceRequestDTO request, List<MultipartFile> files) {
-            Long userId = SecurityUtils.getCurrentUserId();
-            ServiceWG service = serviceService.getServiceByIdEntity(request.getServiceId());
-            UserResponseDTO user = userService.getUserById(userId);
-
-            List<UploadS3Response> uploadResponses = Optional.ofNullable(files)
-                    .orElseGet(Collections::emptyList)
-                    .stream()
-                    .map(uploadToS3::uploadFileToS3)
-                    .filter(Objects::nonNull)
-                    .toList();
-
-
-            //Lưu vị trí của KHACHS hàng
-            addressService.saveOrUpdateAddress(AddressRequestDTO.builder()
-                    .userId(userId)
-                    .latitude(request.getLatitudeUser())
-                    .longitude(request.getLongitudeUser())
-                    .role(ROLE.CUSTOMER.getValue())
-                    .build());
-
-            //Goi suggest de tinh gia
-            EstimatedResponseDTO estimated = suggestService.suggestPrice(EstimatedPriceRequestDTO.builder()
-                    .serviceId(request.getServiceId())
-                    .distanceKm(1.0)
-                    .build());
-            
-            // build job request con
-            String code = generateJobRequestCode();
-            JobRequestResponseDTO job = JobRequestResponseDTO.builder()
-                    .jobRequestCode(code)
-                    .serviceId(service.getId())
-                    .serviceName(service.getServiceName())
-                    .description(request.getDescription())
-                    .bookingDate(request.getBookingDate())
-                    .bookingAddress(request.getAddress())
-                    .estimatedPriceLower(estimated.getEstimatedPriceLower())
-                    .estimatedPriceHigher(estimated.getEstimatedPriceHigher())
-                    .estimatedDurationMinutes(estimated.getEstimatedDurationMinutes())
-                    .distance(0.0)
-                    .files(uploadResponses)
-                    .user(user)
-                    .status(JobRequestStatus.PENDING)
-                    .build();
-
-            // 1) Lưu detail job
-            saveRedisJobDetail(code, job);
-
-            // 2) Ghi code job vào list theo service
-            String serviceKey = RedisKeyUtil.jobListByServiceKey(service.getId());
-            redisTemplate.opsForList().rightPush(serviceKey, code);
-            redisTemplate.expire(serviceKey, JOB_EXPIRATION_MINUTES, TimeUnit.MINUTES);
-
-            return job;
-
-        }
+    private final IJobService jobService;
+    private final ISendQuoteService sendQuoteService;
 
     @Override
-    public List<JobRequestResponseDTO> getListPendingJobsMatchWorker() {
+    public JobResponseDTO createJob(FindServiceRequestDTO request, List<MultipartFile> files) {
 
-            //Lay dia chi cua tho
+        //Check xem serviceId co ton tai khong
+        //Neu ton tai voi trang thai pending thi khong cho tao
+        List<JobResponseDTO> existingJobs = jobService.getJobsByUserId();
+        boolean hasPendingJob = existingJobs.stream()
+                .anyMatch(job -> job.getService().getId().equals(request.getServiceId()) && JobRequestStatus.PENDING.equals(job.getStatus()));
+        if (hasPendingJob) {
+            throw new AppException(ErrorCode.EXISTING_PENDING_JOB_REQUEST);
+        }
+
+
+        //Lưu vị trí của KHACHS hàng
+        addressService.saveOrUpdateAddress(AddressRequestDTO.builder()
+                .latitude(request.getLatitudeUser())
+                .longitude(request.getLongitudeUser())
+                .role(ROLE.CUSTOMER.name())
+                .build());
+
+        //Goi suggest de tinh gia
+//            EstimatedResponseDTO estimated = suggestService.suggestPrice(EstimatedPriceRequestDTO.builder()
+//                    .serviceId(request.getServiceId())
+//                    .distanceKm(1.0)
+//                    .build());
+
+
+        return jobService.saveJob(CreateJobRequestDTO.builder()
+                .serviceId(request.getServiceId())
+                .description(request.getDescription())
+                .address(request.getAddress())
+                .bookingDate(request.getBookingDate() != null ? request.getBookingDate() : LocalDateTime.now().plusHours(1))
+                .estimatedPriceLower(BigDecimal.valueOf(100000)) // Thay bằng giá trị từ suggestService
+                .estimatedPriceHigher(BigDecimal.valueOf(200000)) // Thay bằng giá trị từ suggestService
+                .estimatedDurationMinutes(60) // Thay bằng giá trị từ suggestService
+                .build(), files);
+
+    }
+
+    @Override
+    public List<JobResponseDTO> getListPendingJobsMatchWorker() {
         Long workerId = SecurityUtils.getCurrentUserId();
+        Address addressWorker = addressService.findByWorkerId(workerId);
 
-        List<Long> serviceIds = serviceService.getAllServicesOfWorker()
-                .stream()
+        // Lấy tất cả serviceId mà thợ có thể làm
+        List<Long> serviceIds = serviceService.getAllServicesOfWorker().stream()
                 .flatMap(dto -> {
                     List<ServiceResponseDTO> children = dto.getService().getChildServices();
-                    if (children == null || children.isEmpty()) {
-                        // Không có child → lấy luôn parent
-                        return Stream.of(dto.getService().getParentService());
-                    }
-                    return children.stream();
+                    return (children == null || children.isEmpty())
+                            ? Stream.of(dto.getService().getParentService())
+                            : children.stream();
                 })
                 .map(ServiceResponseDTO::getId)
                 .toList();
@@ -129,77 +111,100 @@ public class BookingService implements IBookingService {
             return Collections.emptyList();
         }
 
-        Address addressWorker = addressService.findByUserId(workerId);
-
-        return serviceIds.stream()
-                .map(RedisKeyUtil::jobListByServiceKey)
-                .map(key -> redisTemplate.opsForList().range(key, 0, -1))
-                .filter(Objects::nonNull)
-                .flatMap(List::stream)
-                .filter(Objects::nonNull)
-                .map(code -> (JobRequestResponseDTO) redisTemplate.opsForValue()
-                        .get(RedisKeyUtil.jobDetailKey((String) code)))
-                .filter(Objects::nonNull)
-                .filter(job -> JobRequestStatus.PENDING.equals(job.getStatus()))
-                .peek(job -> {
-                    Address addressCustomer = addressService.findByUserId(job.getUser().getId());
-
-                    double distance = haversine(HaversineRequestDTO.builder()
-                            .latCustomer(addressCustomer.getLatitude())
-                            .lonCustomer(addressCustomer.getLongitude())
-                            .latWorker(addressWorker.getLatitude())
-                            .lonWorker(addressWorker.getLongitude())
-                            .build());
-
-                    job.setDistance(distance);
-
-                })
-                .toList();
-
+        // Lấy toàn bộ jobs theo danh sách serviceIds
+        return serviceIds
+                .stream()
+                .flatMap(serviceId -> jobService.getJobsByServiceId(serviceId).stream())
+                .peek(job -> setDistance(job, addressWorker)).toList();
     }
-    @Override
-    public boolean verifyJobRequest(JobRequestDTO request) {
-        String code = request.getJobRequestCode();
-        JobRequestResponseDTO job = getJobAndValidate(code);
 
+    // --- Method tách riêng tính khoảng cách ---
+    private void setDistance(JobResponseDTO job, Address workerAddress) {
+        Address customerAddress = addressService.findByUserId(job.getUser().getId());
+        double distance = haversine(HaversineRequestDTO.builder()
+                .latCustomer(customerAddress.getLatitude())
+                .lonCustomer(customerAddress.getLongitude())
+                .latWorker(workerAddress.getLatitude())
+                .lonWorker(workerAddress.getLongitude())
+                .build());
+        job.setDistance(WogoConstants.ROAD_WAY * distance);
+    }
+
+    @Override
+    public boolean verifyJobRequest(SendQuoteRequestDTO request) {
+        JobResponseDTO job = getJobAndValidate(request);
         return job != null;
     }
 
+    private JobResponseDTO getJobAndValidate(SendQuoteRequestDTO request) {
+        JobResponseDTO job = getJobByCode(request.getJobRequestCode());
+
+        if (!JobRequestStatus.PENDING.equals(job.getStatus())) {
+            return null;
+        }
+
+        Long userId = SecurityUtils.getCurrentUserId();
+        Worker currentWorker = workerService.getWorkerByUserId(userId);
+
+        if (currentWorker == null) {
+            throw new AppException(ErrorCode.WORKER_NOT_FOUND);
+        }
+
+        Long jobOwnerId = job.getUser() != null ? job.getUser().getId() : null;
+        Long currentWorkerId = currentWorker.getId();
+
+        // Kiểm tra nếu thợ đã gửi báo giá rồi
+        List<SendQuotedResponseDTO> existingQuotes = job.getWorkerQuotes();
+
+        if (existingQuotes != null) {
+            boolean hasQuoted = existingQuotes.stream()
+                    .anyMatch(quote -> Objects.equals(quote.getWorker().getId(), currentWorkerId));
+            if (hasQuoted) {
+                throw new AppException(ErrorCode.YOU_ALREADY_SEND_QUOTE);
+            }
+        }
+
+        if (Objects.equals(jobOwnerId, userId)) {
+            throw new AppException(ErrorCode.CANNOT_ACCEPT_OWN_JOB);
+        }
+
+        return job;
+    }
+
     @Override
-    public WorkerFoundResponseDTO sendQuote(JobRequestDTO request) {
+    public WorkerQuoteResponseDTO sendQuote(SendQuoteRequestDTO request) {
+
+        //Check xem thợ đã báo giá cho dịch vụ nay và trạng thái job còn pending hay không và có trong ngày không
+        JobResponseDTO job = getJobByCode(request.getJobRequestCode());
+        LocalDateTime startOfDay = job.getBookingDate().toLocalDate().atStartOfDay();
+        LocalDateTime endOfDay = startOfDay.plusDays(1).minusSeconds(1);
         Long workerId = SecurityUtils.getCurrentUserId();
+        boolean exists = sendQuoteService.checkExistSendQuote(job.getService().getId(), workerId, startOfDay, endOfDay);
+        if (exists) {
+            throw new AppException(ErrorCode.YOU_ALREADY_SEND_QUOTE);
+        }
 
-        Worker worker = workerService.getWorkerByUserId(workerId);
-
-        return WorkerFoundResponseDTO.builder()
-                .worker(WorkerResponseDTO.builder()
-                        .id(worker.getId())
-                        .averageRating(worker.getRatingAverage())
-                        .totalJobs(worker.getTotalJobs())
-                        .totalReviews(worker.getTotalReviews())
-                        .description(worker.getDescription())
-                        .build())
+        return sendQuoteService.saveSendQuote(SendQuoteRequestDTO.builder()
+                .jobRequestCode(request.getJobRequestCode())
                 .quotedPrice(request.getQuotedPrice())
-                .build();
+                .build());
+
     }
 
-
-    public JobRequestResponseDTO getJobByCode(String jobRequestCode) {
-        return (JobRequestResponseDTO) redisTemplate.opsForValue().get(RedisKeyUtil.jobDetailKey(jobRequestCode));
+    @Override
+    public JobResponseDTO getJobByCode(String jobRequestCode) {
+        return jobService.getJobByJobRequestCode(jobRequestCode);
     }
+
 
     @Override
     public BookingResponseDTO placeJob(PlaceJobRequestDTO request) {
-        JobRequestResponseDTO job = getJobAndValidate(request.getJobRequestCode());
-        if (job == null) {
-            throw new AppException(ErrorCode.JOB_CANNOT_BE_PLACED);
-        }
-        // cập nhật trạng thái job đã được đặt
-        job.setStatus(JobRequestStatus.ACCEPTED);
-        job.setAcceptedBy(request.getWorkerId());
-        saveRedisJobDetail(request.getJobRequestCode(), job);
 
-        ServiceWG service = serviceService.getServiceByIdEntity(job.getServiceId());
+        JobResponseDTO job = getJobByCode(request.getJobRequestCode());
+
+        jobService.updateStatusAcceptJob(request.getJobRequestCode(), request.getWorkerId());
+
+        ServiceWG service = serviceService.getServiceByIdEntity(job.getService().getId());
 
         // tạo booking
         Booking booking = saveBooking(BookingRequestDTO.builder()
@@ -216,14 +221,11 @@ public class BookingService implements IBookingService {
         // lưu file
         bookingFileService.saveFiles(job.getFiles(), booking);
 
-        // xoá job detail sau khi booking thành công
-        redisTemplate.delete(RedisKeyUtil.jobDetailKey(request.getJobRequestCode()));
-
         return convertToBookingResponseDTO(booking);
     }
 
     @Override
-    public void saveLocation(String bookingCode,RealtimeLocationDTO request) {
+    public void saveLocation(String bookingCode, RealtimeLocationDTO request) {
         String key = RedisKeyUtil.realtimeLocationKey(bookingCode);
         redisTemplate.opsForValue().set(key, request);
     }
@@ -254,7 +256,7 @@ public class BookingService implements IBookingService {
 
         double c = 2 * Math.asin(Math.sqrt(a));
 
-        return EARTH_RADIUS_KM * c; // km
+        return WogoConstants.EARTH_RADIUS_KM * c; // km
 
     }
 
@@ -294,12 +296,12 @@ public class BookingService implements IBookingService {
         booking.setExtraServicesNotes(request.getNotes());
         booking.setBookingStatus(BookingStatus.NEGOTIATING);
 
-        if(booking.getBookingPayment() == null){
+        if (booking.getBookingPayment() == null) {
             paymentService.savePayment(PaymentRequestDTO.builder()
-                            .bookingCode(booking.getBookingCode())
-                            .amount(booking.getTotalAmount())
-                            .paymentMethod(PaymentMethod.BANK_TRANSFER)
-                            .paidAt(null)
+                    .bookingCode(booking.getBookingCode())
+                    .amount(booking.getTotalAmount())
+                    .paymentMethod(PaymentMethod.BANK_TRANSFER)
+                    .paidAt(null)
                     .build());
         }
 
@@ -327,47 +329,7 @@ public class BookingService implements IBookingService {
     }
 
 
-    private JobRequestResponseDTO getJobAndValidate(String code) {
-        JobRequestResponseDTO job = getJobByCode(code);
-
-        if (!JobRequestStatus.PENDING.equals(job.getStatus())) {
-            return null;
-        }
-
-        Long userId = SecurityUtils.getCurrentUserId();
-        Worker currentWorker = workerService.getWorkerByUserId(userId);
-
-        if (currentWorker == null) {
-            throw new AppException(ErrorCode.WORKER_NOT_FOUND);
-        }
-
-        Long jobWorkerId = job.getWorker() != null ? job.getWorker().getId() : null;
-        Long jobOwnerId = job.getUser() != null ? job.getUser().getId() : null;
-        Long currentWorkerId = currentWorker.getId();
-
-        if (Objects.equals(jobWorkerId, currentWorkerId)) {
-            throw new AppException(ErrorCode.YOU_ALREADY_SEND_QUOTE);
-        }
-
-        if (Objects.equals(jobOwnerId, userId)) {
-            throw new AppException(ErrorCode.CANNOT_ACCEPT_OWN_JOB);
-        }
-
-        WorkerResponseDTO workerDTO = modelMapper.map(currentWorker, WorkerResponseDTO.class);
-//        UserResponseDTO userDTO = modelMapper.map(userService.getUserByIdEntity(currentWorker.getUser().getId()), UserResponseDTO.class);
-//        workerDTO.setWorkerInfo(userDTO);
-        job.setWorker(workerDTO);
-        saveRedisJobDetail(code, job);
-        return job;
-    }
-
-
-    private void saveRedisJobDetail(String code, JobRequestResponseDTO job) {
-        String jobDetailKey = RedisKeyUtil.jobDetailKey(code);
-        redisTemplate.opsForValue().set(jobDetailKey, job, JOB_EXPIRATION_MINUTES, TimeUnit.MINUTES);
-    }
-
-    private Booking createBooking(BookingRequestDTO request,User user, Worker worker) {
+    private Booking createBooking(BookingRequestDTO request, User user, Worker worker) {
         return Booking.builder()
                 .bookingCode(generateBookingCode())
                 .service(request.getService())
@@ -378,7 +340,7 @@ public class BookingService implements IBookingService {
                 .endDate(null)
                 .description(request.getDescription())
                 .distanceKm(request.getDistanceKm())
-                .bookingStatus(BookingStatus.COMING)
+                .bookingStatus(BookingStatus.PENDING)
                 .durationMinutes(0)
                 .title(request.getService().getServiceName())
                 .bookingAddress(request.getBookingAddress())
@@ -390,15 +352,11 @@ public class BookingService implements IBookingService {
         return "BK-" + uuid.substring(0, 8) + "-" + LocalDateTime.now().getYear();
     }
 
-    private String generateJobRequestCode() {
-        String uuid = UUID.randomUUID().toString().replace("-", "").toUpperCase();
-        return "JR-" + uuid.substring(0, 8) + "-" + LocalDateTime.now().getYear();
-    }
 
     private BookingResponseDTO convertToBookingResponseDTO(Booking booking) {
-            BookingResponseDTO response = modelMapper.map(booking, BookingResponseDTO.class);
-            List<BookingFileDTO> files = bookingFileService.getFilesByBookingId(booking.getId());
-            response.setFiles(files);
-            return response;
+        BookingResponseDTO response = modelMapper.map(booking, BookingResponseDTO.class);
+        List<BookingFileDTO> files = bookingFileService.getFilesByBookingId(booking.getId());
+        response.setFiles(files);
+        return response;
     }
 }

@@ -1,14 +1,12 @@
 package com.nhattung.wogo.controller;
 
 import com.nhattung.wogo.dto.request.*;
+import com.nhattung.wogo.dto.request.SendQuoteRequestDTO;
 import com.nhattung.wogo.dto.response.*;
-import com.nhattung.wogo.entity.Address;
 import com.nhattung.wogo.enums.BookingStatus;
-import com.nhattung.wogo.enums.PaymentMethod;
-import com.nhattung.wogo.service.address.AddressService;
-import com.nhattung.wogo.service.address.IAddressService;
 import com.nhattung.wogo.service.booking.IBookingService;
 import com.nhattung.wogo.service.payment.IPaymentService;
+import com.nhattung.wogo.service.sendquote.ISendQuoteService;
 import com.nhattung.wogo.service.sepay.ISepayVerifyService;
 import com.nhattung.wogo.utils.SecurityUtils;
 import jakarta.validation.Valid;
@@ -28,16 +26,17 @@ public class BookingController {
     private final SimpMessagingTemplate messagingTemplate;
     private final ISepayVerifyService sepayVerifyService;
     private final IPaymentService paymentService;
+
     @PostMapping("/create-job")
     public ApiResponse<Void> findWorkers(@Valid @ModelAttribute FindServiceRequestDTO request,
                                          @RequestParam(value = "files", required = false) List<MultipartFile> files) {
 
-        JobRequestResponseDTO job = bookingService.createJob(request, files);
+        JobResponseDTO job = bookingService.createJob(request, files);
 
         //FE tính khoảng cách trước khi hiện thị
         //Push realtime cho thợ đang subscribe
         messagingTemplate.convertAndSend(
-                "/topic/new-job/" + job.getServiceId(),
+                "/topic/new-job/" + job.getService().getId(),
                 job
         );
 
@@ -48,16 +47,17 @@ public class BookingController {
                 .build();
     }
 
-    @GetMapping("/job-requests")
-    public ApiResponse<List<JobRequestResponseDTO>> listJobs() {
-        return ApiResponse.<List<JobRequestResponseDTO>>builder()
+
+    @GetMapping("/job-available")
+    public ApiResponse<List<JobResponseDTO>> listJobs() {
+        return ApiResponse.<List<JobResponseDTO>>builder()
                 .message("Pending jobs retrieved successfully")
                 .result(bookingService.getListPendingJobsMatchWorker())
                 .build();
     }
 
     @PostMapping("/send-quote")
-    public ApiResponse<WorkerFoundResponseDTO> acceptJobRequest(@RequestBody JobRequestDTO request) {
+    public ApiResponse<WorkerQuoteResponseDTO> sendQuote(@RequestBody SendQuoteRequestDTO request) {
 
 
         Long workerId = SecurityUtils.getCurrentUserId();
@@ -67,17 +67,17 @@ public class BookingController {
         boolean isValid = bookingService.verifyJobRequest(request);
 
         if(isValid){
-            JobRequestResponseDTO job = bookingService.getJobByCode(request.getJobRequestCode());
+            JobResponseDTO job = bookingService.getJobByCode(request.getJobRequestCode());
 
             //Gửi realtime cho khách hàng là job đã được gửi báo giá
             messagingTemplate.convertAndSend(
-                    "/topic/send-quote/" + job.getServiceId(),
+                    "/topic/send-quote/" + job.getService().getId(),
                     job
             );
 
             //Thợ subscribe để nhận thông báo chấp nhận hay từ chối (/topic/job-placed/ + requestCode)
 
-            return ApiResponse.<WorkerFoundResponseDTO>builder()
+            return ApiResponse.<WorkerQuoteResponseDTO>builder()
                     .message("Job accepted successfully")
                     .result(bookingService.sendQuote(request))
                     .build();
@@ -85,15 +85,17 @@ public class BookingController {
             //subscribe ngay khi connect với socket
             messagingTemplate.convertAndSendToUser(workerId.toString(), "/queue/errors",
                     "Job is not available");
-            return ApiResponse.<WorkerFoundResponseDTO>builder()
+            return ApiResponse.<WorkerQuoteResponseDTO>builder()
                     .message("Job request is no longer available")
                     .build();
         }
 
     }
 
+
     @PostMapping("/place-job")
     public ApiResponse<BookingResponseDTO> placeJob(@RequestBody PlaceJobRequestDTO request) {
+
         BookingResponseDTO booking = bookingService.placeJob(request);
 
         //Push realtime cho thợ đã được chọn (subscribe theo workerId để gửi riêng cho thợ đó)

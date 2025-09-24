@@ -1,6 +1,7 @@
 package com.nhattung.wogo.service.bookingfile;
 
 import com.nhattung.wogo.dto.response.BookingFileDTO;
+import com.nhattung.wogo.dto.response.JobFileResponseDTO;
 import com.nhattung.wogo.dto.response.UploadS3Response;
 import com.nhattung.wogo.entity.Booking;
 import com.nhattung.wogo.entity.BookingFile;
@@ -22,7 +23,7 @@ public class BookingFileService implements IBookingFileService {
 
     @Override
     @Transactional
-    public void saveFiles(List<UploadS3Response> files, Booking booking) {
+    public void saveFiles(List<JobFileResponseDTO> files, Booking booking) {
         if (files == null || files.isEmpty()) {
             return; // hoặc throw exception nếu muốn ép phải có file
         }

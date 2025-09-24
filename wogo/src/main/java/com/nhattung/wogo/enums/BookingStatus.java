@@ -1,6 +1,7 @@
 package com.nhattung.wogo.enums;
 
 public enum BookingStatus {
+    PENDING("PENDING"),
     COMING("COMING"),
     ARRIVED("ARRIVED"),
     NEGOTIATING("NEGOTIATING"),

@@ -13,4 +13,6 @@ public final class WogoConstants {
     public static final String BANK_NAME = "MBBank";
     public static final String ACCOUNT_NUMBER = "0373644375";
     public static final double PLATFORM_FEE_PERCENTAGE = 0.10; // 10%
+    public static final double ROAD_WAY = 1.3;
+    public static final double EARTH_RADIUS_KM = 6371.0;
 }

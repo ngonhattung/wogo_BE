@@ -58,4 +58,7 @@ public class Worker {
 
     @OneToOne(mappedBy = "worker", cascade = CascadeType.ALL, orphanRemoval = true)
     private TopupRequest topupRequest;
+
+    @OneToMany(mappedBy = "worker", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<WorkerQuote> workerQuotes;
 }

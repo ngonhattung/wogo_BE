@@ -38,4 +38,7 @@ public class ServiceWG {
 
     @OneToMany(mappedBy = "service", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<WorkerVerification> workerVerifications;
+
+    @OneToMany(mappedBy = "service", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Job> jobs;
 }
