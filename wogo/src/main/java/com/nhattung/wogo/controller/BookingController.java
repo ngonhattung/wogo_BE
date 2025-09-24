@@ -3,11 +3,14 @@ package com.nhattung.wogo.controller;
 import com.nhattung.wogo.dto.request.*;
 import com.nhattung.wogo.dto.request.SendQuoteRequestDTO;
 import com.nhattung.wogo.dto.response.*;
+import com.nhattung.wogo.entity.WorkerWalletExpense;
 import com.nhattung.wogo.enums.BookingStatus;
+import com.nhattung.wogo.enums.PaymentMethod;
 import com.nhattung.wogo.service.booking.IBookingService;
 import com.nhattung.wogo.service.payment.IPaymentService;
-import com.nhattung.wogo.service.sendquote.ISendQuoteService;
 import com.nhattung.wogo.service.sepay.ISepayVerifyService;
+import com.nhattung.wogo.service.walletexpense.IWorkerWalletExpenseService;
+import com.nhattung.wogo.service.walletrevenue.IWorkerWalletRevenueService;
 import com.nhattung.wogo.utils.SecurityUtils;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -15,6 +18,7 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @RestController
@@ -26,6 +30,8 @@ public class BookingController {
     private final SimpMessagingTemplate messagingTemplate;
     private final ISepayVerifyService sepayVerifyService;
     private final IPaymentService paymentService;
+    private final IWorkerWalletRevenueService workerWalletRevenueService;
+    private final IWorkerWalletExpenseService workerWalletExpenseService;
 
     @PostMapping("/create-job")
     public ApiResponse<Void> findWorkers(@Valid @ModelAttribute FindServiceRequestDTO request,
@@ -119,6 +125,7 @@ public class BookingController {
 
     @PostMapping("/cancel-job")
     public ApiResponse<Void> cancelJob(@RequestBody PlaceJobRequestDTO request) {
+
         //Sau 2p nếu khách không quyết định tự cancel
         //Push realtime cho tất cả thợ là job đã bị huỷ (subscribe theo requestCode (để gửi cho tất cả thợ báo giá) ngay sau khi gửi quote )
         messagingTemplate.convertAndSend(
@@ -144,6 +151,7 @@ public class BookingController {
         messagingTemplate.convertAndSend(
                 "/topic/driverLocation/" + bookingCode, request
         );
+
         return ApiResponse.<Void>builder()
                 .message("Location sent successfully")
                 .build();
@@ -161,10 +169,28 @@ public class BookingController {
     public ApiResponse<Void> updateStatus(@RequestBody UpdateStatusBookingRequestDTO request) {
 
         if(request.getPaymentMethod() != null && request.getStatus() == BookingStatus.COMPLETED){
-            paymentService.updatePaymentStatus(PaymentRequestDTO.builder()
+
+            PaymentResponseDTO payment = paymentService.updatePaymentStatus(PaymentRequestDTO.builder()
                     .bookingCode(request.getBookingCode())
                     .paymentMethod(request.getPaymentMethod())
                     .build());
+            if(request.getPaymentMethod() == PaymentMethod.CASH){
+                WorkerWalletExpenseResponseDTO walletExpense = workerWalletExpenseService.getWalletByUserId();
+                workerWalletExpenseService.updateWalletExpense(WorkerWalletExpenseRequestDTO.builder()
+                        .totalExpense(walletExpense.getTotalExpense().add(payment.getPlatformFee()))
+                        .expenseBalance(walletExpense.getExpenseBalance().add(payment.getPlatformFee()))
+                        .build());
+            }
+
+            if(request.getPaymentMethod() == PaymentMethod.BANK_TRANSFER){
+                WorkerWalletRevenueResponseDTO walletRevenue = workerWalletRevenueService.getWalletByUserId();
+                workerWalletRevenueService.updateWalletRevenue(WorkerWalletRevenueRequestDTO.builder()
+                        .totalRevenue(walletRevenue.getTotalRevenue().subtract(payment.getPlatformFee()))
+                        .revenueBalance(walletRevenue.getRevenueBalance().subtract(payment.getPlatformFee()))
+                        .build());
+            }
+
+
         }
 
         bookingService.updateStatusBooking(request);
@@ -218,7 +244,6 @@ public class BookingController {
                             .build()
             );
 
-            //Cập nhật trạng thái thanh toán
 
             //Push realtime status cho khách hàng và worker (subscribe theo bookingCode)
             messagingTemplate.convertAndSend(

@@ -2,6 +2,6 @@ package com.nhattung.wogo.service.wallettransaction;
 
 import com.nhattung.wogo.dto.request.WalletTransactionRequestDTO;
 
-public interface IWalletTransaction {
+public interface IWalletTransactionService {
     void saveWalletTransaction(WalletTransactionRequestDTO request);
 }

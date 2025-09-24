@@ -12,6 +12,7 @@ import com.nhattung.wogo.exception.AppException;
 import com.nhattung.wogo.repository.BookingRepository;
 import com.nhattung.wogo.repository.PaymentRepository;
 import lombok.RequiredArgsConstructor;
+import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -22,7 +23,7 @@ public class PaymentService  implements IPaymentService{
 
     private final PaymentRepository paymentRepository;
     private final BookingRepository bookingRepository;
-
+    private final ModelMapper modelMapper;
     @Override
     public void savePayment(PaymentRequestDTO request) {
 
@@ -47,7 +48,7 @@ public class PaymentService  implements IPaymentService{
     }
 
     @Override
-    public void updatePaymentStatus(PaymentRequestDTO request) {
+    public PaymentResponseDTO updatePaymentStatus(PaymentRequestDTO request) {
         Booking booking = bookingRepository.findByBookingCode(request.getBookingCode())
                 .orElseThrow(() -> new AppException(ErrorCode.BOOKING_NOT_FOUND));
         BookingPayment payment = paymentRepository.findByBooking(booking)
@@ -55,7 +56,7 @@ public class PaymentService  implements IPaymentService{
 
         // Xử lý cập nhật trạng thái thanh toán
         if (isValidPaymentMethod(request.getPaymentMethod())) {
-            updatePayment(payment);
+            return convertToDTO(updatePayment(payment));
         } else {
             throw new AppException(ErrorCode.INVALID_PAYMENT_STATUS);
         }
@@ -67,10 +68,14 @@ public class PaymentService  implements IPaymentService{
     }
 
     // Cập nhật trạng thái thanh toán
-    private void updatePayment(BookingPayment payment) {
+    private BookingPayment updatePayment(BookingPayment payment) {
         payment.setPaymentStatus(PaymentStatus.COMPLETED);
         payment.setPaidAt(LocalDateTime.now());
-        paymentRepository.save(payment);
+        return paymentRepository.save(payment);
+    }
+
+    private PaymentResponseDTO convertToDTO(BookingPayment payment) {
+        return modelMapper.map(payment, PaymentResponseDTO.class);
     }
 
 

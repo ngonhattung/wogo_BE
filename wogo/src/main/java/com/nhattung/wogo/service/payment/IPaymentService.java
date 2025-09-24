@@ -9,6 +9,6 @@ public interface IPaymentService {
 
     void savePayment(PaymentRequestDTO request);
     PageResponse<PaymentResponseDTO> getAllPayments(int page, int size);
-    void updatePaymentStatus(PaymentRequestDTO request);
+    PaymentResponseDTO updatePaymentStatus(PaymentRequestDTO request);
 
 }

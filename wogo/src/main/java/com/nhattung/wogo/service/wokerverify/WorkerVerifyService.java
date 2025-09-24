@@ -11,8 +11,8 @@ import com.nhattung.wogo.service.question.IQuestionService;
 import com.nhattung.wogo.service.questioncategory.IQuestionCategoryService;
 import com.nhattung.wogo.service.testanswer.ITestAnswerService;
 import com.nhattung.wogo.service.user.IUserService;
-import com.nhattung.wogo.service.walletexpense.IWorkerWalletExpense;
-import com.nhattung.wogo.service.walletrevenue.IWorkerWalletRevenue;
+import com.nhattung.wogo.service.walletexpense.IWorkerWalletExpenseService;
+import com.nhattung.wogo.service.walletrevenue.IWorkerWalletRevenueService;
 import com.nhattung.wogo.service.worker.IWorkerService;
 import com.nhattung.wogo.service.workerdocument.IWorkerDocumentService;
 import com.nhattung.wogo.service.workerservice.IWorkerServiceService;
@@ -43,8 +43,8 @@ public class WorkerVerifyService implements IWorkerVerifyService {
     private final IWorkerServiceService workerServiceService;
     private final ITestAnswerService testAnswerService;
     private final IWorkerDocumentService workerDocumentService;
-    private final IWorkerWalletExpense workerWalletExpenseService;
-    private final IWorkerWalletRevenue workerWalletRevenueService;
+    private final IWorkerWalletExpenseService workerWalletExpenseService;
+    private final IWorkerWalletRevenueService workerWalletRevenueService;
 
     @Override
     @Transactional
