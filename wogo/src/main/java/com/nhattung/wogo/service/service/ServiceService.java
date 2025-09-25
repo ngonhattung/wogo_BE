@@ -180,6 +180,14 @@ public class ServiceService implements IServiceService{
                 .toList();
     }
 
+    @Override
+    public List<ServiceResponseDTO> getListChildServiceByParentId(Long parentId) {
+        return serviceRepository.findChildServicesByParentId(parentId)
+                .stream()
+                .map(this::convertToResponseDTO)
+                .toList();
+    }
+
 
     private WorkerServiceResponseDTO convertToResponseDTOWithService(WorkerService workerService) {
         WorkerServiceResponseDTO dto = workerServiceService.convertToResponseDTO(workerService);

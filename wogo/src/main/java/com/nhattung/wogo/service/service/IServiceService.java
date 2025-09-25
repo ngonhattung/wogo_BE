@@ -20,5 +20,5 @@ public interface IServiceService {
     List<WorkerServiceResponseDTO> getAllServicesOfWorker();
     List<Long> getAllWorkerChildServiceIdsByWorkerId();
     List<ServiceResponseDTO> getServicesParentUnique();
-
+    List<ServiceResponseDTO> getListChildServiceByParentId(Long parentId);
 }

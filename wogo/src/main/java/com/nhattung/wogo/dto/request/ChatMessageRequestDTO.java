@@ -12,7 +12,8 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @NoArgsConstructor
 public class ChatMessageRequestDTO {
-    private String bookingCode; // room chat
+    private String jobRequestCode;
+    private Long workerId;
     private String content;
     private boolean isDelete;
     private LocalDateTime timestamp;

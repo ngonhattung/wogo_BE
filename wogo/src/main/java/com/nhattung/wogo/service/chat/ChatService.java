@@ -27,10 +27,10 @@ public class ChatService implements IChatService {
 
     @Override
     public ChatResponseDTO saveMessages(ChatMessageRequestDTO request) {
-        String key = CHAT_KEY_PREFIX + request.getBookingCode();
+        String key = CHAT_KEY_PREFIX + request.getJobRequestCode();
         Long senderId = SecurityUtils.getCurrentUserId();
         ChatResponseDTO chatMessage = ChatResponseDTO.builder()
-                .bookingCode(request.getBookingCode())
+                .jobRequestCode(request.getJobRequestCode())
                 .senderId(senderId)
                 .content(request.getContent())
                 .timestamp(request.getTimestamp().toString())
@@ -45,7 +45,7 @@ public class ChatService implements IChatService {
 
     @Override
     public ChatResponseDTO saveFiles(ChatMessageRequestDTO request, List<MultipartFile> files) {
-        String key = CHAT_KEY_PREFIX + request.getBookingCode();
+        String key = CHAT_KEY_PREFIX + request.getJobRequestCode();
         Long senderId = SecurityUtils.getCurrentUserId();
 
         List<String> fileUrls = new ArrayList<>();
@@ -55,7 +55,7 @@ public class ChatService implements IChatService {
         }
 
         ChatResponseDTO chatFile = ChatResponseDTO.builder()
-                .bookingCode(request.getBookingCode())
+                .jobRequestCode(request.getJobRequestCode())
                 .senderId(senderId)
                 .fileUrls(fileUrls) // nhóm tất cả ảnh vào đây
                 .timestamp(request.getTimestamp().toString())

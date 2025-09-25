@@ -13,7 +13,7 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 public class ChatResponseDTO {
-    private String bookingCode; // room chat
+    private String jobRequestCode;
     private Long senderId;
     private String content;
     private List<String> fileUrls;

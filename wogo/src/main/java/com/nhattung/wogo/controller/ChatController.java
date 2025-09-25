@@ -27,7 +27,7 @@ public class ChatController {
         ChatResponseDTO responseDTO = chatService.saveMessages(request);
 
         // Gửi lại cho tất cả subscriber trong topic
-        messagingTemplate.convertAndSend("/topic/chat/" + request.getBookingCode(), responseDTO);
+        messagingTemplate.convertAndSend("/topic/chat/" + request.getJobRequestCode() + "/worker/" + request.getWorkerId(), responseDTO);
 
         return ApiResponse.<Void>builder()
                 .message("Message sent successfully")
@@ -42,7 +42,7 @@ public class ChatController {
         ChatResponseDTO responseDTO = chatService.saveFiles(request,files);
 
         // Gửi lại cho tất cả subscriber trong topic
-        messagingTemplate.convertAndSend("/topic/chat/" + request.getBookingCode(), responseDTO);
+        messagingTemplate.convertAndSend("/topic/chat/" + request.getJobRequestCode() + "/worker/" + request.getWorkerId(), responseDTO);
 
         return ApiResponse.<Void>builder()
                 .message("Message sent successfully")

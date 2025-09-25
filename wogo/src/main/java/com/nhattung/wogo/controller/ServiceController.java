@@ -1,11 +1,11 @@
 package com.nhattung.wogo.controller;
 
+import com.nhattung.wogo.constants.WogoConstants;
+import com.nhattung.wogo.dto.request.EstimatedPriceRequestDTO;
 import com.nhattung.wogo.dto.request.ServiceRequestDTO;
-import com.nhattung.wogo.dto.response.ApiResponse;
-import com.nhattung.wogo.dto.response.PageResponse;
-import com.nhattung.wogo.dto.response.ParentServiceResponseDTO;
-import com.nhattung.wogo.dto.response.ServiceResponseDTO;
+import com.nhattung.wogo.dto.response.*;
 import com.nhattung.wogo.service.service.IServiceService;
+import com.nhattung.wogo.service.suggest.ISuggestService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -20,7 +20,7 @@ import java.util.List;
 public class ServiceController {
 
     private final IServiceService serviceService;
-
+    private final ISuggestService suggestService;
 
     @GetMapping("/all")
     public ApiResponse<List<ServiceResponseDTO>> getAllServices(
@@ -86,6 +86,25 @@ public class ServiceController {
         return ApiResponse.<List<ServiceResponseDTO>>builder()
                 .result(serviceService.getServicesParentUnique())
                 .message("Get parent unique services successfully")
+                .build();
+    }
+
+    @GetMapping("/child-by-parent/{parentId}")
+    public ApiResponse<List<ServiceResponseDTO>> getListChildServiceByParentId(@PathVariable Long parentId) {
+        return ApiResponse.<List<ServiceResponseDTO>>builder()
+                .result(serviceService.getListChildServiceByParentId(parentId))
+                .message("Get child services by parent ID successfully")
+                .build();
+    }
+
+    @GetMapping("/suggestions/{serviceId}")
+    public ApiResponse<EstimatedResponseDTO> getServiceSuggestions(@PathVariable Long serviceId) {
+        return ApiResponse.<EstimatedResponseDTO>builder()
+                .result(suggestService.suggestPrice(EstimatedPriceRequestDTO.builder()
+                        .serviceId(serviceId)
+                        .distanceKm(WogoConstants.DEFAULT_DISTANCE_KM)
+                        .build()))
+                .message("Get service suggestions successfully")
                 .build();
     }
 }

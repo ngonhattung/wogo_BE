@@ -1,6 +1,7 @@
 package com.nhattung.wogo.repository;
 
 import com.nhattung.wogo.entity.ServiceWG;
+import io.micrometer.common.KeyValues;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -33,4 +34,6 @@ public interface ServiceRepository extends JpaRepository<ServiceWG, Long> {
             "LEFT JOIN QuestionCategory qc ON qc.service = s " +
             "WHERE s.parentId IS NULL AND qc.id IS NULL")
     List<ServiceWG> findParentServicesWithoutQuestionCategory();
+
+    List<ServiceWG> findChildServicesByParentId(Long parentId);
 }

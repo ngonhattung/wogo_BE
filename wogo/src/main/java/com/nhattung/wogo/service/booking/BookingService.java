@@ -75,7 +75,7 @@ public class BookingService implements IBookingService {
         //Goi suggest de tinh gia
 //            EstimatedResponseDTO estimated = suggestService.suggestPrice(EstimatedPriceRequestDTO.builder()
 //                    .serviceId(request.getServiceId())
-//                    .distanceKm(1.0)
+//                    .distanceKm(WogoConstants.DEFAULT_DISTANCE_KM) // Thay bằng khoảng cách thực tế nếu có
 //                    .build());
 
 
