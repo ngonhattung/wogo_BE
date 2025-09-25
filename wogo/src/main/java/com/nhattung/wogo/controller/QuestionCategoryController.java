@@ -5,7 +5,7 @@ import com.nhattung.wogo.dto.response.ApiResponse;
 import com.nhattung.wogo.dto.response.PageResponse;
 import com.nhattung.wogo.dto.response.QuestionCategoryResponseDTO;
 import com.nhattung.wogo.dto.response.QuestionCategoryUpdateResponseDTO;
-import com.nhattung.wogo.service.questioncategory.IQuestionCategoryService;
+import com.nhattung.wogo.service.question.questioncategory.IQuestionCategoryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;

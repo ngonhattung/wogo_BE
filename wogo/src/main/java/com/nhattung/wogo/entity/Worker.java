@@ -57,7 +57,10 @@ public class Worker {
     private WorkerWalletExpense workerWalletExpense;
 
     @OneToOne(mappedBy = "worker", cascade = CascadeType.ALL, orphanRemoval = true)
-    private TopupRequest topupRequest;
+    private Deposit deposit;
+
+    @OneToOne(mappedBy = "worker", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Withdrawal withdrawal;
 
     @OneToMany(mappedBy = "worker", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<WorkerQuote> workerQuotes;

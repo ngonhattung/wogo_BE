@@ -3,7 +3,6 @@ package com.nhattung.wogo.controller;
 import com.nhattung.wogo.dto.response.ApiResponse;
 import com.nhattung.wogo.dto.response.WorkerServiceResponseDTO;
 import com.nhattung.wogo.service.service.IServiceService;
-import com.nhattung.wogo.service.workerservice.IWorkerServiceService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;

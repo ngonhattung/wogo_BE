@@ -6,8 +6,6 @@ import com.nhattung.wogo.entity.ChatRoom;
 import com.nhattung.wogo.enums.ErrorCode;
 import com.nhattung.wogo.exception.AppException;
 import com.nhattung.wogo.repository.ChatRoomRepository;
-import com.nhattung.wogo.service.user.IUserService;
-import com.nhattung.wogo.service.worker.IWorkerService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

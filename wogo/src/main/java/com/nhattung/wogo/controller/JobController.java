@@ -3,10 +3,12 @@ package com.nhattung.wogo.controller;
 import com.nhattung.wogo.dto.response.ApiResponse;
 import com.nhattung.wogo.dto.response.JobResponseDTO;
 import com.nhattung.wogo.dto.response.WorkerQuoteResponseDTO;
+import com.nhattung.wogo.enums.JobRequestStatus;
 import com.nhattung.wogo.service.job.IJobService;
 import com.nhattung.wogo.service.sendquote.ISendQuoteService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -20,11 +22,11 @@ public class JobController {
     private final IJobService jobService;
     private final ISendQuoteService sendQuoteService;
 
-    @GetMapping("/my-jobRequests")
-    public ApiResponse<List<JobResponseDTO>> getMyJobRequests() {
+    @GetMapping("/my-jobRequests/{status}")
+    public ApiResponse<List<JobResponseDTO>> getMyJobRequests(@PathVariable JobRequestStatus status) {
         return ApiResponse.<List<JobResponseDTO>>builder()
                 .message("User's job requests retrieved successfully")
-                .result(jobService.getJobsByUserId())
+                .result(jobService.getJobsByUserIdByStatus(status))
                 .build();
     }
 

@@ -1,19 +1,17 @@
 package com.nhattung.wogo.service.worker;
 
 import com.nhattung.wogo.dto.request.WorkerRequestDTO;
-import com.nhattung.wogo.dto.response.WorkerResponseDTO;
 import com.nhattung.wogo.entity.Worker;
 import com.nhattung.wogo.enums.ErrorCode;
 import com.nhattung.wogo.enums.WorkStatus;
 import com.nhattung.wogo.exception.AppException;
 import com.nhattung.wogo.repository.WorkerRepository;
 import lombok.RequiredArgsConstructor;
-import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
-public class WorkerService implements IWorkerService{
+public class WorkerService implements IWorkerService {
 
     private final WorkerRepository workerRepository;
     @Override
@@ -26,11 +24,6 @@ public class WorkerService implements IWorkerService{
     public Worker getWorkerByUserId(Long userId) {
         return workerRepository.findByUserId(userId)
                 .orElseThrow(() -> new AppException(ErrorCode.WORKER_NOT_FOUND));
-    }
-
-    @Override
-    public Worker getWorkerById(Long workerId) {
-        return workerRepository.findById(workerId).orElseThrow(() -> new AppException(ErrorCode.WORKER_NOT_FOUND));
     }
 
     @Override

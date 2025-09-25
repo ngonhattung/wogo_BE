@@ -1,10 +1,9 @@
 package com.nhattung.wogo.controller;
 
-import com.nhattung.wogo.dto.request.WorkerDocumentRequestDTO;
 import com.nhattung.wogo.dto.response.ApiResponse;
 import com.nhattung.wogo.dto.response.PageResponse;
 import com.nhattung.wogo.dto.response.WorkerDocumentResponseDTO;
-import com.nhattung.wogo.service.workerdocument.IWorkerDocumentService;
+import com.nhattung.wogo.service.worker.workerdocument.IWorkerDocumentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;

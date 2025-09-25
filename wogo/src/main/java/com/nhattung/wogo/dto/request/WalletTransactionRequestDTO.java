@@ -19,8 +19,8 @@ public class WalletTransactionRequestDTO {
     private PaymentStatus status;
     private String description;
     private Booking booking;
-    private WithdrawalRequest withdrawalRequest;
-    private TopupRequest topupRequest;
+    private Withdrawal withdrawal;
+    private Deposit deposit;
     private WorkerWalletRevenue walletRevenue;
     private WorkerWalletExpense walletExpense;
     private LocalDateTime processedAt;

@@ -10,6 +10,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Getter
 @Setter
@@ -22,6 +23,8 @@ public class WalletTransaction {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    private String transactionCode;
 
     @Enumerated(EnumType.STRING)
     private TransactionType transactionType;
@@ -46,12 +49,12 @@ public class WalletTransaction {
     private Booking booking;
 
     @OneToOne
-    @JoinColumn(name = "topup_request_id", nullable = false)
-    private TopupRequest topupRequest;
+    @JoinColumn(name = "deposit_id", nullable = false)
+    private Deposit deposit;
 
     @OneToOne
-    @JoinColumn(name = "withdrawal_request_id", nullable = false)
-    private WithdrawalRequest withdrawalRequest;
+    @JoinColumn(name = "withdrawal_id", nullable = false)
+    private Withdrawal withdrawal;
 
     @ManyToOne
     @JoinColumn(name = "walletRevenue_id", nullable = false)

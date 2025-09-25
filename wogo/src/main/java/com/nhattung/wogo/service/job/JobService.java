@@ -83,8 +83,8 @@ public class JobService implements IJobService {
     }
 
     @Override
-    public List<JobResponseDTO> getJobsByUserId() {
-        return jobRepository.findValidJobsByUserId(SecurityUtils.getCurrentUserId(),LocalDateTime.now())
+    public List<JobResponseDTO> getJobsByUserIdByStatus(JobRequestStatus status) {
+        return jobRepository.findValidJobsByUserId(SecurityUtils.getCurrentUserId(),status,LocalDateTime.now())
                 .orElse(new ArrayList<>())
                 .stream()
                 .map(this::convertToResponseDTO)

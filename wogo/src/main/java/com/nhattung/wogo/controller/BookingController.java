@@ -4,13 +4,9 @@ import com.nhattung.wogo.dto.request.*;
 import com.nhattung.wogo.dto.request.SendQuoteRequestDTO;
 import com.nhattung.wogo.dto.response.*;
 import com.nhattung.wogo.enums.BookingStatus;
-import com.nhattung.wogo.enums.PaymentMethod;
 import com.nhattung.wogo.service.booking.IBookingService;
 import com.nhattung.wogo.service.job.JobService;
-import com.nhattung.wogo.service.payment.IPaymentService;
 import com.nhattung.wogo.service.sepay.ISepayVerifyService;
-import com.nhattung.wogo.service.wallet.IWorkerWalletExpenseService;
-import com.nhattung.wogo.service.wallet.IWorkerWalletRevenueService;
 import com.nhattung.wogo.utils.SecurityUtils;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -28,9 +24,6 @@ public class BookingController {
     private final IBookingService bookingService;
     private final SimpMessagingTemplate messagingTemplate;
     private final ISepayVerifyService sepayVerifyService;
-    private final IPaymentService paymentService;
-    private final IWorkerWalletRevenueService workerWalletRevenueService;
-    private final IWorkerWalletExpenseService workerWalletExpenseService;
     private final JobService jobService;
 
     @PostMapping("/create-job")
@@ -168,30 +161,7 @@ public class BookingController {
     @PutMapping("/updateStatus")
     public ApiResponse<Void> updateStatus(@RequestBody UpdateStatusBookingRequestDTO request) {
 
-        if(request.getPaymentMethod() != null && request.getStatus() == BookingStatus.COMPLETED){
 
-            PaymentResponseDTO payment = paymentService.updatePaymentStatus(PaymentRequestDTO.builder()
-                    .bookingCode(request.getBookingCode())
-                    .paymentMethod(request.getPaymentMethod())
-                    .build());
-            if(request.getPaymentMethod() == PaymentMethod.CASH){
-                WorkerWalletExpenseResponseDTO walletExpense = workerWalletExpenseService.getWalletByUserId();
-                workerWalletExpenseService.updateWalletExpense(WorkerWalletExpenseRequestDTO.builder()
-                        .totalExpense(walletExpense.getTotalExpense().add(payment.getPlatformFee()))
-                        .expenseBalance(walletExpense.getExpenseBalance().add(payment.getPlatformFee()))
-                        .build());
-            }
-
-            if(request.getPaymentMethod() == PaymentMethod.BANK_TRANSFER){
-                WorkerWalletRevenueResponseDTO walletRevenue = workerWalletRevenueService.getWalletByUserId();
-                workerWalletRevenueService.updateWalletRevenue(WorkerWalletRevenueRequestDTO.builder()
-                        .totalRevenue(walletRevenue.getTotalRevenue().subtract(payment.getPlatformFee()))
-                        .revenueBalance(walletRevenue.getRevenueBalance().subtract(payment.getPlatformFee()))
-                        .build());
-            }
-
-
-        }
 
         bookingService.updateStatusBooking(request);
 

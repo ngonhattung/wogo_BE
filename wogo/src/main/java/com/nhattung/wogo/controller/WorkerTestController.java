@@ -3,7 +3,7 @@ package com.nhattung.wogo.controller;
 import com.nhattung.wogo.dto.response.ApiResponse;
 import com.nhattung.wogo.dto.response.PageResponse;
 import com.nhattung.wogo.dto.response.WorkerVerificationTestResponseDTO;
-import com.nhattung.wogo.service.workerverificationtest.IWorkerVerificationTestService;
+import com.nhattung.wogo.service.worker.worktest.IWorkerVerificationTestService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
