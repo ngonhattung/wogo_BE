@@ -1,6 +1,7 @@
 package com.nhattung.wogo.utils;
 
 import com.nhattung.wogo.enums.ErrorCode;
+import com.nhattung.wogo.enums.ROLE;
 import com.nhattung.wogo.exception.AppException;
 import com.nhattung.wogo.security.user.WogoUserDetails;
 import com.sun.security.auth.UserPrincipal;
@@ -19,5 +20,11 @@ public class SecurityUtils {
         }
 
         throw new AppException(ErrorCode.UNAUTHORIZED);
+    }
+
+    public boolean isCurrentUserWorker() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        return auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals(ROLE.WORKER.getValue()));
     }
 }

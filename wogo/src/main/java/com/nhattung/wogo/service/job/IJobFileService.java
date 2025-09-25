@@ -1,4 +1,4 @@
-package com.nhattung.wogo.service.jobfile;
+package com.nhattung.wogo.service.job;
 
 import com.nhattung.wogo.entity.Job;
 import com.nhattung.wogo.entity.JobFile;

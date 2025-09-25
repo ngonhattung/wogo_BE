@@ -7,5 +7,6 @@ import com.nhattung.wogo.entity.Worker;
 public interface IWorkerService {
     Worker saveWorker(WorkerRequestDTO request);
     Worker getWorkerByUserId(Long userId);
+    Worker getWorkerById(Long workerId);
     boolean isWorkerExists(Long userId);
 }

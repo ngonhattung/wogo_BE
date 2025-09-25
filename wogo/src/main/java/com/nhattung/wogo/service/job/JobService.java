@@ -1,7 +1,6 @@
 package com.nhattung.wogo.service.job;
 
 import com.nhattung.wogo.dto.request.CreateJobRequestDTO;
-import com.nhattung.wogo.dto.request.FindServiceRequestDTO;
 import com.nhattung.wogo.dto.response.*;
 import com.nhattung.wogo.entity.Job;
 import com.nhattung.wogo.entity.JobFile;
@@ -11,11 +10,9 @@ import com.nhattung.wogo.enums.ErrorCode;
 import com.nhattung.wogo.enums.JobRequestStatus;
 import com.nhattung.wogo.exception.AppException;
 import com.nhattung.wogo.repository.JobRepository;
-import com.nhattung.wogo.service.jobfile.JobFileService;
 import com.nhattung.wogo.service.service.IServiceService;
 import com.nhattung.wogo.service.user.IUserService;
 import com.nhattung.wogo.utils.SecurityUtils;
-import com.nhattung.wogo.utils.UploadToS3;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;

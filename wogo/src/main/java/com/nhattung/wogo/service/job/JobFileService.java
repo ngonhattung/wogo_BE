@@ -1,9 +1,8 @@
-package com.nhattung.wogo.service.jobfile;
+package com.nhattung.wogo.service.job;
 
 import com.nhattung.wogo.dto.response.UploadS3Response;
 import com.nhattung.wogo.entity.Job;
 import com.nhattung.wogo.entity.JobFile;
-import com.nhattung.wogo.entity.WorkerDocumentFile;
 import com.nhattung.wogo.enums.ErrorCode;
 import com.nhattung.wogo.exception.AppException;
 import com.nhattung.wogo.repository.JobFileRepository;

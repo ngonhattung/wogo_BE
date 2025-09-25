@@ -1,8 +1,7 @@
-package com.nhattung.wogo.service.bookingfile;
+package com.nhattung.wogo.service.booking;
 
 import com.nhattung.wogo.dto.response.BookingFileDTO;
 import com.nhattung.wogo.dto.response.JobFileResponseDTO;
-import com.nhattung.wogo.dto.response.UploadS3Response;
 import com.nhattung.wogo.entity.Booking;
 import com.nhattung.wogo.entity.BookingFile;
 import com.nhattung.wogo.repository.BookingFileRepository;

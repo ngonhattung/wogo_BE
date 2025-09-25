@@ -1,11 +1,12 @@
 package com.nhattung.wogo.dto.response;
 
+import com.nhattung.wogo.enums.MessageType;
+import com.nhattung.wogo.enums.SenderType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 @Data
@@ -13,10 +14,10 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 public class ChatResponseDTO {
-    private String jobRequestCode;
-    private Long senderId;
     private String content;
-    private List<String> fileUrls;
-    private String timestamp;
-
+    private MessageType messageType;
+    private SenderType senderType;
+    private List<ChatFileResponseDTO> fileUrls;
+    private UserResponseDTO sender;
+    private ChatRoomResponseDTO chatRoom;
 }

@@ -14,7 +14,6 @@ public interface IBookingService {
     Booking saveBooking(BookingRequestDTO request);
     boolean verifyJobRequest(SendQuoteRequestDTO request);
     WorkerQuoteResponseDTO sendQuote(SendQuoteRequestDTO request);
-    JobResponseDTO getJobByCode(String jobRequestCode);
     BookingResponseDTO placeJob(PlaceJobRequestDTO request);
     void saveLocation(String bookingCode,RealtimeLocationDTO request);
     RealtimeLocationDTO getLocation(String bookingCode);

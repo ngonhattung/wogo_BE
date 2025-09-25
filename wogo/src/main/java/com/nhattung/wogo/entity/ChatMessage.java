@@ -8,6 +8,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.sql.Timestamp;
+import java.util.List;
 
 @Getter
 @Setter
@@ -22,19 +23,20 @@ public class ChatMessage {
     private Long id;
 
     @Enumerated(EnumType.STRING)
-    private MessageType messageType;
+    private MessageType messageType; // TEXT, IMAGE, FILE...
 
     private String content;
-    private String fileUrl;
+
     private boolean isRead;
     private boolean isDeleted;
     private Long replyToMessageId;
 
     @Enumerated(EnumType.STRING)
-    private SenderType senderType; // User or Worker
+    private SenderType senderType; // USER hoặc WORKER
 
     @CreationTimestamp
     private Timestamp createdAt;
+
     @UpdateTimestamp
     private Timestamp updatedAt;
 
@@ -43,6 +45,13 @@ public class ChatMessage {
     private ChatRoom chatRoom;
 
     @ManyToOne
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
+    @JoinColumn(name = "user_id")
+    private User sender;
+
+//    @ManyToOne
+//    @JoinColumn(name = "worker_id")
+//    private Worker worker; // nếu senderType = WORKER
+
+    @OneToMany(mappedBy = "chatMessage", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ChatFile> chatFiles;
 }

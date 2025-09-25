@@ -3,14 +3,14 @@ package com.nhattung.wogo.controller;
 import com.nhattung.wogo.dto.request.*;
 import com.nhattung.wogo.dto.request.SendQuoteRequestDTO;
 import com.nhattung.wogo.dto.response.*;
-import com.nhattung.wogo.entity.WorkerWalletExpense;
 import com.nhattung.wogo.enums.BookingStatus;
 import com.nhattung.wogo.enums.PaymentMethod;
 import com.nhattung.wogo.service.booking.IBookingService;
+import com.nhattung.wogo.service.job.JobService;
 import com.nhattung.wogo.service.payment.IPaymentService;
 import com.nhattung.wogo.service.sepay.ISepayVerifyService;
-import com.nhattung.wogo.service.walletexpense.IWorkerWalletExpenseService;
-import com.nhattung.wogo.service.walletrevenue.IWorkerWalletRevenueService;
+import com.nhattung.wogo.service.wallet.IWorkerWalletExpenseService;
+import com.nhattung.wogo.service.wallet.IWorkerWalletRevenueService;
 import com.nhattung.wogo.utils.SecurityUtils;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -18,7 +18,6 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.math.BigDecimal;
 import java.util.List;
 
 @RestController
@@ -32,6 +31,7 @@ public class BookingController {
     private final IPaymentService paymentService;
     private final IWorkerWalletRevenueService workerWalletRevenueService;
     private final IWorkerWalletExpenseService workerWalletExpenseService;
+    private final JobService jobService;
 
     @PostMapping("/create-job")
     public ApiResponse<Void> findWorkers(@Valid @ModelAttribute FindServiceRequestDTO request,
@@ -73,7 +73,7 @@ public class BookingController {
         boolean isValid = bookingService.verifyJobRequest(request);
 
         if(isValid){
-            JobResponseDTO job = bookingService.getJobByCode(request.getJobRequestCode());
+            JobResponseDTO job = jobService.getJobByJobRequestCode(request.getJobRequestCode());
 
             //Gửi realtime cho khách hàng là job đã được gửi báo giá
             messagingTemplate.convertAndSend(

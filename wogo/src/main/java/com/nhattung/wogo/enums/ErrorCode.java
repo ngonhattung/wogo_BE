@@ -36,6 +36,8 @@ public enum ErrorCode {
     PAYMENT_NOT_FOUND(1016, "Payment not found", HttpStatus.NOT_FOUND),
     JOB_FILE_NOT_FOUND(1017, "Job file not found", HttpStatus.NOT_FOUND),
     JOB_NOT_FOUND(1018, "Job not found", HttpStatus.NOT_FOUND),
+    CHAT_ROOM_NOT_FOUND(1019, "Chat room not found", HttpStatus.NOT_FOUND),
+    CHAT_FILE_NOT_FOUND(1020, "Chat file not found", HttpStatus.NOT_FOUND),
 
     //validation errors
     EMPTY_PHONE(2001, "Phone number cannot be empty", HttpStatus.BAD_REQUEST),

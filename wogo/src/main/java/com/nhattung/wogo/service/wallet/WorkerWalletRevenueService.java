@@ -1,4 +1,4 @@
-package com.nhattung.wogo.service.walletrevenue;
+package com.nhattung.wogo.service.wallet;
 
 import com.nhattung.wogo.dto.request.WorkerWalletRevenueRequestDTO;
 import com.nhattung.wogo.dto.response.WorkerWalletRevenueResponseDTO;

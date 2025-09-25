@@ -9,7 +9,7 @@ import com.nhattung.wogo.enums.*;
 import com.nhattung.wogo.exception.AppException;
 import com.nhattung.wogo.repository.BookingRepository;
 import com.nhattung.wogo.service.address.IAddressService;
-import com.nhattung.wogo.service.bookingfile.IBookingFileService;
+import com.nhattung.wogo.service.chat.IChatRoomService;
 import com.nhattung.wogo.service.job.IJobService;
 import com.nhattung.wogo.service.payment.IPaymentService;
 import com.nhattung.wogo.service.sendquote.ISendQuoteService;
@@ -31,7 +31,6 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.*;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
 @Service
@@ -51,7 +50,7 @@ public class BookingService implements IBookingService {
     private final ISuggestService suggestService;
     private final IJobService jobService;
     private final ISendQuoteService sendQuoteService;
-
+    private final IChatRoomService chatRoomService;
     @Override
     public JobResponseDTO createJob(FindServiceRequestDTO request, List<MultipartFile> files) {
 
@@ -137,7 +136,7 @@ public class BookingService implements IBookingService {
     }
 
     private JobResponseDTO getJobAndValidate(SendQuoteRequestDTO request) {
-        JobResponseDTO job = getJobByCode(request.getJobRequestCode());
+        JobResponseDTO job = jobService.getJobByJobRequestCode(request.getJobRequestCode());
 
         if (!JobRequestStatus.PENDING.equals(job.getStatus())) {
             return null;
@@ -175,14 +174,23 @@ public class BookingService implements IBookingService {
     public WorkerQuoteResponseDTO sendQuote(SendQuoteRequestDTO request) {
 
         //Check xem thợ đã báo giá cho dịch vụ nay và trạng thái job còn pending hay không và có trong ngày không
-        JobResponseDTO job = getJobByCode(request.getJobRequestCode());
+        Job job = jobService.getJobByJobRequestCodeEntity(request.getJobRequestCode());
         LocalDateTime startOfDay = job.getBookingDate().toLocalDate().atStartOfDay();
         LocalDateTime endOfDay = startOfDay.plusDays(1).minusSeconds(1);
         Long workerId = SecurityUtils.getCurrentUserId();
+
         boolean exists = sendQuoteService.checkExistSendQuote(job.getService().getId(), workerId, startOfDay, endOfDay);
         if (exists) {
             throw new AppException(ErrorCode.YOU_ALREADY_SEND_QUOTE);
         }
+
+        //Tạo phòng chat
+        chatRoomService.saveChatRoom(ChatRoomRequestDTO.builder()
+                .jobRequestCode(generateCodeForJob(request.getJobRequestCode(), workerId, job.getUser().getId()))
+                .lastMessageAt(LocalDateTime.now())
+                .job(job)
+                .isVisible(true)
+                .build());
 
         return sendQuoteService.saveSendQuote(SendQuoteRequestDTO.builder()
                 .jobRequestCode(request.getJobRequestCode())
@@ -191,16 +199,15 @@ public class BookingService implements IBookingService {
 
     }
 
-    @Override
-    public JobResponseDTO getJobByCode(String jobRequestCode) {
-        return jobService.getJobByJobRequestCode(jobRequestCode);
-    }
 
+    private String generateCodeForJob(String jobRequestCode, Long workerId, Long userId) {
+        return "job:" + jobRequestCode + ":worker:" + workerId + ":user:" + userId;
+    }
 
     @Override
     public BookingResponseDTO placeJob(PlaceJobRequestDTO request) {
 
-        JobResponseDTO job = getJobByCode(request.getJobRequestCode());
+        JobResponseDTO job = jobService.getJobByJobRequestCode(request.getJobRequestCode());
 
         jobService.updateStatusAcceptJob(request.getJobRequestCode(), request.getWorkerId());
 

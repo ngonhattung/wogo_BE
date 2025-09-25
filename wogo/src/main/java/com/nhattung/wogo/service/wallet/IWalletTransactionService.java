@@ -1,4 +1,4 @@
-package com.nhattung.wogo.service.wallettransaction;
+package com.nhattung.wogo.service.wallet;
 
 import com.nhattung.wogo.dto.request.WalletTransactionRequestDTO;
 

@@ -1,5 +1,7 @@
 package com.nhattung.wogo.dto.request;
 
+import com.nhattung.wogo.entity.ChatRoom;
+import com.nhattung.wogo.enums.SenderType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -12,9 +14,8 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @NoArgsConstructor
 public class ChatMessageRequestDTO {
-    private String jobRequestCode;
-    private Long workerId;
+    private String roomCode;
     private String content;
-    private boolean isDelete;
-    private LocalDateTime timestamp;
+    private SenderType senderType; // USER hoặc WORKER
+    private ChatRoom chatRoom;
 }
