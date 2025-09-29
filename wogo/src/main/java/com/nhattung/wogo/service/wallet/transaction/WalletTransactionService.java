@@ -22,7 +22,7 @@ public class WalletTransactionService implements IWalletTransactionService {
                 .transactionType(request.getTransactionType())
                 .paymentStatus(request.getStatus())
                 .description(request.getDescription())
-                .booking(request.getBooking())
+                .payment(request.getPayment())
                 .withdrawal(request.getWithdrawal())
                 .deposit(request.getDeposit())
                 .transactionCode(UUID.randomUUID().toString())
@@ -36,13 +36,13 @@ public class WalletTransactionService implements IWalletTransactionService {
     }
 
     @Override
-    public void processWalletTransaction(ProcessWalletTransactionRequestDTO request) {
+    public WalletTransaction processWalletTransaction(ProcessWalletTransactionRequestDTO request) {
         WalletTransaction walletTransaction = walletTransactionRepository.findById(request.getTransactionId())
                 .orElseThrow(() -> new RuntimeException("Wallet transaction not found"));
 
         walletTransaction.setPaymentStatus(request.getStatus());
         walletTransaction.setProcessedAt(request.getProcessedAt());
 
-        walletTransactionRepository.save(walletTransaction);
+        return walletTransactionRepository.save(walletTransaction);
     }
 }

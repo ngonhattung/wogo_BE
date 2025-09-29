@@ -6,7 +6,7 @@ import com.nhattung.wogo.dto.response.*;
 import com.nhattung.wogo.enums.BookingStatus;
 import com.nhattung.wogo.service.booking.IBookingService;
 import com.nhattung.wogo.service.job.JobService;
-import com.nhattung.wogo.service.sepay.ISepayVerifyService;
+import com.nhattung.wogo.service.payment.sepay.ISepayVerifyService;
 import com.nhattung.wogo.utils.SecurityUtils;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -27,7 +27,7 @@ public class BookingController {
     private final JobService jobService;
 
     @PostMapping("/create-job")
-    public ApiResponse<Void> findWorkers(@Valid @ModelAttribute FindServiceRequestDTO request,
+    public ApiResponse<JobResponseDTO> findWorkers(@Valid @ModelAttribute FindServiceRequestDTO request,
                                          @RequestParam(value = "files", required = false) List<MultipartFile> files) {
 
         JobResponseDTO job = bookingService.createJob(request, files);
@@ -41,15 +41,16 @@ public class BookingController {
 
         //Khách subscribe để nhận thông báo thợ đã nhận job (/topic/send-quote/" + job.getServiceId(),)
 
-        return ApiResponse.<Void>builder()
+        return ApiResponse.<JobResponseDTO>builder()
                 .message("Find workers request sent successfully")
+                .result(job)
                 .build();
     }
 
 
     @GetMapping("/job-available")
-    public ApiResponse<List<JobResponseDTO>> listJobs() {
-        return ApiResponse.<List<JobResponseDTO>>builder()
+    public ApiResponse<List<JobSummaryResponseDTO>> listJobs() {
+        return ApiResponse.<List<JobSummaryResponseDTO>>builder()
                 .message("Pending jobs retrieved successfully")
                 .result(bookingService.getListPendingJobsMatchWorker())
                 .build();
@@ -161,8 +162,6 @@ public class BookingController {
     @PutMapping("/updateStatus")
     public ApiResponse<Void> updateStatus(@RequestBody UpdateStatusBookingRequestDTO request) {
 
-
-
         bookingService.updateStatusBooking(request);
 
         //Push realtime status cho khách hàng và worker (subscribe theo bookingCode)
@@ -202,7 +201,7 @@ public class BookingController {
 
     @PostMapping("/verify-payment/{bookingCode}")
     public ApiResponse<Boolean> verifyPayment(@PathVariable String bookingCode) {
-        boolean isPaid = sepayVerifyService.checkTransaction(bookingCode);
+        boolean isPaid = sepayVerifyService.checkTransactionForPayment(bookingCode);
 
         if(isPaid){
 
@@ -223,6 +222,14 @@ public class BookingController {
         return ApiResponse.<Boolean>builder()
                 .message(isPaid ? "Payment verified successfully" : "Payment verification failed")
                 .result(isPaid)
+                .build();
+    }
+
+    @GetMapping("/history")
+    public ApiResponse<List<BookingHistoryResponseDTO>> getBookingHistory() {
+        return ApiResponse.<List<BookingHistoryResponseDTO>>builder()
+                .message("Booking history retrieved successfully")
+                .result(bookingService.getBookingHistory())
                 .build();
     }
 

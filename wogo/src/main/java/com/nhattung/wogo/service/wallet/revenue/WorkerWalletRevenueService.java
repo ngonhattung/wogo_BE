@@ -1,7 +1,7 @@
 package com.nhattung.wogo.service.wallet.revenue;
 
+import com.nhattung.wogo.dto.request.UpdateWalletRequestDTO;
 import com.nhattung.wogo.dto.request.WorkerWalletRevenueRequestDTO;
-import com.nhattung.wogo.dto.response.WorkerWalletRevenueResponseDTO;
 import com.nhattung.wogo.entity.WorkerWalletRevenue;
 import com.nhattung.wogo.repository.WorkerWalletRevenueRepository;
 import com.nhattung.wogo.utils.SecurityUtils;
@@ -32,19 +32,21 @@ public class WorkerWalletRevenueService implements IWorkerWalletRevenueService {
     }
 
     @Override
-    public WorkerWalletRevenueResponseDTO getWalletByUserId() {
-        return convertToDTO(workerWalletRevenueRepository.getWalletByUserId(SecurityUtils.getCurrentUserId()));
+    public WorkerWalletRevenue getWalletByUserId() {
+        return workerWalletRevenueRepository.getWalletByUserId(SecurityUtils.getCurrentUserId());
     }
 
     @Override
-    public WorkerWalletRevenue updateWalletRevenue(WorkerWalletRevenueRequestDTO request) {
+    public void updateWalletRevenue(UpdateWalletRequestDTO request) {
         WorkerWalletRevenue walletRevenue = workerWalletRevenueRepository.getWalletByUserId(SecurityUtils.getCurrentUserId());
-        walletRevenue.setTotalRevenue(request.getTotalRevenue());
-        walletRevenue.setRevenueBalance(request.getRevenueBalance());
-        return workerWalletRevenueRepository.save(walletRevenue);
+        if(request.isAdd()){
+            walletRevenue.setTotalRevenue(walletRevenue.getTotalRevenue().add(request.getAmount()));
+            walletRevenue.setRevenueBalance(walletRevenue.getRevenueBalance().add(request.getAmount()));
+        } else {
+            walletRevenue.setTotalRevenue(walletRevenue.getTotalRevenue().subtract(request.getAmount()));
+            walletRevenue.setRevenueBalance(walletRevenue.getRevenueBalance().subtract(request.getAmount()));
+        }
+        workerWalletRevenueRepository.save(walletRevenue);
     }
 
-    private WorkerWalletRevenueResponseDTO convertToDTO(WorkerWalletRevenue walletRevenue) {
-        return modelMapper.map(walletRevenue, WorkerWalletRevenueResponseDTO.class);
-    }
 }

@@ -1,5 +1,8 @@
 package com.nhattung.wogo.enums;
 
+import lombok.Getter;
+
+@Getter
 public enum BookingStatus {
     PENDING("PENDING"),
     COMING("COMING"),
@@ -17,7 +20,4 @@ public enum BookingStatus {
         this.status = status;
     }
 
-    public String getStatus() {
-        return status;
-    }
 }

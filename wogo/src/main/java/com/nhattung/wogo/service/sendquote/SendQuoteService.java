@@ -37,6 +37,7 @@ public class SendQuoteService implements ISendQuoteService {
                 .worker(worker)
                 .job(job)
                 .quotedPrice(request.getQuotedPrice())
+                .distanceToJob(request.getDistanceToJob())
                 .build()));
     }
 
@@ -51,6 +52,14 @@ public class SendQuoteService implements ISendQuoteService {
     @Override
     public boolean checkExistSendQuote(Long serviceId, Long workerId, LocalDateTime startOfDay, LocalDateTime endOfDay) {
         return sendQuoteRepository.checkExistSendQuote(serviceId, workerId, startOfDay, endOfDay);
+    }
+
+    @Override
+    public List<WorkerQuoteResponseDTO> getSendQuotesByJobRequestCode(String jobRequestCode) {
+        return sendQuoteRepository.findByJobJobRequestCode(jobRequestCode)
+                .stream()
+                .map(this::convertToResponseDTO)
+                .toList();
     }
 
     private WorkerQuoteResponseDTO convertToResponseDTO(WorkerQuote workerQuote) {

@@ -8,7 +8,7 @@ import com.nhattung.wogo.enums.VerificationStatus;
 import com.nhattung.wogo.enums.VerificationType;
 import com.nhattung.wogo.exception.AppException;
 import com.nhattung.wogo.repository.WorkerVerificationRepository;
-import com.nhattung.wogo.service.service.IServiceService;
+import com.nhattung.wogo.service.serviceWG.IServiceService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

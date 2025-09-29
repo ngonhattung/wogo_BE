@@ -2,7 +2,7 @@ package com.nhattung.wogo.controller;
 
 import com.nhattung.wogo.dto.request.AddressRequestDTO;
 import com.nhattung.wogo.dto.response.ApiResponse;
-import com.nhattung.wogo.service.address.IAddressService;
+import com.nhattung.wogo.service.user.address.IAddressService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;

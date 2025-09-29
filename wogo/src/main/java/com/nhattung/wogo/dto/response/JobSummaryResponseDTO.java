@@ -1,31 +1,11 @@
 package com.nhattung.wogo.dto.response;
 
-import com.nhattung.wogo.enums.JobRequestStatus;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
-import java.util.List;
-
+@EqualsAndHashCode(callSuper = true)
 @Data
-@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class JobSummaryResponseDTO {
-    private Long id;
-    private String jobRequestCode;
-    private LocalDateTime bookingDate;
+public class JobSummaryResponseDTO extends JobBaseResponseDTO{
     private double distance;
-    private String description;
-    private String bookingAddress;
-    private BigDecimal estimatedPriceLower;
-    private BigDecimal estimatedPriceHigher;
-    private int estimatedDurationMinutes;
-    private JobRequestStatus status;
-    private List<JobFileResponseDTO> files;
-    private UserResponseDTO user;
-    private ServiceResponseDTO service;
 }

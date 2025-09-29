@@ -1,5 +1,6 @@
 package com.nhattung.wogo.entity;
 
+import com.nhattung.wogo.enums.Canceller;
 import com.nhattung.wogo.enums.JobRequestStatus;
 import jakarta.persistence.*;
 import lombok.*;
@@ -24,13 +25,18 @@ public class Job {
 
     private String jobRequestCode;
     private LocalDateTime bookingDate;
-    private double distance;
+    private double latitude;
+    private double longitude;
     private String description;
     private String bookingAddress;
     private BigDecimal estimatedPriceLower;
     private BigDecimal estimatedPriceHigher;
     private int estimatedDurationMinutes;
     private Long acceptedBy;
+    private String cancelReason;
+
+    @Enumerated(EnumType.STRING)
+    private Canceller cancelledBy;
 
     @Enumerated(EnumType.STRING)
     private JobRequestStatus status;

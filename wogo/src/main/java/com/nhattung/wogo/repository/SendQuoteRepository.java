@@ -1,6 +1,7 @@
 package com.nhattung.wogo.repository;
 
 import com.nhattung.wogo.entity.WorkerQuote;
+import io.micrometer.common.KeyValues;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
@@ -21,4 +22,6 @@ public interface SendQuoteRepository extends JpaRepository<WorkerQuote, Long> {
       AND wq.job.bookingDate BETWEEN :startOfDay AND :endOfDay
 """)
     boolean checkExistSendQuote(Long serviceId, Long userId, LocalDateTime startOfDay, LocalDateTime endOfDay);
+
+    Optional<WorkerQuote> findByJobJobRequestCode(String jobRequestCode);
 }

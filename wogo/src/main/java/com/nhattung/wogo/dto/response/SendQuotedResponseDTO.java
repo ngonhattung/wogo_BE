@@ -15,4 +15,5 @@ public class SendQuotedResponseDTO {
     private Long id;
     private WorkerResponseDTO worker;
     private BigDecimal quotedPrice;
+    private double distanceToJob;
 }

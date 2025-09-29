@@ -13,8 +13,9 @@ public class CreateJobRequestDTO {
     private String description;
     private String address;
     private LocalDateTime bookingDate;
-    private double distance;
     private BigDecimal estimatedPriceLower;
     private BigDecimal estimatedPriceHigher;
     private int estimatedDurationMinutes;
+    private double latitudeUser;
+    private double longitudeUser;
 }

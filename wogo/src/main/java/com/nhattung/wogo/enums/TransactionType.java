@@ -3,6 +3,7 @@ package com.nhattung.wogo.enums;
 public enum TransactionType {
 
     REVENUE("Revenue"),
+    DEPOSIT("Deposit"),
     WITHDRAW("Withdraw"),
     PAYMENT("Payment"),
     REFUND("Refund");

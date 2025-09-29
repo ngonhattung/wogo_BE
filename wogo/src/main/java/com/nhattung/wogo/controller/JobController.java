@@ -30,6 +30,13 @@ public class JobController {
                 .build();
     }
 
+    @GetMapping("/getByJobRequestCode/{jobRequestCode}")
+    public ApiResponse<JobResponseDTO> getJobByJobRequestCode(@PathVariable String jobRequestCode) {
+        return ApiResponse.<JobResponseDTO>builder()
+                .message("Job request retrieved successfully")
+                .result(jobService.getJobByJobRequestCode(jobRequestCode))
+                .build();
+    }
 
     @GetMapping("/my-quotes")
     public ApiResponse<List<WorkerQuoteResponseDTO>> getMyQuotes() {
@@ -38,5 +45,15 @@ public class JobController {
                 .result(sendQuoteService.getSendQuotesByWorkerId())
                 .build();
     }
+
+    @GetMapping("/getSendQuotesByJobRequestCode/{jobRequestCode}")
+    public ApiResponse<List<WorkerQuoteResponseDTO>> getSendQuotesByJobRequestCode(@PathVariable String jobRequestCode) {
+        return ApiResponse.<List<WorkerQuoteResponseDTO>>builder()
+                .message("Quotes for the job request retrieved successfully")
+                .result(sendQuoteService.getSendQuotesByJobRequestCode(jobRequestCode))
+                .build();
+    }
+
+
 
 }

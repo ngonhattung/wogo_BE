@@ -48,7 +48,7 @@ public class PaymentService  implements IPaymentService{
     }
 
     @Override
-    public PaymentResponseDTO updatePaymentStatus(PaymentRequestDTO request) {
+    public BookingPayment updatePaymentStatus(PaymentRequestDTO request) {
         Booking booking = bookingRepository.findByBookingCode(request.getBookingCode())
                 .orElseThrow(() -> new AppException(ErrorCode.BOOKING_NOT_FOUND));
         BookingPayment payment = paymentRepository.findByBooking(booking)
@@ -56,7 +56,7 @@ public class PaymentService  implements IPaymentService{
 
         // Xử lý cập nhật trạng thái thanh toán
         if (isValidPaymentMethod(request.getPaymentMethod())) {
-            return convertToDTO(updatePayment(payment));
+            return updatePayment(payment);
         } else {
             throw new AppException(ErrorCode.INVALID_PAYMENT_STATUS);
         }

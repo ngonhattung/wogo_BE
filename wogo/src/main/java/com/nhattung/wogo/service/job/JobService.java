@@ -6,11 +6,13 @@ import com.nhattung.wogo.entity.Job;
 import com.nhattung.wogo.entity.JobFile;
 import com.nhattung.wogo.entity.ServiceWG;
 import com.nhattung.wogo.entity.User;
+import com.nhattung.wogo.enums.Canceller;
 import com.nhattung.wogo.enums.ErrorCode;
 import com.nhattung.wogo.enums.JobRequestStatus;
 import com.nhattung.wogo.exception.AppException;
 import com.nhattung.wogo.repository.JobRepository;
-import com.nhattung.wogo.service.service.IServiceService;
+import com.nhattung.wogo.service.job.file.JobFileService;
+import com.nhattung.wogo.service.serviceWG.IServiceService;
 import com.nhattung.wogo.service.user.IUserService;
 import com.nhattung.wogo.utils.SecurityUtils;
 import lombok.RequiredArgsConstructor;
@@ -54,13 +56,14 @@ public class JobService implements IJobService {
                 .user(user)
                 .jobRequestCode(generateJobRequestCode())
                 .description(request.getDescription())
-                .distance(0) // Default distance, to be updated later
                 .bookingDate(request.getBookingDate())
                 .status(JobRequestStatus.PENDING)
                 .bookingAddress(request.getAddress())
                 .estimatedPriceLower(request.getEstimatedPriceLower())
                 .estimatedPriceHigher(request.getEstimatedPriceHigher())
                 .estimatedDurationMinutes(request.getEstimatedDurationMinutes())
+                .longitude(request.getLongitudeUser())
+                .latitude(request.getLatitudeUser())
                 .build();
     }
 
@@ -71,14 +74,14 @@ public class JobService implements IJobService {
 
     @Override
     public JobResponseDTO getJobByJobRequestCode(String jobRequestCode) {
-        return jobRepository.findValidJobByJobRequestCode(jobRequestCode,LocalDateTime.now())
+        return jobRepository.findByJobRequestCode(jobRequestCode)
                 .map(this::convertToResponseDTO)
                 .orElseThrow(() -> new AppException(ErrorCode.JOB_NOT_FOUND));
     }
 
     @Override
     public Job getJobByJobRequestCodeEntity(String jobRequestCode) {
-        return jobRepository.findValidJobByJobRequestCode(jobRequestCode,LocalDateTime.now())
+        return jobRepository.findByJobRequestCode(jobRequestCode)
                 .orElseThrow(() -> new AppException(ErrorCode.JOB_NOT_FOUND));
     }
 
@@ -92,17 +95,17 @@ public class JobService implements IJobService {
     }
 
     @Override
-    public List<JobResponseDTO> getJobsByServiceId(Long serviceId) {
+    public List<JobSummaryResponseDTO> getJobsByServiceId(Long serviceId) {
         return jobRepository.getValidJobsByServiceId(serviceId,JobRequestStatus.PENDING, LocalDateTime.now())
                 .orElse(new ArrayList<>())
                 .stream()
-                .map(this::convertToResponseDTO)
+                .map(this::convertToResponseDTOSummary)
                 .toList();
     }
 
     @Override
     public void updateStatusAcceptJob(String jobRequestCode,Long workerId) {
-        Job job = jobRepository.findValidJobByJobRequestCode(jobRequestCode,LocalDateTime.now())
+        Job job = jobRepository.findByJobRequestCode(jobRequestCode)
                 .orElseThrow(() -> new AppException(ErrorCode.JOB_NOT_FOUND));
         job.setStatus(JobRequestStatus.ACCEPTED);
         job.setAcceptedBy(workerId);
@@ -110,25 +113,43 @@ public class JobService implements IJobService {
     }
 
     @Override
-    public void deleteJob(String jobRequestCode) {
-        Job job = jobRepository.findValidJobByJobRequestCode(jobRequestCode,LocalDateTime.now())
-                .orElseThrow(() -> new AppException(ErrorCode.JOB_NOT_FOUND));
-        jobRepository.delete(job);
+    public void updateStatusCancelJob() {
+        //Lấy ra danh sách hết hạn chưa có thợ nhận
+        List<Job> jobs = jobRepository.findJobsToCancel(JobRequestStatus.PENDING,LocalDateTime.now())
+                .orElse(new ArrayList<>());
+        jobRepository.saveAll(jobs.stream().peek(job -> {
+            job.setStatus(JobRequestStatus.CANCELLED);
+            job.setCancelledBy(Canceller.SYSTEM);
+            job.setCancelReason("Hủy sau 24h và không tìm được thợ");
+        }).toList());
     }
 
-    private JobResponseDTO convertToResponseDTO(Job job) {
-        JobResponseDTO responseDTO = modelMapper.map(job, JobResponseDTO.class);
+
+    private <T extends JobBaseResponseDTO> T convertToResponse(Job job, Class<T> targetType) {
+        T responseDTO = modelMapper.map(job, targetType);
+
         UserResponseDTO userResponseDTO = modelMapper.map(job.getUser(), UserResponseDTO.class);
         ServiceResponseDTO serviceResponseDTO = modelMapper.map(job.getService(), ServiceResponseDTO.class);
+
         responseDTO.setUser(userResponseDTO);
         responseDTO.setService(serviceResponseDTO);
 
         List<JobFile> jobFiles = jobFileService.getJobFilesByJobId(job.getId());
-        List<JobFileResponseDTO> filesDTO = jobFiles
-                .stream()
+        List<JobFileResponseDTO> filesDTO = jobFiles.stream()
                 .map(jobFile -> modelMapper.map(jobFile, JobFileResponseDTO.class))
                 .toList();
+
         responseDTO.setFiles(filesDTO);
+
         return responseDTO;
+    }
+
+    // Gọi dùng cho từng trường hợp
+    private JobResponseDTO convertToResponseDTO(Job job) {
+        return convertToResponse(job, JobResponseDTO.class);
+    }
+
+    private JobSummaryResponseDTO convertToResponseDTOSummary(Job job) {
+        return convertToResponse(job, JobSummaryResponseDTO.class);
     }
 }

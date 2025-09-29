@@ -7,7 +7,7 @@ import com.nhattung.wogo.entity.ServiceWG;
 import com.nhattung.wogo.enums.ErrorCode;
 import com.nhattung.wogo.exception.AppException;
 import com.nhattung.wogo.repository.QuestionCategoryRepository;
-import com.nhattung.wogo.service.service.IServiceService;
+import com.nhattung.wogo.service.serviceWG.IServiceService;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;

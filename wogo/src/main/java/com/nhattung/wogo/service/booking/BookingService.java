@@ -7,17 +7,21 @@ import com.nhattung.wogo.dto.response.*;
 import com.nhattung.wogo.entity.*;
 import com.nhattung.wogo.enums.*;
 import com.nhattung.wogo.exception.AppException;
+import com.nhattung.wogo.repository.BookingHistoryRepository;
 import com.nhattung.wogo.repository.BookingRepository;
-import com.nhattung.wogo.service.address.IAddressService;
-import com.nhattung.wogo.service.chat.IChatRoomService;
+import com.nhattung.wogo.service.booking.file.IBookingFileService;
+import com.nhattung.wogo.service.user.address.IAddressService;
+import com.nhattung.wogo.service.chat.room.IChatRoomService;
 import com.nhattung.wogo.service.job.IJobService;
 import com.nhattung.wogo.service.payment.IPaymentService;
 import com.nhattung.wogo.service.sendquote.ISendQuoteService;
-import com.nhattung.wogo.service.service.IServiceService;
-import com.nhattung.wogo.service.suggest.ISuggestService;
+import com.nhattung.wogo.service.payment.sepay.SepayVerifyService;
+import com.nhattung.wogo.service.serviceWG.IServiceService;
+import com.nhattung.wogo.service.serviceWG.suggest.ISuggestService;
 import com.nhattung.wogo.service.user.IUserService;
 import com.nhattung.wogo.service.wallet.expense.IWorkerWalletExpenseService;
 import com.nhattung.wogo.service.wallet.revenue.IWorkerWalletRevenueService;
+import com.nhattung.wogo.service.wallet.transaction.IWalletTransactionService;
 import com.nhattung.wogo.service.worker.IWorkerService;
 import com.nhattung.wogo.utils.RedisKeyUtil;
 import com.nhattung.wogo.utils.SecurityUtils;
@@ -26,11 +30,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
+import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Stream;
@@ -55,7 +59,9 @@ public class BookingService implements IBookingService {
     private final IChatRoomService chatRoomService;
     private final IWorkerWalletRevenueService workerWalletRevenueService;
     private final IWorkerWalletExpenseService workerWalletExpenseService;
-
+    private final IWalletTransactionService walletTransactionService;
+    private final SepayVerifyService sepayVerifyService;
+    private final BookingHistoryRepository historyRepository;
     @Override
     public JobResponseDTO createJob(FindServiceRequestDTO request, List<MultipartFile> files) {
 
@@ -73,14 +79,13 @@ public class BookingService implements IBookingService {
         addressService.saveOrUpdateAddress(AddressRequestDTO.builder()
                 .latitude(request.getLatitudeUser())
                 .longitude(request.getLongitudeUser())
-                .role(ROLE.CUSTOMER.name())
-                .build());
+                .role(ROLE.CUSTOMER.name()).build());
 
         //Goi suggest de tinh gia
-//            EstimatedResponseDTO estimated = suggestService.suggestPrice(EstimatedPriceRequestDTO.builder()
-//                    .serviceId(request.getServiceId())
-//                    .distanceKm(WogoConstants.DEFAULT_DISTANCE_KM) // Thay bằng khoảng cách thực tế nếu có
-//                    .build());
+        EstimatedResponseDTO estimated = suggestService.suggestPrice(EstimatedPriceRequestDTO.builder()
+                .serviceId(request.getServiceId())
+                .distanceKm(WogoConstants.DEFAULT_DISTANCE_KM) // Thay bằng khoảng cách thực tế nếu có
+                .build());
 
 
         return jobService.saveJob(CreateJobRequestDTO.builder()
@@ -88,46 +93,40 @@ public class BookingService implements IBookingService {
                 .description(request.getDescription())
                 .address(request.getAddress())
                 .bookingDate(request.getBookingDate() != null ? request.getBookingDate() : LocalDateTime.now().plusHours(1))
-                .estimatedPriceLower(BigDecimal.valueOf(100000)) // Thay bằng giá trị từ suggestService
-                .estimatedPriceHigher(BigDecimal.valueOf(200000)) // Thay bằng giá trị từ suggestService
-                .estimatedDurationMinutes(60) // Thay bằng giá trị từ suggestService
+                .estimatedPriceLower(estimated.getEstimatedPriceLower())
+                .estimatedPriceHigher(estimated.getEstimatedPriceHigher())
+                .estimatedDurationMinutes(estimated.getEstimatedDurationMinutes())
+                .longitudeUser(request.getLongitudeUser())
+                .latitudeUser(request.getLatitudeUser())
                 .build(), files);
-
     }
 
     @Override
-    public List<JobResponseDTO> getListPendingJobsMatchWorker() {
+    public List<JobSummaryResponseDTO> getListPendingJobsMatchWorker() {
         Long workerId = SecurityUtils.getCurrentUserId();
         Address addressWorker = addressService.findByWorkerId(workerId);
 
         // Lấy tất cả serviceId mà thợ có thể làm
-        List<Long> serviceIds = serviceService.getAllServicesOfWorker().stream()
-                .flatMap(dto -> {
-                    List<ServiceResponseDTO> children = dto.getService().getChildServices();
-                    return (children == null || children.isEmpty())
-                            ? Stream.of(dto.getService().getParentService())
-                            : children.stream();
-                })
-                .map(ServiceResponseDTO::getId)
-                .toList();
+        List<Long> serviceIds = serviceService.getAllServicesOfWorker().stream().flatMap(dto -> {
+            List<ServiceResponseDTO> children = dto.getService().getChildServices();
+            return (children == null || children.isEmpty()) ? Stream.of(dto.getService().getParentService()) : children.stream();
+        }).map(ServiceResponseDTO::getId).toList();
 
         if (serviceIds.isEmpty()) {
             return Collections.emptyList();
         }
 
         // Lấy toàn bộ jobs theo danh sách serviceIds
-        return serviceIds
-                .stream()
+        return serviceIds.stream()
                 .flatMap(serviceId -> jobService.getJobsByServiceId(serviceId).stream())
                 .peek(job -> setDistance(job, addressWorker)).toList();
     }
 
     // --- Method tách riêng tính khoảng cách ---
-    private void setDistance(JobResponseDTO job, Address workerAddress) {
-        Address customerAddress = addressService.findByUserId(job.getUser().getId());
+    private void setDistance(JobSummaryResponseDTO job, Address workerAddress) {
         double distance = haversine(HaversineRequestDTO.builder()
-                .latCustomer(customerAddress.getLatitude())
-                .lonCustomer(customerAddress.getLongitude())
+                .latCustomer(job.getLatitude())
+                .lonCustomer(job.getLongitude())
                 .latWorker(workerAddress.getLatitude())
                 .lonWorker(workerAddress.getLongitude())
                 .build());
@@ -161,7 +160,8 @@ public class BookingService implements IBookingService {
         List<SendQuotedResponseDTO> existingQuotes = job.getWorkerQuotes();
 
         if (existingQuotes != null) {
-            boolean hasQuoted = existingQuotes.stream()
+            boolean hasQuoted = existingQuotes
+                    .stream()
                     .anyMatch(quote -> Objects.equals(quote.getWorker().getId(), currentWorkerId));
             if (hasQuoted) {
                 throw new AppException(ErrorCode.YOU_ALREADY_SEND_QUOTE);
@@ -197,9 +197,25 @@ public class BookingService implements IBookingService {
                 .isVisible(true)
                 .build());
 
+        //Lưu khoảng cách
+        //Lưu vị trí của Thợ
+        addressService.saveOrUpdateAddress(AddressRequestDTO.builder()
+                .latitude(request.getLatitude())
+                .longitude(request.getLongitude())
+                .role(ROLE.WORKER.name())
+                .build());
+
+        double distance = haversine(HaversineRequestDTO.builder()
+                .latCustomer(job.getLatitude())
+                .lonCustomer(job.getLongitude())
+                .latWorker(request.getLatitude())
+                .lonWorker(request.getLongitude())
+                .build());
+
         return sendQuoteService.saveSendQuote(SendQuoteRequestDTO.builder()
                 .jobRequestCode(request.getJobRequestCode())
                 .quotedPrice(request.getQuotedPrice())
+                .distanceToJob(WogoConstants.ROAD_WAY * distance)
                 .build());
 
     }
@@ -210,27 +226,35 @@ public class BookingService implements IBookingService {
     }
 
     @Override
+    @Transactional
     public BookingResponseDTO placeJob(PlaceJobRequestDTO request) {
 
+        // Lấy job + service trong 1 lần
         JobResponseDTO job = jobService.getJobByJobRequestCode(request.getJobRequestCode());
 
+        // Update trạng thái job
         jobService.updateStatusAcceptJob(request.getJobRequestCode(), request.getWorkerId());
 
-        ServiceWG service = serviceService.getServiceByIdEntity(job.getService().getId());
+        // Lấy quote trực tiếp từ DB thay vì filter bằng stream
+        WorkerQuoteResponseDTO quoted = sendQuoteService.getSendQuotesByJobRequestCode(request.getJobRequestCode())
+                .stream()
+                .filter(quote -> Objects.equals(quote.getWorker().getId(), request.getWorkerId()))
+                .findFirst()
+                .orElseThrow(() -> new AppException(ErrorCode.WORKER_QUOTE_NOT_FOUND));
 
-        // tạo booking
-        Booking booking = saveBooking(BookingRequestDTO.builder()
+        // Tạo booking
+        Booking booking = saveBooking(BookingRequestDTO
+                .builder()
                 .userId(job.getUser().getId())
                 .workerId(request.getWorkerId())
-                .service(service)
-                .bookingDate(LocalDateTime.now())
+                .service(serviceService.getServiceByIdEntity(job.getService().getId()))
                 .description(job.getDescription())
-                .distanceKm(job.getDistance())
+                .distanceKm(quoted.getDistanceToJob())
                 .bookingAddress(job.getBookingAddress())
                 .totalAmount(request.getQuotedPrice())
                 .build());
 
-        // lưu file
+        // Lưu file
         bookingFileService.saveFiles(job.getFiles(), booking);
 
         return convertToBookingResponseDTO(booking);
@@ -250,6 +274,7 @@ public class BookingService implements IBookingService {
 
     @Override
     public void updateStatusBooking(UpdateStatusBookingRequestDTO request) {
+
         Booking booking = bookingRepository.findByBookingCode(request.getBookingCode())
                 .orElseThrow(() -> new AppException(ErrorCode.BOOKING_NOT_FOUND));
 
@@ -257,37 +282,39 @@ public class BookingService implements IBookingService {
 
         if (request.getPaymentMethod() != null && request.getStatus() == BookingStatus.COMPLETED) {
 
-            PaymentResponseDTO payment = paymentService.updatePaymentStatus(
-                    PaymentRequestDTO.builder()
-                            .bookingCode(request.getBookingCode())
-                            .paymentMethod(request.getPaymentMethod())
-                            .build()
-            );
+            BookingPayment payment = paymentService.updatePaymentStatus(PaymentRequestDTO.builder()
+                    .bookingCode(request.getBookingCode())
+                    .paymentMethod(request.getPaymentMethod())
+                    .build());
 
-            BigDecimal platformFee = payment.getPlatformFee();
+            walletTransactionService.processWalletTransaction(ProcessWalletTransactionRequestDTO.builder()
+                    .transactionId(payment.getWalletTransaction().getId())
+                    .status(PaymentStatus.COMPLETED).processedAt(LocalDateTime.now())
+                    .build());
+
+            BigDecimal platformFee = booking.getPlatformFee();
+
 
             switch (request.getPaymentMethod()) {
-                case CASH -> {
-                    WorkerWalletExpenseResponseDTO walletExpense = workerWalletExpenseService.getWalletByUserId();
-                    workerWalletExpenseService.updateWalletExpense(
-                            WorkerWalletExpenseRequestDTO.builder()
-                                    .totalExpense(walletExpense.getTotalExpense().add(platformFee))
-                                    .expenseBalance(walletExpense.getExpenseBalance().add(platformFee))
-                                    .build()
-                    );
-                }
+                case CASH ->
+                    //Trừ tiền vào ví chi phí
+                    workerWalletExpenseService.updateWalletExpense(UpdateWalletRequestDTO.builder()
+                            .amount(platformFee)
+                            .isAdd(false)
+                            .build());
                 case BANK_TRANSFER -> {
-                    WorkerWalletRevenueResponseDTO walletRevenue = workerWalletRevenueService.getWalletByUserId();
-                    workerWalletRevenueService.updateWalletRevenue(
-                            WorkerWalletRevenueRequestDTO.builder()
-                                    .totalRevenue(walletRevenue.getTotalRevenue().subtract(platformFee))
-                                    .revenueBalance(walletRevenue.getRevenueBalance().subtract(platformFee))
-                                    .build()
-                    );
+                    BigDecimal workerAmount = booking.getTotalAmount().subtract(platformFee);
+
+                    //Cộng tiền vào ví doanh thu
+                    workerWalletRevenueService.updateWalletRevenue(UpdateWalletRequestDTO.builder()
+                            .amount(workerAmount)
+                            .isAdd(true)
+                            .build());
                 }
                 default -> {
                 }
             }
+
         }
 
         bookingRepository.save(booking);
@@ -300,8 +327,7 @@ public class BookingService implements IBookingService {
         double rLatCustomer = Math.toRadians(request.getLatCustomer());
         double rLatWorker = Math.toRadians(request.getLatWorker());
 
-        double a = Math.pow(Math.sin(dLat / 2), 2)
-                + Math.cos(rLatCustomer) * Math.cos(rLatWorker) * Math.pow(Math.sin(dLon / 2), 2);
+        double a = Math.pow(Math.sin(dLat / 2), 2) + Math.cos(rLatCustomer) * Math.cos(rLatWorker) * Math.pow(Math.sin(dLon / 2), 2);
 
         double c = 2 * Math.asin(Math.sqrt(a));
 
@@ -311,20 +337,30 @@ public class BookingService implements IBookingService {
 
     @Override
     public TransactionResponseDTO createBookingTransaction(String bookingCode) {
-        Booking booking = bookingRepository.findByBookingCode(bookingCode)
-                .orElseThrow(() -> new AppException(ErrorCode.BOOKING_NOT_FOUND));
+
+        Booking booking = bookingRepository.findByBookingCode(bookingCode).orElseThrow(() -> new AppException(ErrorCode.BOOKING_NOT_FOUND));
 
         if (booking.getTotalAmount() == null || booking.getTotalAmount().doubleValue() <= 0) {
             throw new AppException(ErrorCode.INVALID_BOOKING_AMOUNT);
         }
 
+        WorkerWalletRevenue walletRevenue = workerWalletRevenueService.getWalletByUserId();
 
-        String linkQR = generateQRLink(booking);
+        BigDecimal workerAmount = booking.getTotalAmount().subtract(booking.getPlatformFee());
 
-        return TransactionResponseDTO.builder()
-                .linkTransaction(linkQR)
-                .transactionStatus(false)
-                .build();
+        walletTransactionService.saveWalletTransaction(WalletTransactionRequestDTO.builder()
+                .amount(booking.getTotalAmount())
+                .transactionType(TransactionType.PAYMENT)
+                .status(PaymentStatus.PENDING).description("Payment for booking: " + booking.getBookingCode())
+                .payment(booking.getBookingPayment())
+                .walletRevenue(walletRevenue)
+                .balanceBefore(walletRevenue.getRevenueBalance())
+                .balanceAfter(walletRevenue.getRevenueBalance().add(workerAmount))
+                .build());
+
+        String linkQR = sepayVerifyService.createQRCodeForPayment(booking);
+
+        return TransactionResponseDTO.builder().linkTransaction(linkQR).transactionStatus(false).build();
     }
 
     @Override
@@ -357,17 +393,19 @@ public class BookingService implements IBookingService {
         return convertToBookingResponseDTO(bookingRepository.save(booking));
     }
 
-    private String generateQRLink(Booking booking) {
-        try {
-            return String.format("https://qr.sepay.vn/img?acc=%s&bank=%s&amount=%s&des=%s",
-                    URLEncoder.encode(WogoConstants.ACCOUNT_NUMBER, StandardCharsets.UTF_8),
-                    URLEncoder.encode(WogoConstants.BANK_NAME, StandardCharsets.UTF_8),
-                    URLEncoder.encode(booking.getTotalAmount().toString(), StandardCharsets.UTF_8),
-                    URLEncoder.encode("TTDV" + booking.getBookingCode(), StandardCharsets.UTF_8)
-            );
-        } catch (Exception e) {
-            throw new AppException(ErrorCode.QR_LINK_GENERATION_FAILED);
-        }
+    @Override
+    public List<BookingHistoryResponseDTO> getBookingHistory() {
+        List<Object[]> results = historyRepository.findBookingHistoryByUser(SecurityUtils.getCurrentUserId());
+        return results.stream()
+                .map(r -> new BookingHistoryResponseDTO(
+                        (String) r[0],
+                        (String) r[1],
+                        ((Timestamp) r[2]).toLocalDateTime(),
+                        (String) r[3],
+                        (String) r[4],
+                        (String) r[5]
+                ))
+                .toList();
     }
 
     @Override
@@ -381,17 +419,10 @@ public class BookingService implements IBookingService {
     private Booking createBooking(BookingRequestDTO request, User user, Worker worker) {
         return Booking.builder()
                 .bookingCode(generateBookingCode())
-                .service(request.getService())
-                .user(user)
-                .worker(worker)
-                .bookingDate(request.getBookingDate())
-                .startDate(null)
-                .endDate(null)
-                .description(request.getDescription())
-                .distanceKm(request.getDistanceKm())
-                .bookingStatus(BookingStatus.PENDING)
-                .durationMinutes(0)
-                .title(request.getService().getServiceName())
+                .service(request.getService()).user(user).worker(worker)
+                .bookingDate(request.getBookingDate()).startDate(null).endDate(null)
+                .description(request.getDescription()).distanceKm(request.getDistanceKm())
+                .bookingStatus(BookingStatus.PENDING).durationMinutes(0).title(request.getService().getServiceName())
                 .bookingAddress(request.getBookingAddress())
                 .build();
     }

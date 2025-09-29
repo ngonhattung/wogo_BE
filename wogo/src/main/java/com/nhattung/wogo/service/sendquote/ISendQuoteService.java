@@ -11,4 +11,5 @@ public interface ISendQuoteService {
     WorkerQuoteResponseDTO saveSendQuote(SendQuoteRequestDTO request);
     List<WorkerQuoteResponseDTO> getSendQuotesByWorkerId();
     boolean checkExistSendQuote(Long serviceId, Long workerId, LocalDateTime startOfDay, LocalDateTime endOfDay);
+    List<WorkerQuoteResponseDTO> getSendQuotesByJobRequestCode(String jobRequestCode);
 }

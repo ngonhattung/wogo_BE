@@ -14,5 +14,6 @@ import java.math.BigDecimal;
 public class WorkerQuoteResponseDTO {
     private WorkerResponseDTO worker;
     private BigDecimal quotedPrice;
+    private double distanceToJob;
     private JobSummaryResponseDTO job;
 }

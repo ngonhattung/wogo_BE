@@ -1,7 +1,7 @@
 package com.nhattung.wogo.service.wallet.expense;
 
+import com.nhattung.wogo.dto.request.UpdateWalletRequestDTO;
 import com.nhattung.wogo.dto.request.WorkerWalletExpenseRequestDTO;
-import com.nhattung.wogo.dto.response.WorkerWalletExpenseResponseDTO;
 import com.nhattung.wogo.entity.WorkerWalletExpense;
 import com.nhattung.wogo.repository.WorkerWalletExpenseRepository;
 import com.nhattung.wogo.utils.SecurityUtils;
@@ -33,19 +33,24 @@ public class WorkerWalletExpenseService implements IWorkerWalletExpenseService {
     }
 
     @Override
-    public WorkerWalletExpenseResponseDTO getWalletByUserId() {
-        return convertToDTO(workerWalletExpenseRepository.getWalletByUserId(SecurityUtils.getCurrentUserId()));
+    public WorkerWalletExpense getWalletByUserId() {
+        return workerWalletExpenseRepository.getWalletByUserId(SecurityUtils.getCurrentUserId());
     }
 
     @Override
-    public WorkerWalletExpense updateWalletExpense(WorkerWalletExpenseRequestDTO request) {
+    public void updateWalletExpense(UpdateWalletRequestDTO request) {
         WorkerWalletExpense walletExpense = workerWalletExpenseRepository.getWalletByUserId(SecurityUtils.getCurrentUserId());
-        walletExpense.setTotalExpense(request.getTotalExpense());
-        walletExpense.setExpenseBalance(request.getExpenseBalance());
-        return workerWalletExpenseRepository.save(walletExpense);
+
+        if(request.isAdd())
+        {
+            walletExpense.setExpenseBalance(walletExpense.getExpenseBalance().add(request.getAmount()));
+            walletExpense.setTotalExpense(walletExpense.getTotalExpense().add(request.getAmount()));
+        } else {
+            walletExpense.setExpenseBalance(walletExpense.getExpenseBalance().subtract(request.getAmount()));
+            walletExpense.setTotalExpense(walletExpense.getTotalExpense().subtract(request.getAmount()));
+        }
+
+        workerWalletExpenseRepository.save(walletExpense);
     }
 
-    private WorkerWalletExpenseResponseDTO convertToDTO(WorkerWalletExpense walletExpense) {
-        return modelMapper.map(walletExpense, WorkerWalletExpenseResponseDTO.class);
-    }
 }

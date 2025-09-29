@@ -45,8 +45,8 @@ public class WalletTransaction {
 
 
     @OneToOne
-    @JoinColumn(name = "booking_id", nullable = false)
-    private Booking booking;
+    @JoinColumn(name = "payment_id", nullable = false)
+    private BookingPayment payment;
 
     @OneToOne
     @JoinColumn(name = "deposit_id", nullable = false)

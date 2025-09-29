@@ -10,4 +10,7 @@ import java.math.BigDecimal;
 public class SendQuoteRequestDTO {
     private String jobRequestCode;
     private BigDecimal quotedPrice;
+    private double distanceToJob;
+    private double latitude;
+    private double longitude;
 }

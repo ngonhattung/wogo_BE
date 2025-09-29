@@ -39,6 +39,9 @@ public enum ErrorCode {
     CHAT_ROOM_NOT_FOUND(1019, "Chat room not found", HttpStatus.NOT_FOUND),
     CHAT_FILE_NOT_FOUND(1020, "Chat file not found", HttpStatus.NOT_FOUND),
     WITHDRAWAL_NOT_FOUND(1021, "Withdrawal request not found", HttpStatus.NOT_FOUND),
+    WALLET_TRANSACTION_NOT_FOUND(1022, "Wallet transaction not found", HttpStatus.NOT_FOUND),
+    DEPOSIT_NOT_FOUND(1023, "Deposit not found", HttpStatus.NOT_FOUND),
+    WORKER_QUOTE_NOT_FOUND(1024, "Worker quote not found", HttpStatus.NOT_FOUND),
 
 
     //validation errors

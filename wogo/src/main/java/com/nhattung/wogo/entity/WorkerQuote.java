@@ -20,6 +20,7 @@ public class WorkerQuote {
     private Long id;
 
     private BigDecimal quotedPrice;
+    private double distanceToJob;
 
     @ManyToOne
     @JoinColumn(name = "worker_id", nullable = false)

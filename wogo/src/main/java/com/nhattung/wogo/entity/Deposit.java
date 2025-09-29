@@ -17,22 +17,21 @@ import java.time.LocalDateTime;
 @Builder
 @Entity
 public class Deposit {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     private BigDecimal amount;
-    private String transactionId;
 
     @Enumerated(EnumType.STRING)
     private PaymentStatus paymentStatus;
 
     @Enumerated(EnumType.STRING)
-    private PaymentMethod topupMethod;
+    private PaymentMethod depositMethod;
 
     private LocalDateTime requestedAt;
     private LocalDateTime processedAt;
-    private String rejectionReason;
 
     @CreationTimestamp
     private Timestamp createdAt;
@@ -40,10 +39,6 @@ public class Deposit {
     @OneToOne
     @JoinColumn(name = "worker_id", nullable = false)
     private Worker worker;
-
-//    @OneToOne
-//    @JoinColumn(name = "payment_method_id", nullable = false)
-//    private PaymentMethod paymentMethod;
 
     @OneToOne(mappedBy = "deposit", cascade = CascadeType.ALL, orphanRemoval = true)
     private WalletTransaction walletTransaction;

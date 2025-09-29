@@ -22,11 +22,17 @@ public interface JobRepository extends JpaRepository<Job, Long> {
                 SELECT j
                 FROM Job j
                 WHERE j.user.id = :userId
-                  AND j.bookingDate >= :now
                   AND (:status = 'ALL' OR j.status = :status)
             """)
     Optional<List<Job>> findValidJobsByUserId(Long userId,JobRequestStatus status, LocalDateTime now);
 
     @Query("SELECT j FROM Job j WHERE j.service.id = :serviceId AND j.bookingDate >= :now AND j.status = :status")
     Optional<List<Job>> getValidJobsByServiceId(Long serviceId, JobRequestStatus status, LocalDateTime now);
+
+    @Query("SELECT j FROM Job j " +
+            "WHERE j.status = :status " +
+            "AND j.bookingDate <= :now")
+    Optional<List<Job>> findJobsToCancel(JobRequestStatus jobRequestStatus, LocalDateTime now);
+
+    Optional<Job> findByJobRequestCode(String jobRequestCode);
 }

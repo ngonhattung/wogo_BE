@@ -10,7 +10,7 @@ import java.util.List;
 public interface IBookingService {
 
     JobResponseDTO createJob(FindServiceRequestDTO request, List<MultipartFile> files);
-    List<JobResponseDTO> getListPendingJobsMatchWorker();
+    List<JobSummaryResponseDTO> getListPendingJobsMatchWorker();
     Booking saveBooking(BookingRequestDTO request);
     boolean verifyJobRequest(SendQuoteRequestDTO request);
     WorkerQuoteResponseDTO sendQuote(SendQuoteRequestDTO request);
@@ -21,5 +21,5 @@ public interface IBookingService {
     double haversine(HaversineRequestDTO request);
     TransactionResponseDTO createBookingTransaction(String bookingCode);
     BookingResponseDTO confirmPrice(ConfirmPriceRequestDTO request);
-
+    List<BookingHistoryResponseDTO> getBookingHistory();
 }

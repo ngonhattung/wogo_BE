@@ -38,8 +38,7 @@ public class BookingPayment {
     @JoinColumn(name = "booking_id", nullable = false)
     private Booking booking;
 
-//    @OneToOne
-//    @JoinColumn(name = "payment_method_id", nullable = false)
-//    private PaymentMethod paymentMethod;
+    @OneToOne(mappedBy = "payment", cascade = CascadeType.ALL, orphanRemoval = true)
+    private WalletTransaction walletTransaction;
 
 }

@@ -6,5 +6,5 @@ import com.nhattung.wogo.entity.WalletTransaction;
 
 public interface IWalletTransactionService {
     WalletTransaction saveWalletTransaction(WalletTransactionRequestDTO request);
-    void processWalletTransaction(ProcessWalletTransactionRequestDTO request);
+    WalletTransaction processWalletTransaction(ProcessWalletTransactionRequestDTO request);
 }
