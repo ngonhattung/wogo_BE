@@ -3,6 +3,8 @@ package com.nhattung.wogo.service.wallet.transaction;
 import com.nhattung.wogo.dto.request.ProcessWalletTransactionRequestDTO;
 import com.nhattung.wogo.dto.request.WalletTransactionRequestDTO;
 import com.nhattung.wogo.entity.WalletTransaction;
+import com.nhattung.wogo.enums.ErrorCode;
+import com.nhattung.wogo.exception.AppException;
 import com.nhattung.wogo.repository.WalletTransactionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -36,13 +38,13 @@ public class WalletTransactionService implements IWalletTransactionService {
     }
 
     @Override
-    public WalletTransaction processWalletTransaction(ProcessWalletTransactionRequestDTO request) {
+    public void processWalletTransaction(ProcessWalletTransactionRequestDTO request) {
         WalletTransaction walletTransaction = walletTransactionRepository.findById(request.getTransactionId())
-                .orElseThrow(() -> new RuntimeException("Wallet transaction not found"));
+                .orElseThrow(() -> new AppException(ErrorCode.WALLET_TRANSACTION_NOT_FOUND));
 
         walletTransaction.setPaymentStatus(request.getStatus());
         walletTransaction.setProcessedAt(request.getProcessedAt());
 
-        return walletTransactionRepository.save(walletTransaction);
+        walletTransactionRepository.save(walletTransaction);
     }
 }

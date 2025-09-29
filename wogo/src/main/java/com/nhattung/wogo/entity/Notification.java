@@ -1,6 +1,7 @@
 package com.nhattung.wogo.entity;
 
 import com.nhattung.wogo.enums.NotificationType;
+import com.nhattung.wogo.enums.ROLE;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -24,6 +25,9 @@ public class Notification {
     private String description;
     private NotificationType type;
     private String imageUrl;
+
+    @Enumerated(EnumType.STRING)
+    private ROLE targetRole;
 
     @CreationTimestamp
     private Timestamp createdAt;

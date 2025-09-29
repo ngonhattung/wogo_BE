@@ -11,7 +11,7 @@ public interface IWorkerVerificationService {
     void saveWorkerVerification(WorkerVerificationRequestDTO request);
     void updateWorkerVerification(Long verificationId, WorkerVerificationRequestDTO request);
     WorkerVerification getWorkerVerificationByWorkerTestId(Long workerTestId);
-    List<WorkerVerification> getWorkerVerificationByServiceIdAndUserIdAndType(Long serviceId, Long userId, VerificationType type);
+    List<WorkerVerification> getWorkerVerificationByServiceIdAndUserIdAndType(Long serviceId, VerificationType type);
 
     WorkerVerification getWorkerVerificationByWorkerDocumentId(Long id);
 }

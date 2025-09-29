@@ -1,5 +1,6 @@
 package com.nhattung.wogo.service.sendquote;
 
+import com.nhattung.wogo.dto.request.CreateSendQuoteRequestDTO;
 import com.nhattung.wogo.dto.request.SendQuoteRequestDTO;
 import com.nhattung.wogo.dto.response.WorkerQuoteResponseDTO;
 import com.nhattung.wogo.entity.Job;
@@ -23,19 +24,15 @@ public class SendQuoteService implements ISendQuoteService {
     private final SendQuoteRepository sendQuoteRepository;
     private final ModelMapper modelMapper;
     private final IWorkerService workerService;
-    private final IJobService jobService;
 
     @Override
-    public WorkerQuoteResponseDTO saveSendQuote(SendQuoteRequestDTO request) {
+    public WorkerQuoteResponseDTO saveSendQuote(CreateSendQuoteRequestDTO request) {
 
-        Long workerId = SecurityUtils.getCurrentUserId();
-
-        Worker worker = workerService.getWorkerByUserId(workerId);
-        Job job = jobService.getJobByJobRequestCodeEntity(request.getJobRequestCode());
+        Worker worker = workerService.getWorkerByUserId(SecurityUtils.getCurrentUserId());
 
         return convertToResponseDTO(sendQuoteRepository.save(WorkerQuote.builder()
                 .worker(worker)
-                .job(job)
+                .job(request.getJob())
                 .quotedPrice(request.getQuotedPrice())
                 .distanceToJob(request.getDistanceToJob())
                 .build()));

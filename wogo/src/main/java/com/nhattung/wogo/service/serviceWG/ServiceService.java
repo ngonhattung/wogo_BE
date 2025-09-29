@@ -27,6 +27,7 @@ public class ServiceService implements IServiceService{
     private final ModelMapper modelMapper;
     private final UploadToS3 uploadToS3;
     private final IWorkerServiceService workerServiceService;
+
     @Override
     public ServiceResponseDTO saveService(ServiceRequestDTO request, MultipartFile imageFile) {
         if (serviceRepository.existsByServiceName(request.getServiceName())) {
@@ -41,11 +42,7 @@ public class ServiceService implements IServiceService{
 
     private ServiceWG createService(ServiceRequestDTO request, MultipartFile imageFile) {
 
-        String iconUrl = null;
-        if (imageFile != null && !imageFile.isEmpty()) {
-            UploadS3Response uploadResponse = uploadToS3.uploadFileToS3(imageFile);
-            iconUrl = uploadResponse != null ? uploadResponse.getFileUrl() : null;
-        }
+        String iconUrl = uploadToS3.handleImageUpload(imageFile);
 
         return ServiceWG.builder()
                 .serviceName(request.getServiceName())

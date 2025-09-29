@@ -42,7 +42,7 @@ public enum ErrorCode {
     WALLET_TRANSACTION_NOT_FOUND(1022, "Wallet transaction not found", HttpStatus.NOT_FOUND),
     DEPOSIT_NOT_FOUND(1023, "Deposit not found", HttpStatus.NOT_FOUND),
     WORKER_QUOTE_NOT_FOUND(1024, "Worker quote not found", HttpStatus.NOT_FOUND),
-
+    NOTIFICATION_NOT_FOUND(1025, "Notification not found", HttpStatus.NOT_FOUND),
 
     //validation errors
     EMPTY_PHONE(2001, "Phone number cannot be empty", HttpStatus.BAD_REQUEST),

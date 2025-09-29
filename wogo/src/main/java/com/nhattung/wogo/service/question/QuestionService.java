@@ -34,19 +34,20 @@ public class QuestionService implements IQuestionService{
     private final ModelMapper modelMapper;
     private final QuestionOptionService questionOptionService;
     private final UploadToS3 uploadToS3;
-    @Override
-    public QuestionResponseDTO saveQuestion(QuestionRequestDTO requestDTO, MultipartFile imageFile) {
 
-        QuestionCategory questionCategory = questionCategoryService.getCategoryEntityById(requestDTO.getQuestionCategoryId());
+    @Override
+    public QuestionResponseDTO saveQuestion(QuestionRequestDTO request, MultipartFile imageFile) {
+
+        QuestionCategory questionCategory = questionCategoryService.getCategoryEntityById(request.getQuestionCategoryId());
 
         Question savedQuestion = questionRepository.save(
-                createQuestion(requestDTO, questionCategory,imageFile)
+                createQuestion(request, questionCategory,imageFile)
         );
 
         // Save question options if provided
         List<QuestionOptionResponseDTO> questionOptions = new ArrayList<>();
-        if (requestDTO.getQuestionOptions() != null && !requestDTO.getQuestionOptions().isEmpty()) {
-            requestDTO.getQuestionOptions().forEach(optionRequest -> {
+        if (request.getQuestionOptions() != null && !request.getQuestionOptions().isEmpty()) {
+            request.getQuestionOptions().forEach(optionRequest -> {
                 optionRequest.setQuestionId(savedQuestion.getId());
                 QuestionOptionResponseDTO savedOption = questionOptionService.saveOption(optionRequest);
                 questionOptions.add(savedOption);
@@ -59,20 +60,16 @@ public class QuestionService implements IQuestionService{
 
     }
 
-    private Question createQuestion(QuestionRequestDTO requestDTO, QuestionCategory questionCategory, MultipartFile imageFile) {
+    private Question createQuestion(QuestionRequestDTO request, QuestionCategory questionCategory, MultipartFile imageFile) {
 
-        String imageUrl = null;
-        if (imageFile != null && !imageFile.isEmpty()) {
-            UploadS3Response uploadResponse = uploadToS3.uploadFileToS3(imageFile);
-            imageUrl = uploadResponse != null ? uploadResponse.getFileUrl() : null;
-        }
+        String imageUrl = uploadToS3.handleImageUpload(imageFile);
 
         return Question.builder()
                 .questionCategory(questionCategory)
-                .questionText(requestDTO.getQuestionText())
-                .questionType(requestDTO.getQuestionType())
-                .difficultyLevel(requestDTO.getDifficultyLevel())
-                .explanation(requestDTO.getExplanation())
+                .questionText(request.getQuestionText())
+                .questionType(request.getQuestionType())
+                .difficultyLevel(request.getDifficultyLevel())
+                .explanation(request.getExplanation())
                 .imageUrl(imageUrl)
                 .isActive(true)
                 .build();
@@ -88,23 +85,19 @@ public class QuestionService implements IQuestionService{
         return convertToResponseDTO(updatedQuestion);
     }
 
-    private Question updateExistingQuestion(Question existingQuestion, QuestionRequestDTO dto, MultipartFile imageFile) {
+    private Question updateExistingQuestion(Question existingQuestion, QuestionRequestDTO request, MultipartFile imageFile) {
 
-        QuestionCategory category = questionCategoryService.getCategoryEntityById(dto.getQuestionCategoryId());
+        QuestionCategory category = questionCategoryService.getCategoryEntityById(request.getQuestionCategoryId());
 
-        String imageUrl = null;
-        if (imageFile != null && !imageFile.isEmpty()) {
-            UploadS3Response uploadResponse = uploadToS3.uploadFileToS3(imageFile);
-            imageUrl = uploadResponse != null ? uploadResponse.getFileUrl() : null;
-        }
+        String imageUrl = uploadToS3.handleImageUpload(imageFile);
 
-        existingQuestion.setQuestionText(dto.getQuestionText());
-        existingQuestion.setQuestionType(dto.getQuestionType());
-        existingQuestion.setDifficultyLevel(dto.getDifficultyLevel());
-        existingQuestion.setExplanation(dto.getExplanation());
+        existingQuestion.setQuestionText(request.getQuestionText());
+        existingQuestion.setQuestionType(request.getQuestionType());
+        existingQuestion.setDifficultyLevel(request.getDifficultyLevel());
+        existingQuestion.setExplanation(request.getExplanation());
         existingQuestion.setImageUrl(imageUrl);
         existingQuestion.setQuestionCategory(category);
-        existingQuestion.setActive(dto.getIsActive());
+        existingQuestion.setActive(request.getIsActive());
 
         return questionRepository.save(existingQuestion);
     }
@@ -145,12 +138,9 @@ public class QuestionService implements IQuestionService{
 
     @Override
     public void deleteQuestion(Long id) {
-        questionRepository.findById(id).ifPresentOrElse(
-                questionRepository::delete,
-                () -> {
-                    throw new AppException(ErrorCode.QUESTION_NOT_FOUND);
-                }
-        );
+        Question question = questionRepository.findById(id)
+                .orElseThrow(() -> new AppException(ErrorCode.QUESTION_NOT_FOUND));
+        questionRepository.delete(question);
     }
 
     @Override

@@ -38,11 +38,8 @@ public class JobService implements IJobService {
     @Override
     public JobResponseDTO saveJob(CreateJobRequestDTO request, List<MultipartFile> files) {
 
-        Long userId = SecurityUtils.getCurrentUserId();
         ServiceWG service = serviceService.getServiceByIdEntity(request.getServiceId());
-        User user = userService.getUserByIdEntity(userId);
-
-        Job job = createJob(request, service, user);
+        Job job = createJob(request, service);
         jobFileService.saveJobFile(job, files);
         Job savedJob = jobRepository.save(job);
 
@@ -50,10 +47,10 @@ public class JobService implements IJobService {
 
     }
 
-    private Job createJob(CreateJobRequestDTO request, ServiceWG service, User user) {
+    private Job createJob(CreateJobRequestDTO request, ServiceWG service) {
         return Job.builder()
                 .service(service)
-                .user(user)
+                .user(userService.getCurrentUser())
                 .jobRequestCode(generateJobRequestCode())
                 .description(request.getDescription())
                 .bookingDate(request.getBookingDate())

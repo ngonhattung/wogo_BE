@@ -1,6 +1,6 @@
 package com.nhattung.wogo.dto.request;
 
-import com.nhattung.wogo.entity.User;
+import com.nhattung.wogo.entity.ServiceWG;
 import com.nhattung.wogo.entity.WorkerDocument;
 import com.nhattung.wogo.entity.WorkerVerificationTest;
 import com.nhattung.wogo.enums.VerificationStatus;
@@ -17,8 +17,7 @@ public class WorkerVerificationRequestDTO {
     private LocalDateTime approvedAt;
     private String rejectionReason;
     private WorkerVerificationTest verificationTest;
-    private User user;
     private VerificationStatus verificationStatus;
-    private Long serviceId;
+    private ServiceWG service;
     private WorkerDocument workerDocument;
 }

@@ -39,6 +39,7 @@ public class UserService implements IUserService {
     private final RoleRepository roleRepository;
     private final UserRoleRepository userRoleRepository;
     private final UploadToS3 uploadToS3;
+
     @Override
     public UserResponseDTO createUser(RegisterRequestDTO request) {
         return Optional.of(request)
@@ -105,11 +106,7 @@ public class UserService implements IUserService {
         User existingUser = userRepository.findById(SecurityUtils.getCurrentUserId())
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
-        String imageUrl = null;
-        if (avatar != null && !avatar.isEmpty()) {
-            UploadS3Response uploadResponse = uploadToS3.uploadFileToS3(avatar);
-            imageUrl = uploadResponse != null ? uploadResponse.getFileUrl() : null;
-        }
+        String imageUrl = uploadToS3.handleImageUpload(avatar);
 
         existingUser.setAvatarUrl(imageUrl);
         existingUser.setFullName(user.getFullName());
@@ -126,8 +123,8 @@ public class UserService implements IUserService {
     }
 
     @Override
-    public User getUserByIdEntity(Long userId) {
-        return userRepository.findById(userId)
+    public User getCurrentUser() {
+        return userRepository.findById(SecurityUtils.getCurrentUserId())
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
     }
 

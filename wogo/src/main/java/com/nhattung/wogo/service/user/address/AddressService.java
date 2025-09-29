@@ -55,12 +55,6 @@ public class AddressService implements IAddressService{
     }
 
     @Override
-    public Address findByUserId(Long userId) {
-        return addressRepository.findByUserIdAndRole(userId, ROLE.CUSTOMER.name())
-                .orElseThrow(() -> new AppException(ErrorCode.ADDRESS_NOT_FOUND));
-    }
-
-    @Override
     public Address findByWorkerId(Long workerId) {
         return addressRepository.findByUserIdAndRole(workerId, ROLE.WORKER.name())
                 .orElseThrow(() -> new AppException(ErrorCode.ADDRESS_NOT_FOUND));

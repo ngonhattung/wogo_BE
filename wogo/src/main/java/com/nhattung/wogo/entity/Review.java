@@ -20,7 +20,6 @@ public class Review {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private int rating;
-    private String title;
     private String content;
 
     @CreationTimestamp

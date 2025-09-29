@@ -2,7 +2,10 @@ package com.nhattung.wogo.service.wokerverify;
 
 import com.nhattung.wogo.constants.WogoConstants;
 import com.nhattung.wogo.dto.request.*;
-import com.nhattung.wogo.dto.response.*;
+import com.nhattung.wogo.dto.response.CompleteTestResponseDTO;
+import com.nhattung.wogo.dto.response.CreateTestResponseDTO;
+import com.nhattung.wogo.dto.response.QuestionResponseDTO;
+import com.nhattung.wogo.dto.response.WorkerDocumentResponseDTO;
 import com.nhattung.wogo.entity.*;
 import com.nhattung.wogo.enums.*;
 import com.nhattung.wogo.exception.AppException;
@@ -15,10 +18,9 @@ import com.nhattung.wogo.service.wallet.revenue.IWorkerWalletRevenueService;
 import com.nhattung.wogo.service.worker.IWorkerService;
 import com.nhattung.wogo.service.worker.workerdocument.IWorkerDocumentService;
 import com.nhattung.wogo.service.worker.workservice.IWorkerServiceService;
+import com.nhattung.wogo.service.worker.worktest.IWorkerVerificationTestService;
 import com.nhattung.wogo.service.worker.worktest.testanswer.ITestAnswerService;
 import com.nhattung.wogo.service.worker.workverification.IWorkerVerificationService;
-import com.nhattung.wogo.service.worker.worktest.IWorkerVerificationTestService;
-import com.nhattung.wogo.utils.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -49,16 +51,14 @@ public class WorkerVerifyService implements IWorkerVerifyService {
     @Override
     @Transactional
     public CreateTestResponseDTO createWorkerTest(WorkerTestRequestDTO request) {
-        Long currentUserId = SecurityUtils.getCurrentUserId();
 
         // Kiểm tra nếu người dùng đã là worker và đã đăng ký nghiệp vụ này
-        if (checkWorkerServiceExists(currentUserId, request.getServiceId())) {
+        if (workerServiceService.checkWorkerServiceExists(request.getServiceId())) {
             throw new AppException(ErrorCode.WORKER_SERVICE_EXISTS);
         }
 
         // Lấy thông tin danh mục câu hỏi và người dùng
         QuestionCategory questionCategory = questionCategoryService.getCategoryEntityByServiceId(request.getServiceId());
-        User user = userService.getUserByIdEntity(currentUserId);
 
         // Tạo bài test
         WorkerVerificationTest workerVerificationTest = workerVerificationTestService.saveWorkerVerificationTest(
@@ -70,10 +70,9 @@ public class WorkerVerifyService implements IWorkerVerifyService {
         // Tạo xác minh worker tương ứng
         workerVerificationService.saveWorkerVerification(
                 WorkerVerificationRequestDTO.builder()
-                        .user(user)
                         .verificationTest(workerVerificationTest)
                         .verificationType(VerificationType.TEST)
-                        .serviceId(request.getServiceId())
+                        .service(questionCategory.getService())
                         .build()
         );
 
@@ -90,6 +89,7 @@ public class WorkerVerifyService implements IWorkerVerifyService {
     @Override
     @Transactional
     public CompleteTestResponseDTO completeWorkerTest(SubmitTestRequestDTO request) {
+
         Long testId = request.getTestId();
 
         WorkerVerificationTest workerVerificationTest = workerVerificationTestService.getWorkerVerificationTestById(testId);
@@ -131,16 +131,13 @@ public class WorkerVerifyService implements IWorkerVerifyService {
     @Override
     @Transactional
     public WorkerDocumentResponseDTO uploadWorkerDocument(WorkerDocumentRequestDTO request, List<MultipartFile> files) {
-        Long currentUserId = SecurityUtils.getCurrentUserId();
-
-        if (checkWorkerServiceExists(currentUserId, request.getServiceId())) {
+        if (workerServiceService.checkWorkerServiceExists(request.getServiceId())) {
             throw new AppException(ErrorCode.WORKER_SERVICE_EXISTS);
         }
 
         List<WorkerVerification> existingVerifications = workerVerificationService
                 .getWorkerVerificationByServiceIdAndUserIdAndType(
                         request.getServiceId(),
-                        currentUserId,
                         VerificationType.DOCUMENT
                 );
 
@@ -152,24 +149,21 @@ public class WorkerVerifyService implements IWorkerVerifyService {
             throw new AppException(ErrorCode.FILE_UPLOAD_ERROR_EMPTY);
         }
 
-        User user = userService.getUserByIdEntity(currentUserId);
 
         WorkerDocument workerDocument = workerDocumentService.saveWorkerDocument(
                 WorkerDocumentRequestDTO.builder()
                         .documentType(request.getDocumentType())
                         .documentName(request.getDocumentName())
                         .verificationStatus(VerificationStatus.PENDING)
-                        .serviceId(request.getServiceId())
                         .build(),
                 files
         );
 
         workerVerificationService.saveWorkerVerification(
                 WorkerVerificationRequestDTO.builder()
-                        .user(user)
                         .verificationType(VerificationType.DOCUMENT)
                         .verificationStatus(VerificationStatus.PENDING)
-                        .serviceId(request.getServiceId())
+                        .service(workerDocument.getWorkerVerification().getService())
                         .workerDocument(workerDocument)
                         .build()
         );
@@ -188,9 +182,6 @@ public class WorkerVerifyService implements IWorkerVerifyService {
     }
 
 
-    private boolean checkWorkerServiceExists(Long currentUserId, Long serviceId) {
-        return workerServiceService.checkWorkerServiceExists(currentUserId, serviceId);
-    }
 
     private WorkerDocumentResponseDTO processWorkerDocumentVerification(WorkerDocumentRequestDTO request) {
         VerificationStatus status = request.getVerificationStatus();

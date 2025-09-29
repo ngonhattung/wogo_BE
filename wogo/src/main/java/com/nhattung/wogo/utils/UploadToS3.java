@@ -59,4 +59,12 @@ public class UploadToS3 {
             throw new AppException(ErrorCode.UPLOAD_IMAGE_ERROR);
         }
     }
+
+    public String handleImageUpload(MultipartFile imageFile) {
+        if (imageFile != null && !imageFile.isEmpty()) {
+            UploadS3Response uploadResponse = uploadFileToS3(imageFile);
+            return uploadResponse != null ? uploadResponse.getFileUrl() : null;
+        }
+        return null;
+    }
 }

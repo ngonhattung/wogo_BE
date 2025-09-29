@@ -12,7 +12,7 @@ public interface IUserService {
     UserResponseDTO getUserById(Long userId);
     PageResponse<UserResponseDTO> getAllUsers(int page, int size);
     UserResponseDTO updateUser(UserRequestDTO user, MultipartFile avatar);
-    User getUserByIdEntity(Long userId);
+    User getCurrentUser();
     //add userRole for user
     void addUserRole(Long userId, String roleName);
     boolean isExistRole(Long userId, String roleName);

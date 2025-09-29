@@ -6,10 +6,13 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
+import java.math.BigDecimal;
+
 @Repository
 public interface WorkerWalletExpenseRepository extends JpaRepository<WorkerWalletExpense, Long> {
     boolean existsByWorkerId(Long workerId);
 
     @Query("SELECT wwe FROM WorkerWalletExpense wwe WHERE wwe.worker.user.id = :currentUserId")
     WorkerWalletExpense getWalletByUserId(Long currentUserId);
+    
 }

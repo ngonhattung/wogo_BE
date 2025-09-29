@@ -9,7 +9,7 @@ import java.util.List;
 
 public interface IWorkerServiceService {
     void saveWorkerService(Worker worker, ServiceWG service);
-    boolean checkWorkerServiceExists(Long workerId, Long serviceId);
+    boolean checkWorkerServiceExists(Long serviceId);
     WorkerServiceResponseDTO convertToResponseDTO(WorkerService workerService);
     List<WorkerService> getWorkerServicesByUserId();
 }

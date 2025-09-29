@@ -37,8 +37,8 @@ public class WorkerServiceService implements IWorkerServiceService {
 
 
     @Override
-    public boolean checkWorkerServiceExists(Long workerId, Long serviceId) {
-        return workerServiceRepository.existsByWorkerIdAndServiceId(workerId, serviceId);
+    public boolean checkWorkerServiceExists(Long serviceId) {
+        return workerServiceRepository.existsByUserIdAndServiceId(SecurityUtils.getCurrentUserId(), serviceId);
     }
 
     @Override

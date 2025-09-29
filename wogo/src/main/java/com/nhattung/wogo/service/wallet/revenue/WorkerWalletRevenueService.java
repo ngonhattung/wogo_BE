@@ -43,7 +43,6 @@ public class WorkerWalletRevenueService implements IWorkerWalletRevenueService {
             walletRevenue.setTotalRevenue(walletRevenue.getTotalRevenue().add(request.getAmount()));
             walletRevenue.setRevenueBalance(walletRevenue.getRevenueBalance().add(request.getAmount()));
         } else {
-            walletRevenue.setTotalRevenue(walletRevenue.getTotalRevenue().subtract(request.getAmount()));
             walletRevenue.setRevenueBalance(walletRevenue.getRevenueBalance().subtract(request.getAmount()));
         }
         workerWalletRevenueRepository.save(walletRevenue);

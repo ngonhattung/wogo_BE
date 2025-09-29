@@ -47,6 +47,7 @@ public class WithdrawalService implements IWithdrawalService {
                         .status(com.nhattung.wogo.enums.PaymentStatus.PENDING)
                         .description("Withdrawal request for amount: " + withdrawal.getAmount())
                         .withdrawal(withdrawal)
+                        .walletRevenue(workerWalletRevenue)
                         .balanceBefore(workerWalletRevenue.getRevenueBalance())
                         .balanceAfter(workerWalletRevenue.getRevenueBalance().subtract(withdrawal.getAmount()))
                         .build()

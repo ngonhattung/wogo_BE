@@ -28,17 +28,16 @@ public class ChatMessageService implements IChatMessageService {
 
     @Override
     public ChatResponseDTO saveMessages(ChatMessageRequestDTO request) {
-        User user = userService.getUserByIdEntity(SecurityUtils.getCurrentUserId());
-        ChatMessage chatMessage = createChatMessage(request, user);
+        ChatMessage chatMessage = createChatMessage(request);
         return convertToResponseDTO(chatMessageRepository.save(chatMessage));
     }
 
-    private ChatMessage createChatMessage(ChatMessageRequestDTO request, User user) {
+    private ChatMessage createChatMessage(ChatMessageRequestDTO request) {
         return ChatMessage.builder()
                 .messageType(MessageType.TEXT)
                 .content(request.getContent())
                 .senderType(request.getSenderType())
-                .sender(user)
+                .sender(userService.getCurrentUser())
                 .isRead(false)
                 .isDeleted(false)
                 .replyToMessageId(null)
@@ -48,8 +47,7 @@ public class ChatMessageService implements IChatMessageService {
 
     @Override
     public ChatResponseDTO saveFiles(ChatMessageRequestDTO request, List<MultipartFile> files) {
-        User user = userService.getUserByIdEntity(SecurityUtils.getCurrentUserId());
-        ChatMessage chatMessage = createChatMessage(request, user);
+        ChatMessage chatMessage = createChatMessage(request);
         chatFileService.saveChatFile(chatMessage, files);
 
         return convertToResponseDTO(chatMessageRepository.save(chatMessage));

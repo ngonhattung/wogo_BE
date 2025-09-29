@@ -5,6 +5,5 @@ import com.nhattung.wogo.entity.Address;
 
 public interface IAddressService {
         void saveOrUpdateAddress(AddressRequestDTO request);
-        Address findByUserId(Long userId);
         Address findByWorkerId(Long workerId);
 }

@@ -9,12 +9,13 @@ import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
+
 @Service
 @RequiredArgsConstructor
 public class WorkerWalletExpenseService implements IWorkerWalletExpenseService {
 
     private final WorkerWalletExpenseRepository workerWalletExpenseRepository;
-    private final ModelMapper modelMapper;
 
     @Override
     public void saveWorkerWalletExpense(WorkerWalletExpenseRequestDTO request) {
@@ -40,17 +41,14 @@ public class WorkerWalletExpenseService implements IWorkerWalletExpenseService {
     @Override
     public void updateWalletExpense(UpdateWalletRequestDTO request) {
         WorkerWalletExpense walletExpense = workerWalletExpenseRepository.getWalletByUserId(SecurityUtils.getCurrentUserId());
-
-        if(request.isAdd())
-        {
+        if (request.isAdd()) {
             walletExpense.setExpenseBalance(walletExpense.getExpenseBalance().add(request.getAmount()));
             walletExpense.setTotalExpense(walletExpense.getTotalExpense().add(request.getAmount()));
         } else {
             walletExpense.setExpenseBalance(walletExpense.getExpenseBalance().subtract(request.getAmount()));
-            walletExpense.setTotalExpense(walletExpense.getTotalExpense().subtract(request.getAmount()));
         }
-
         workerWalletExpenseRepository.save(walletExpense);
     }
+
 
 }

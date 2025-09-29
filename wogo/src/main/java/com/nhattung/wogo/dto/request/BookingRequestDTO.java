@@ -25,7 +25,6 @@ public class BookingRequestDTO {
     private BigDecimal totalAmount;
     private int durationMinutes;
     private double distanceKm;
-    private Long userId;
     private Long workerId;
     private ServiceWG service;
 }

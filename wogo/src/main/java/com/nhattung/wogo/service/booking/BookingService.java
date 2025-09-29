@@ -10,6 +10,7 @@ import com.nhattung.wogo.exception.AppException;
 import com.nhattung.wogo.repository.BookingHistoryRepository;
 import com.nhattung.wogo.repository.BookingRepository;
 import com.nhattung.wogo.service.booking.file.IBookingFileService;
+import com.nhattung.wogo.service.notification.INotificationService;
 import com.nhattung.wogo.service.user.address.IAddressService;
 import com.nhattung.wogo.service.chat.room.IChatRoomService;
 import com.nhattung.wogo.service.job.IJobService;
@@ -62,6 +63,8 @@ public class BookingService implements IBookingService {
     private final IWalletTransactionService walletTransactionService;
     private final SepayVerifyService sepayVerifyService;
     private final BookingHistoryRepository historyRepository;
+    private final INotificationService notificationService;
+
     @Override
     public JobResponseDTO createJob(FindServiceRequestDTO request, List<MultipartFile> files) {
 
@@ -88,7 +91,7 @@ public class BookingService implements IBookingService {
                 .build());
 
 
-        return jobService.saveJob(CreateJobRequestDTO.builder()
+        JobResponseDTO jobResponseDTO = jobService.saveJob(CreateJobRequestDTO.builder()
                 .serviceId(request.getServiceId())
                 .description(request.getDescription())
                 .address(request.getAddress())
@@ -99,12 +102,22 @@ public class BookingService implements IBookingService {
                 .longitudeUser(request.getLongitudeUser())
                 .latitudeUser(request.getLatitudeUser())
                 .build(), files);
+
+        //Lưu thông báo
+        notificationService.saveNotification(NotificationRequestDTO.builder()
+                .title("Tình hình dịch vụ" + "#" + jobResponseDTO.getJobRequestCode())
+                .description("Yêu cầu dịch vụ của bạn đã được tạo thành công và đang chờ thợ chấp nhận.")
+                .type(NotificationType.SERVICE)
+                .targetRole(ROLE.CUSTOMER)
+                .build());
+
+        return jobResponseDTO;
     }
 
     @Override
     public List<JobSummaryResponseDTO> getListPendingJobsMatchWorker() {
-        Long workerId = SecurityUtils.getCurrentUserId();
-        Address addressWorker = addressService.findByWorkerId(workerId);
+
+        Address addressWorker = addressService.findByWorkerId(SecurityUtils.getCurrentUserId());
 
         // Lấy tất cả serviceId mà thợ có thể làm
         List<Long> serviceIds = serviceService.getAllServicesOfWorker().stream().flatMap(dto -> {
@@ -212,8 +225,8 @@ public class BookingService implements IBookingService {
                 .lonWorker(request.getLongitude())
                 .build());
 
-        return sendQuoteService.saveSendQuote(SendQuoteRequestDTO.builder()
-                .jobRequestCode(request.getJobRequestCode())
+        return sendQuoteService.saveSendQuote(CreateSendQuoteRequestDTO.builder()
+                .job(job)
                 .quotedPrice(request.getQuotedPrice())
                 .distanceToJob(WogoConstants.ROAD_WAY * distance)
                 .build());
@@ -229,7 +242,6 @@ public class BookingService implements IBookingService {
     @Transactional
     public BookingResponseDTO placeJob(PlaceJobRequestDTO request) {
 
-        // Lấy job + service trong 1 lần
         JobResponseDTO job = jobService.getJobByJobRequestCode(request.getJobRequestCode());
 
         // Update trạng thái job
@@ -245,7 +257,6 @@ public class BookingService implements IBookingService {
         // Tạo booking
         Booking booking = saveBooking(BookingRequestDTO
                 .builder()
-                .userId(job.getUser().getId())
                 .workerId(request.getWorkerId())
                 .service(serviceService.getServiceByIdEntity(job.getService().getId()))
                 .description(job.getDescription())
@@ -274,50 +285,55 @@ public class BookingService implements IBookingService {
 
     @Override
     public void updateStatusBooking(UpdateStatusBookingRequestDTO request) {
-
         Booking booking = bookingRepository.findByBookingCode(request.getBookingCode())
                 .orElseThrow(() -> new AppException(ErrorCode.BOOKING_NOT_FOUND));
 
         booking.setBookingStatus(request.getStatus());
 
         if (request.getPaymentMethod() != null && request.getStatus() == BookingStatus.COMPLETED) {
-
-            BookingPayment payment = paymentService.updatePaymentStatus(PaymentRequestDTO.builder()
-                    .bookingCode(request.getBookingCode())
-                    .paymentMethod(request.getPaymentMethod())
-                    .build());
-
-            walletTransactionService.processWalletTransaction(ProcessWalletTransactionRequestDTO.builder()
-                    .transactionId(payment.getWalletTransaction().getId())
-                    .status(PaymentStatus.COMPLETED).processedAt(LocalDateTime.now())
-                    .build());
-
-            BigDecimal platformFee = booking.getPlatformFee();
-
-
-            switch (request.getPaymentMethod()) {
-                case CASH ->
-                    //Trừ tiền vào ví chi phí
-                    workerWalletExpenseService.updateWalletExpense(UpdateWalletRequestDTO.builder()
-                            .amount(platformFee)
-                            .isAdd(false)
-                            .build());
-                case BANK_TRANSFER -> {
-                    BigDecimal workerAmount = booking.getTotalAmount().subtract(platformFee);
-
-                    //Cộng tiền vào ví doanh thu
-                    workerWalletRevenueService.updateWalletRevenue(UpdateWalletRequestDTO.builder()
-                            .amount(workerAmount)
-                            .isAdd(true)
-                            .build());
-                }
-                default -> {
-                }
-            }
-
+            handlePaymentAndWallet(booking, request);
         }
 
         bookingRepository.save(booking);
+    }
+
+    private void handlePaymentAndWallet(Booking booking, UpdateStatusBookingRequestDTO request) {
+
+        switch (request.getPaymentMethod()) {
+            case CASH -> handleCashPayment(booking);
+            case BANK_TRANSFER -> handleBankTransfer(booking);
+            default -> { return; }
+        }
+
+        BookingPayment payment = paymentService.updatePaymentStatus(
+                PaymentRequestDTO.builder()
+                        .booking(booking)
+                        .paymentMethod(request.getPaymentMethod())
+                        .build()
+        );
+
+        walletTransactionService.processWalletTransaction(
+                ProcessWalletTransactionRequestDTO.builder()
+                        .transactionId(payment.getWalletTransaction().getId())
+                        .status(PaymentStatus.COMPLETED)
+                        .processedAt(LocalDateTime.now())
+                        .build()
+        );
+    }
+
+    private void handleCashPayment(Booking booking) {
+        workerWalletExpenseService.updateWalletExpense(UpdateWalletRequestDTO.builder()
+                .amount(booking.getPlatformFee())
+                .isAdd(false)
+                .build());
+    }
+
+    private void handleBankTransfer(Booking booking) {
+        BigDecimal workerAmount = booking.getTotalAmount().subtract(booking.getPlatformFee());
+        workerWalletRevenueService.updateWalletRevenue(UpdateWalletRequestDTO.builder()
+                .amount(workerAmount)
+                .isAdd(true)
+                .build());
     }
 
     @Override
@@ -365,6 +381,7 @@ public class BookingService implements IBookingService {
 
     @Override
     public BookingResponseDTO confirmPrice(ConfirmPriceRequestDTO request) {
+
         Booking booking = bookingRepository.findByBookingCode(request.getBookingCode())
                 .orElseThrow(() -> new AppException(ErrorCode.BOOKING_NOT_FOUND));
 
@@ -381,16 +398,18 @@ public class BookingService implements IBookingService {
         booking.setExtraServicesNotes(request.getNotes());
         booking.setBookingStatus(BookingStatus.NEGOTIATING);
 
-        if (booking.getBookingPayment() == null) {
+        Booking bookingSaved = bookingRepository.save(booking);
+
+        if (bookingSaved.getBookingPayment() == null) {
             paymentService.savePayment(PaymentRequestDTO.builder()
-                    .bookingCode(booking.getBookingCode())
+                    .booking(bookingSaved)
                     .amount(booking.getTotalAmount())
-                    .paymentMethod(PaymentMethod.BANK_TRANSFER)
-                    .paidAt(null)
                     .build());
         }
 
-        return convertToBookingResponseDTO(bookingRepository.save(booking));
+        return convertToBookingResponseDTO(bookingRepository.save(bookingSaved));
+
+
     }
 
     @Override
@@ -410,7 +429,7 @@ public class BookingService implements IBookingService {
 
     @Override
     public Booking saveBooking(BookingRequestDTO request) {
-        User user = userService.getUserByIdEntity(request.getUserId());
+        User user = userService.getCurrentUser();
         Worker worker = workerService.getWorkerByUserId(request.getWorkerId());
         return bookingRepository.save(createBooking(request, user, worker));
     }

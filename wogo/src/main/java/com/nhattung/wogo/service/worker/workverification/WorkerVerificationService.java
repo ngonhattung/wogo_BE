@@ -9,6 +9,8 @@ import com.nhattung.wogo.enums.VerificationType;
 import com.nhattung.wogo.exception.AppException;
 import com.nhattung.wogo.repository.WorkerVerificationRepository;
 import com.nhattung.wogo.service.serviceWG.IServiceService;
+import com.nhattung.wogo.service.user.IUserService;
+import com.nhattung.wogo.utils.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -22,24 +24,20 @@ import java.util.List;
 public class WorkerVerificationService implements IWorkerVerificationService {
 
     private final WorkerVerificationRepository workerVerificationRepository;
-    private final IServiceService serviceService;
+    private final IUserService userService;
     @Override
     public void saveWorkerVerification(WorkerVerificationRequestDTO request) {
-
-        ServiceWG service = serviceService.getServiceByIdEntity(request.getServiceId());
-
-        WorkerVerification workerVerification = createWorkerVerification(request,service);
-
+        WorkerVerification workerVerification = createWorkerVerification(request);
         workerVerificationRepository.save(workerVerification);
     }
 
-    private WorkerVerification createWorkerVerification(WorkerVerificationRequestDTO request, ServiceWG service) {
+    private WorkerVerification createWorkerVerification(WorkerVerificationRequestDTO request) {
         return WorkerVerification.builder()
                 .verificationType(request.getVerificationType())
                 .workerVerificationTest(request.getVerificationTest())
                 .verificationStatus(VerificationStatus.PENDING)
-                .user(request.getUser())
-                .service(service)
+                .user(userService.getCurrentUser())
+                .service(request.getService())
                 .workerDocument(request.getWorkerDocument())
                 .build();
     }
@@ -68,8 +66,8 @@ public class WorkerVerificationService implements IWorkerVerificationService {
     }
 
     @Override
-    public List<WorkerVerification> getWorkerVerificationByServiceIdAndUserIdAndType(Long serviceId, Long userId, VerificationType type) {
-        return workerVerificationRepository.findByServiceIdAndUserIdAndVerificationType(serviceId, userId, type);
+    public List<WorkerVerification> getWorkerVerificationByServiceIdAndUserIdAndType(Long serviceId, VerificationType type) {
+        return workerVerificationRepository.findByServiceIdAndUserIdAndVerificationType(serviceId, SecurityUtils.getCurrentUserId(), type);
     }
 
 
