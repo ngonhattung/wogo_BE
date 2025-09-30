@@ -94,7 +94,8 @@ public enum ErrorCode {
     JOB_CANNOT_BE_PLACED(5005, "Cannot place this job request", HttpStatus.BAD_REQUEST),
     YOU_ALREADY_SEND_QUOTE(5006, "You have already sent a quote for this job request", HttpStatus.BAD_REQUEST),
     CANNOT_ACCEPT_OWN_JOB(5007, "You cannot accept your own job request", HttpStatus.BAD_REQUEST),
-    INVALID_PAYMENT_STATUS(5008, "Invalid payment status", HttpStatus.BAD_REQUEST)
+    INVALID_PAYMENT_STATUS(5008, "Invalid payment status", HttpStatus.BAD_REQUEST),
+    WALLET_BALANCE_NOT_ENOUGH(5009, "Wallet balance is not enough", HttpStatus.BAD_REQUEST),
     ;
 
 

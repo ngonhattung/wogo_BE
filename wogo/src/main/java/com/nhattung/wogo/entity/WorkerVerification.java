@@ -29,6 +29,7 @@ public class WorkerVerification {
     private VerificationStatus verificationStatus;
 
     private LocalDateTime approvedAt;
+
     private String rejectionReason;
 
     @CreationTimestamp

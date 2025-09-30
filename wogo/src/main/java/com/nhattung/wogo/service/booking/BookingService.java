@@ -117,6 +117,12 @@ public class BookingService implements IBookingService {
     @Override
     public List<JobSummaryResponseDTO> getListPendingJobsMatchWorker() {
 
+        //Check ví chi phí
+        WorkerWalletExpense walletExpense = workerWalletExpenseService.getWalletByUserId();
+        if (walletExpense.getExpenseBalance().doubleValue() < WogoConstants.MINIMUM_WALLET_BALANCE) {
+            throw new AppException(ErrorCode.WALLET_BALANCE_NOT_ENOUGH);
+        }
+
         Address addressWorker = addressService.findByWorkerId(SecurityUtils.getCurrentUserId());
 
         // Lấy tất cả serviceId mà thợ có thể làm
@@ -133,6 +139,12 @@ public class BookingService implements IBookingService {
         return serviceIds.stream()
                 .flatMap(serviceId -> jobService.getJobsByServiceId(serviceId).stream())
                 .peek(job -> setDistance(job, addressWorker)).toList();
+    }
+
+    @Override
+    public Booking getBookingByCode(String bookingCode) {
+        return bookingRepository.findByBookingCode(bookingCode)
+                .orElseThrow(() -> new AppException(ErrorCode.BOOKING_NOT_FOUND));
     }
 
     // --- Method tách riêng tính khoảng cách ---

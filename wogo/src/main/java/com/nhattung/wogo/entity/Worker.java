@@ -23,7 +23,7 @@ public class Worker {
 
     private String description;
     private double ratingAverage;
-    private int totalJobs;
+    private int totalBookings;
     private int totalReviews;
 
     @Enumerated(EnumType.STRING)

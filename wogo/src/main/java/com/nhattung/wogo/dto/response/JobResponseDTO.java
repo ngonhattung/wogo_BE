@@ -11,4 +11,5 @@ import java.util.List;
 @AllArgsConstructor
 public class JobResponseDTO extends JobBaseResponseDTO {
     private List<SendQuotedResponseDTO> workerQuotes;
+    private Long acceptedBy;
 }

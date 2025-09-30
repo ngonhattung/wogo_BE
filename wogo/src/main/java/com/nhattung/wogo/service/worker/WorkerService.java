@@ -1,5 +1,6 @@
 package com.nhattung.wogo.service.worker;
 
+import com.nhattung.wogo.dto.request.UpdateWorkerRequestDTO;
 import com.nhattung.wogo.dto.request.WorkerRequestDTO;
 import com.nhattung.wogo.entity.Worker;
 import com.nhattung.wogo.enums.ErrorCode;
@@ -31,12 +32,26 @@ public class WorkerService implements IWorkerService {
         return workerRepository.existsByUserId(userId);
     }
 
+    @Override
+    public void updateWorker(UpdateWorkerRequestDTO request, Worker worker) {
+        //Cong tong so review va bookings
+        worker.setTotalReviews(worker.getTotalReviews() + 1);
+        worker.setTotalBookings(worker.getTotalBookings() + 1);
+
+        //tinh lai trung binh rating
+        double totalRating = worker.getRatingAverage() * (worker.getTotalReviews() - 1) + request.getRating();
+        worker.setRatingAverage(totalRating / worker.getTotalReviews());
+
+        workerRepository.save(worker);
+
+    }
+
     private Worker createWorker(WorkerRequestDTO request) {
         return Worker.builder()
                 .user(request.getUser())
                 .description("")
                 .totalReviews(0)
-                .totalJobs(0)
+                .totalBookings(0)
                 .ratingAverage(0.0)
                 .status(WorkStatus.BUSY)
                 .build();

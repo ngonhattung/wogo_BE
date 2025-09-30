@@ -25,6 +25,7 @@ public class QuestionCategoryService implements IQuestionCategoryService {
     private final QuestionCategoryRepository questionCategoryRepository;
     private final ModelMapper modelMapper;
     private final IServiceService serviceServiceWG;
+
     @Override
     public QuestionCategoryResponseDTO saveCategory(QuestionCategoryRequestDTO request) {
         ServiceWG service= serviceServiceWG.getServiceByIdEntity(request.getServiceId());

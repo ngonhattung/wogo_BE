@@ -56,8 +56,8 @@ public class Job {
     @JoinColumn(name = "service_id", nullable = false)
     private ServiceWG service;
 
-//    @OneToMany(mappedBy = "job", cascade = CascadeType.ALL, orphanRemoval = true)
-//    private List<ChatRoom> chatRooms;
+    @OneToMany(mappedBy = "job", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ChatRoom> chatRooms;
 
 
     @CreationTimestamp

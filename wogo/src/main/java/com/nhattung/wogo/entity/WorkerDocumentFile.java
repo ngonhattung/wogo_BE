@@ -1,6 +1,5 @@
 package com.nhattung.wogo.entity;
 
-import com.nhattung.wogo.enums.FileType;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;

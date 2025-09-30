@@ -24,6 +24,7 @@ public class WorkerDocument {
 
     @Enumerated(EnumType.STRING)
     private DocumentType documentType;
+
     @Enumerated(EnumType.STRING)
     private VerificationStatus verificationStatus;
 
