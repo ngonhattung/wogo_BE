@@ -7,11 +7,12 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 @Repository
 public interface SendQuoteRepository extends JpaRepository<WorkerQuote, Long> {
-    Optional<WorkerQuote> findByWorkerUserId(Long currentUserId);
+    List<WorkerQuote> findByWorkerUserId(Long currentUserId);
 
     @Query("""
     SELECT CASE WHEN COUNT(wq) > 0 THEN true ELSE false END
@@ -23,5 +24,6 @@ public interface SendQuoteRepository extends JpaRepository<WorkerQuote, Long> {
 """)
     boolean checkExistSendQuote(Long serviceId, Long userId, LocalDateTime startOfDay, LocalDateTime endOfDay);
 
-    Optional<WorkerQuote> findByJobJobRequestCode(String jobRequestCode);
+    @Query("SELECT wq FROM WorkerQuote wq WHERE wq.job.jobRequestCode = :jobRequestCode")
+    List<WorkerQuote> findByJobRequestCode(String jobRequestCode);
 }

@@ -12,7 +12,6 @@ import java.math.BigDecimal;
 @NoArgsConstructor
 @AllArgsConstructor
 public class SendQuotedResponseDTO {
-    private Long id;
     private WorkerResponseDTO worker;
     private BigDecimal quotedPrice;
     private double distanceToJob;

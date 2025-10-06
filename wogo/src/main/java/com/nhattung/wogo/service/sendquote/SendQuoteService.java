@@ -53,7 +53,7 @@ public class SendQuoteService implements ISendQuoteService {
 
     @Override
     public List<WorkerQuoteResponseDTO> getSendQuotesByJobRequestCode(String jobRequestCode) {
-        return sendQuoteRepository.findByJobJobRequestCode(jobRequestCode)
+        return sendQuoteRepository.findByJobRequestCode(jobRequestCode)
                 .stream()
                 .map(this::convertToResponseDTO)
                 .toList();
