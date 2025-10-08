@@ -17,7 +17,7 @@ public class ReviewService implements IReviewService {
 
     @Override
     public Review saveReview(ReviewRequestDTO request) {
-        Booking booking = bookingService.getBookingByCode(request.getBookingCode());
+        Booking booking = bookingService.getBookingById(request.getBookingId());
         Review review = Review.builder()
                 .booking(booking)
                 .worker(booking.getWorker())

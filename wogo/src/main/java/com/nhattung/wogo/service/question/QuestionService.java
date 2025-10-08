@@ -23,6 +23,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 @Service
@@ -169,9 +170,27 @@ public class QuestionService implements IQuestionService{
 
     @Override
     public List<QuestionResponseDTO> findRandomQuestions(Long categoryId) {
-        return questionRepository.findRandomQuestions(categoryId).stream()
+        List<Question> easy = getRandomQuestions(categoryId, "EASY", 10);
+        List<Question> medium = getRandomQuestions(categoryId, "MEDIUM", 7);
+        List<Question> hard = getRandomQuestions(categoryId, "HARD", 3);
+
+        List<Question> allQuestions = new ArrayList<>();
+        allQuestions.addAll(easy);
+        allQuestions.addAll(medium);
+        allQuestions.addAll(hard);
+
+        return allQuestions.stream()
                 .map(this::convertToResponseDTO)
                 .toList();
+    }
+
+    private List<Question> getRandomQuestions(Long categoryId, String level, int needed) {
+        // Lấy gấp đôi để tăng tính random, rồi shuffle
+        List<Question> questions = questionRepository.findRandomByDifficulty(
+                categoryId, level, needed * 2
+        );
+        Collections.shuffle(questions);
+        return questions.stream().limit(needed).toList();
     }
 
 

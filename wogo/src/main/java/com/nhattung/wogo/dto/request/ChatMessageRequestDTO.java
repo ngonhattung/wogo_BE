@@ -17,5 +17,4 @@ public class ChatMessageRequestDTO {
     private String roomCode;
     private String content;
     private SenderType senderType; // USER hoặc WORKER
-    private ChatRoom chatRoom;
 }

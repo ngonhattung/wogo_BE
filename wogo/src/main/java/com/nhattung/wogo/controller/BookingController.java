@@ -26,6 +26,15 @@ public class BookingController {
     private final ISepayVerifyService sepayVerifyService;
     private final JobService jobService;
 
+
+    @GetMapping("/getByCode/{bookingCode}")
+    public ApiResponse<BookingResponseDTO> getJobByJobRequestCode(@PathVariable String bookingCode) {
+        return ApiResponse.<BookingResponseDTO>builder()
+                .message("Job request retrieved successfully")
+                .result(bookingService.getBookingByBookingCode(bookingCode))
+                .build();
+    }
+
     @PostMapping("/create-job")
     public ApiResponse<JobResponseDTO> findWorkers(@Valid @ModelAttribute FindServiceRequestDTO request,
                                          @RequestParam(value = "files", required = false) List<MultipartFile> files) {

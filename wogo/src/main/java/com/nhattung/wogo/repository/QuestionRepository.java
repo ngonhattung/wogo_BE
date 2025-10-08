@@ -12,27 +12,17 @@ import java.util.List;
 @Repository
 public interface QuestionRepository extends JpaRepository<Question, Long> {
     @Query(value = """
-        (
-          SELECT * FROM question
-          WHERE difficulty_level = 'EASY' AND question_category_id = :categoryId
-          ORDER BY RAND()
-          LIMIT 10
-        )
-        UNION ALL
-        (
-          SELECT * FROM question
-          WHERE difficulty_level = 'MEDIUM' AND question_category_id = :categoryId
-          ORDER BY RAND()
-          LIMIT 7
-        )
-        UNION ALL
-        (
-          SELECT * FROM question
-          WHERE difficulty_level = 'HARD' AND question_category_id = :categoryId
-          ORDER BY RAND()
-          LIMIT 3
-        )
-        """, nativeQuery = true)
-    List<Question> findRandomQuestions(Long categoryId);
+    SELECT * FROM question
+    WHERE question_category_id = :categoryId
+      AND difficulty_level = :level
+      AND id >= (
+        SELECT FLOOR(MIN(id) + (MAX(id) - MIN(id)) * RAND())
+        FROM question
+        WHERE question_category_id = :categoryId AND difficulty_level = :level
+      )
+    ORDER BY id
+    LIMIT :limit
+    """, nativeQuery = true)
+    List<Question> findRandomByDifficulty(Long categoryId, String level, int limit);
 
 }

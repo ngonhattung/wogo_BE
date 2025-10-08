@@ -38,11 +38,11 @@ public class JobController {
                 .build();
     }
 
-    @GetMapping("/my-quotes")
-    public ApiResponse<List<WorkerQuoteResponseDTO>> getMyQuotes() {
+    @GetMapping("/my-quotes/{status}")
+    public ApiResponse<List<WorkerQuoteResponseDTO>> getMyQuotes(@PathVariable JobRequestStatus status) {
         return ApiResponse.<List<WorkerQuoteResponseDTO>>builder()
                 .message("User's quotes retrieved successfully")
-                .result(sendQuoteService.getSendQuotesByWorkerId())
+                .result(sendQuoteService.getSendQuotesByWorkerId(status))
                 .build();
     }
 

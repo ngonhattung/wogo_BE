@@ -6,6 +6,7 @@ import com.nhattung.wogo.dto.response.WorkerQuoteResponseDTO;
 import com.nhattung.wogo.entity.Job;
 import com.nhattung.wogo.entity.Worker;
 import com.nhattung.wogo.entity.WorkerQuote;
+import com.nhattung.wogo.enums.JobRequestStatus;
 import com.nhattung.wogo.repository.SendQuoteRepository;
 import com.nhattung.wogo.service.job.IJobService;
 import com.nhattung.wogo.service.worker.IWorkerService;
@@ -39,8 +40,8 @@ public class SendQuoteService implements ISendQuoteService {
     }
 
     @Override
-    public List<WorkerQuoteResponseDTO> getSendQuotesByWorkerId(){
-        return sendQuoteRepository.findByWorkerUserId(SecurityUtils.getCurrentUserId())
+    public List<WorkerQuoteResponseDTO> getSendQuotesByWorkerId(JobRequestStatus status){
+        return sendQuoteRepository.findByWorkerUserIdAndStatus(SecurityUtils.getCurrentUserId(),status)
                 .stream()
                 .map(this::convertToResponseDTO)
                 .toList();

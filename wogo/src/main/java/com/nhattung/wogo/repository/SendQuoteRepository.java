@@ -1,6 +1,7 @@
 package com.nhattung.wogo.repository;
 
 import com.nhattung.wogo.entity.WorkerQuote;
+import com.nhattung.wogo.enums.JobRequestStatus;
 import io.micrometer.common.KeyValues;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -12,7 +13,15 @@ import java.util.Optional;
 
 @Repository
 public interface SendQuoteRepository extends JpaRepository<WorkerQuote, Long> {
-    List<WorkerQuote> findByWorkerUserId(Long currentUserId);
+
+
+    @Query("""
+            SELECT wq
+            FROM WorkerQuote wq
+            WHERE wq.worker.user.id = :currentUserId
+              AND (:status = 'ALL' OR wq.job.status = :status)
+            """)
+    List<WorkerQuote> findByWorkerUserIdAndStatus(Long currentUserId, JobRequestStatus status);
 
     @Query("""
     SELECT CASE WHEN COUNT(wq) > 0 THEN true ELSE false END

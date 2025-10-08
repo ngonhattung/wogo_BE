@@ -4,7 +4,6 @@ import com.nhattung.wogo.dto.request.QuestionRequestDTO;
 import com.nhattung.wogo.dto.response.PageResponse;
 import com.nhattung.wogo.dto.response.QuestionResponseDTO;
 import com.nhattung.wogo.dto.response.QuestionUpdateResponseDTO;
-import org.springframework.data.jpa.repository.Query;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;

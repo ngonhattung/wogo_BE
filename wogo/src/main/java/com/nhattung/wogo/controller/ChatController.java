@@ -26,19 +26,15 @@ public class ChatController {
     @PostMapping("/send-message")
     public ApiResponse<Void> sendMessage(@RequestBody ChatMessageRequestDTO request) {
 
-        ChatRoom chatRoom = chatRoomService.getChatRoomByRoomCode(request.getRoomCode());
+
         ChatResponseDTO chatMessageSaved = chatMessageService.saveMessages(ChatMessageRequestDTO.builder()
                 .roomCode(request.getRoomCode())
                 .content(request.getContent())
                 .senderType(request.getSenderType())
-                .chatRoom(chatRoom)
                 .build());
 
-        chatRoom.setLastMessageAt(LocalDateTime.now());
-        chatRoomService.updateChatRoom(chatRoom);
-
         // Gửi lại cho tất cả subscriber trong topic
-        messagingTemplate.convertAndSend("/topic/chat/" + request.getChatRoom(), chatMessageSaved);
+        messagingTemplate.convertAndSend("/topic/chat/" + chatMessageSaved.getChatRoom(), chatMessageSaved);
 
         return ApiResponse.<Void>builder()
                 .message("Message sent successfully")
@@ -49,19 +45,14 @@ public class ChatController {
     public ApiResponse<Void> sendFile(@ModelAttribute ChatMessageRequestDTO request,
                                       @RequestParam(value = "files", required = false) List<MultipartFile> files){
 
-        ChatRoom chatRoom = chatRoomService.getChatRoomByRoomCode(request.getRoomCode());
         ChatResponseDTO chatMessageSaved = chatMessageService.saveFiles(ChatMessageRequestDTO.builder()
                 .roomCode(request.getRoomCode())
                 .content(request.getContent())
                 .senderType(request.getSenderType())
-                .chatRoom(chatRoom)
                 .build(),files);
 
-        chatRoom.setLastMessageAt(LocalDateTime.now());
-        chatRoomService.updateChatRoom(chatRoom);
-
         // Gửi lại cho tất cả subscriber trong topic
-        messagingTemplate.convertAndSend("/topic/chat/" + request.getChatRoom(), chatMessageSaved);
+        messagingTemplate.convertAndSend("/topic/chat/" + chatMessageSaved.getChatRoom(), chatMessageSaved);
 
         return ApiResponse.<Void>builder()
                 .message("Message sent successfully")

@@ -6,7 +6,7 @@ import lombok.Data;
 @Data
 @Builder
 public class ReviewRequestDTO {
-    private String bookingCode;
+    private Long bookingId;
     private int rating;
     private String comment;
 }

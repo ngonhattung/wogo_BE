@@ -142,8 +142,15 @@ public class BookingService implements IBookingService {
     }
 
     @Override
-    public Booking getBookingByCode(String bookingCode) {
+    public Booking getBookingById(Long id) {
+        return bookingRepository.findById(id)
+                .orElseThrow(() -> new AppException(ErrorCode.BOOKING_NOT_FOUND));
+    }
+
+    @Override
+    public BookingResponseDTO getBookingByBookingCode(String bookingCode) {
         return bookingRepository.findByBookingCode(bookingCode)
+                .map(this::convertToBookingResponseDTO)
                 .orElseThrow(() -> new AppException(ErrorCode.BOOKING_NOT_FOUND));
     }
 
@@ -269,6 +276,7 @@ public class BookingService implements IBookingService {
         // Tạo booking
         Booking booking = saveBooking(BookingRequestDTO
                 .builder()
+                .bookingCode(job.getJobRequestCode())
                 .workerId(request.getWorkerId())
                 .service(serviceService.getServiceByIdEntity(job.getService().getId()))
                 .description(job.getDescription())
@@ -449,7 +457,7 @@ public class BookingService implements IBookingService {
 
     private Booking createBooking(BookingRequestDTO request, User user, Worker worker) {
         return Booking.builder()
-                .bookingCode(generateBookingCode())
+                .bookingCode(request.getBookingCode())
                 .service(request.getService()).user(user).worker(worker)
                 .bookingDate(request.getBookingDate()).startDate(null).endDate(null)
                 .description(request.getDescription()).distanceKm(request.getDistanceKm())
@@ -458,10 +466,10 @@ public class BookingService implements IBookingService {
                 .build();
     }
 
-    private String generateBookingCode() {
-        String uuid = UUID.randomUUID().toString().replace("-", "").toUpperCase();
-        return "BK-" + uuid.substring(0, 8) + "-" + LocalDateTime.now().getYear();
-    }
+//    private String generateBookingCode() {
+//        String uuid = UUID.randomUUID().toString().replace("-", "").toUpperCase();
+//        return "BK-" + uuid.substring(0, 8) + "-" + LocalDateTime.now().getYear();
+//    }
 
 
     private BookingResponseDTO convertToBookingResponseDTO(Booking booking) {
