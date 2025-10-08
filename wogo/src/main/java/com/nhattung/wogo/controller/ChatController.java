@@ -3,7 +3,6 @@ package com.nhattung.wogo.controller;
 import com.nhattung.wogo.dto.request.ChatMessageRequestDTO;
 import com.nhattung.wogo.dto.response.ApiResponse;
 import com.nhattung.wogo.dto.response.ChatResponseDTO;
-import com.nhattung.wogo.entity.ChatRoom;
 import com.nhattung.wogo.service.chat.message.IChatMessageService;
 import com.nhattung.wogo.service.chat.room.IChatRoomService;
 import lombok.RequiredArgsConstructor;
@@ -11,7 +10,6 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController

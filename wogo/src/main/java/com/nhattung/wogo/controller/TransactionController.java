@@ -53,7 +53,8 @@ public class TransactionController {
                 .build();
     }
 
-    @PostMapping("/deposits/verify{depositId}")
+    //Call mỗi 3s để check trạng thái thanh toán
+    @PostMapping("/deposits/verify/{depositId}")
     public ApiResponse<Boolean> verifyDeposit(@PathVariable Long depositId) {
         boolean isDepositSuccess = sepayVerifyService.checkTransactionForDeposit();
 

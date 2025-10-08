@@ -25,7 +25,6 @@ import java.util.Map;
 public class SepayVerifyService implements ISepayVerifyService {
 
     private final RestTemplate restTemplate;
-    private final IPaymentService paymentService;
     @Value("${sepay.historyUrl}")
     private String historyUrl;
 
