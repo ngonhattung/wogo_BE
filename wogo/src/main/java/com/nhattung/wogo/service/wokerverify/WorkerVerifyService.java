@@ -12,6 +12,7 @@ import com.nhattung.wogo.exception.AppException;
 import com.nhattung.wogo.repository.QuestionOptionRepository;
 import com.nhattung.wogo.service.question.IQuestionService;
 import com.nhattung.wogo.service.question.questioncategory.IQuestionCategoryService;
+import com.nhattung.wogo.service.serviceWG.ServiceService;
 import com.nhattung.wogo.service.user.IUserService;
 import com.nhattung.wogo.service.wallet.expense.IWorkerWalletExpenseService;
 import com.nhattung.wogo.service.wallet.revenue.IWorkerWalletRevenueService;
@@ -47,6 +48,7 @@ public class WorkerVerifyService implements IWorkerVerifyService {
     private final IWorkerDocumentService workerDocumentService;
     private final IWorkerWalletExpenseService workerWalletExpenseService;
     private final IWorkerWalletRevenueService workerWalletRevenueService;
+    private final ServiceService serviceService;
 
     @Override
     @Transactional
@@ -163,7 +165,7 @@ public class WorkerVerifyService implements IWorkerVerifyService {
                 WorkerVerificationRequestDTO.builder()
                         .verificationType(VerificationType.DOCUMENT)
                         .verificationStatus(VerificationStatus.PENDING)
-                        .service(workerDocument.getWorkerVerification().getService())
+                        .service(serviceService.getServiceByIdEntity(request.getServiceId()))
                         .workerDocument(workerDocument)
                         .build()
         );
