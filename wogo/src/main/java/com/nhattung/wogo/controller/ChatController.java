@@ -3,6 +3,7 @@ package com.nhattung.wogo.controller;
 import com.nhattung.wogo.dto.request.ChatMessageRequestDTO;
 import com.nhattung.wogo.dto.response.ApiResponse;
 import com.nhattung.wogo.dto.response.ChatResponseDTO;
+import com.nhattung.wogo.dto.response.ChatRoomMessagesResponseDTO;
 import com.nhattung.wogo.service.chat.message.IChatMessageService;
 import com.nhattung.wogo.service.chat.room.IChatRoomService;
 import lombok.RequiredArgsConstructor;
@@ -32,7 +33,7 @@ public class ChatController {
                 .build());
 
         // Gửi lại cho tất cả subscriber trong topic
-        messagingTemplate.convertAndSend("/topic/chat/" + chatMessageSaved.getChatRoom(), chatMessageSaved);
+        messagingTemplate.convertAndSend("/topic/chat/" + request.getRoomCode(), chatMessageSaved);
 
         return ApiResponse.<Void>builder()
                 .message("Message sent successfully")
@@ -50,7 +51,7 @@ public class ChatController {
                 .build(),files);
 
         // Gửi lại cho tất cả subscriber trong topic
-        messagingTemplate.convertAndSend("/topic/chat/" + chatMessageSaved.getChatRoom(), chatMessageSaved);
+        messagingTemplate.convertAndSend("/topic/chat/" + request.getRoomCode(), chatMessageSaved);
 
         return ApiResponse.<Void>builder()
                 .message("Message sent successfully")
@@ -59,9 +60,9 @@ public class ChatController {
 
 
     @GetMapping("/get-messageBooking/{roomCode}")
-    public ApiResponse<List<ChatResponseDTO>> getMessages(@PathVariable String roomCode)
+    public ApiResponse<ChatRoomMessagesResponseDTO> getMessages(@PathVariable String roomCode)
     {
-        return ApiResponse.<List<ChatResponseDTO>>builder()
+        return ApiResponse.<ChatRoomMessagesResponseDTO>builder()
                 .message("Message sent successfully")
                 .result(chatMessageService.getMessages(chatRoomService.getChatRoomByRoomCode(roomCode)))
                 .build();

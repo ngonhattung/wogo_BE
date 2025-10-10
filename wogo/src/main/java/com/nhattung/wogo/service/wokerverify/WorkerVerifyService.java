@@ -104,6 +104,7 @@ public class WorkerVerifyService implements IWorkerVerifyService {
         workerVerificationTest.setPassed(isPassed);
         workerVerificationTest.setCorrectAnswers(correctAnswers);
         workerVerificationTest.setTestStatus(isPassed ? TestStatus.PASSED : TestStatus.FAILED);
+        workerVerificationTest.setScorePercentage(scorePercentage);
 
         workerVerification.setVerificationStatus(isPassed ? VerificationStatus.APPROVED : VerificationStatus.REJECTED);
         workerVerification.setRejectionReason(isPassed ? null : WogoConstants.TEST_REJECTION_REASON);

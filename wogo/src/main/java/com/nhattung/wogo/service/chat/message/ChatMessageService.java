@@ -2,6 +2,8 @@ package com.nhattung.wogo.service.chat.message;
 
 import com.nhattung.wogo.dto.request.ChatMessageRequestDTO;
 import com.nhattung.wogo.dto.response.ChatResponseDTO;
+import com.nhattung.wogo.dto.response.ChatRoomMessagesResponseDTO;
+import com.nhattung.wogo.dto.response.ChatRoomResponseDTO;
 import com.nhattung.wogo.entity.ChatMessage;
 import com.nhattung.wogo.entity.ChatRoom;
 import com.nhattung.wogo.entity.User;
@@ -18,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -53,17 +56,17 @@ public class ChatMessageService implements IChatMessageService {
         // Tạo ChatMessage
         ChatMessage chatMessage = createChatMessage(request, chatRoom);
 
-        // Nếu có files, lưu file
-        if (files != null && !files.isEmpty()) {
-            chatFileService.saveChatFile(chatMessage, files);
-        }
-
         // Lưu ChatMessage
         ChatMessage savedMessage = chatMessageRepository.save(chatMessage);
 
         // Cập nhật thời gian lastMessage
-        chatRoom.setLastMessageAt(LocalDateTime.now());
+        chatRoom.setLastMessageAt(savedMessage.getCreatedAt());
         chatRoomService.updateChatRoom(chatRoom);
+
+        // Nếu có files, lưu file
+        if (files != null && !files.isEmpty()) {
+            chatFileService.saveChatFile(chatMessage, files);
+        }
 
         // Chuyển đổi sang DTO và trả về
         return convertToResponseDTO(savedMessage);
@@ -84,13 +87,37 @@ public class ChatMessageService implements IChatMessageService {
 
 
     @Override
-    public List<ChatResponseDTO> getMessages(ChatRoom chatRoom) {
-        return chatMessageRepository.findByChatRoomOrderByCreatedAtAsc(chatRoom).stream()
+    public ChatRoomMessagesResponseDTO getMessages(ChatRoom chatRoom) {
+        // Lấy danh sách tin nhắn theo thời gian tăng dần
+        List<ChatResponseDTO> messages = chatMessageRepository
+                .findByChatRoomOrderByCreatedAtAsc(chatRoom)
+                .stream()
                 .map(this::convertToResponseDTO)
                 .toList();
+
+        // Trả về ChatRoomMessagesResponseDTO
+        return ChatRoomMessagesResponseDTO.builder()
+                .chatRoom(ChatRoomResponseDTO.builder()
+                        .roomCode(chatRoom.getRoomCode())
+                        .lastMessageAt(chatRoom.getLastMessageAt().toLocalDateTime())
+                        .isVisible(chatRoom.isVisible())
+                        .build())
+                .messages(messages)
+                .build();
     }
 
+
     private ChatResponseDTO convertToResponseDTO(ChatMessage chatMessage) {
-        return modelMapper.map(chatMessage, ChatResponseDTO.class);
+        ChatResponseDTO dto = modelMapper.map(chatMessage, ChatResponseDTO.class);
+
+        if (chatMessage.getCreatedAt() != null) {
+            dto.setCreatedAt(chatMessage.getCreatedAt().toLocalDateTime());
+        }
+
+        if (dto.getFileUrls() == null) {
+            dto.setFileUrls(new ArrayList<>()); // default []
+        }
+
+        return dto;
     }
 }

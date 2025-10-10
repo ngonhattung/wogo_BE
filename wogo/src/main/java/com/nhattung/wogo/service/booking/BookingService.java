@@ -223,8 +223,8 @@ public class BookingService implements IBookingService {
 
         //Tạo phòng chat
         chatRoomService.saveChatRoom(ChatRoomRequestDTO.builder()
-                .jobRequestCode(generateCodeForJob(request.getJobRequestCode(), workerId, job.getUser().getId()))
-                .lastMessageAt(LocalDateTime.now())
+                .jobRequestCode(generateCodeForChat(request.getJobRequestCode(), workerId, job.getUser().getId()))
+                .lastMessageAt(Timestamp.valueOf(LocalDateTime.now()))
                 .job(job)
                 .isVisible(true)
                 .build());
@@ -253,7 +253,7 @@ public class BookingService implements IBookingService {
     }
 
 
-    private String generateCodeForJob(String jobRequestCode, Long workerId, Long userId) {
+    private String generateCodeForChat(String jobRequestCode, Long workerId, Long userId) {
         return "job:" + jobRequestCode + ":worker:" + workerId + ":user:" + userId;
     }
 

@@ -23,7 +23,7 @@ public class ChatRoom {
 
     private String roomCode; // Mã định danh duy nhất cho phòng chat
     private boolean isVisible; // Có hiển thị với user không
-    private LocalDateTime lastMessageAt; // thời gian gửi tin nhắn cuối
+    private Timestamp lastMessageAt; // thời gian gửi tin nhắn cuối
 
     @CreationTimestamp
     private Timestamp createdAt;

@@ -7,6 +7,9 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Data
@@ -17,7 +20,10 @@ public class ChatResponseDTO {
     private String content;
     private MessageType messageType;
     private SenderType senderType;
-    private List<ChatFileResponseDTO> fileUrls;
+
+    @Builder.Default
+    private List<ChatFileResponseDTO> fileUrls = new ArrayList<>();
+
     private UserResponseDTO sender;
-    private ChatRoomResponseDTO chatRoom;
+    private LocalDateTime createdAt;
 }

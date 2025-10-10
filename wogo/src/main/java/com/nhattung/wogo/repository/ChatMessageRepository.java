@@ -11,5 +11,5 @@ import java.util.Optional;
 
 @Repository
 public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> {
-    Optional<ChatMessage> findByChatRoomOrderByCreatedAtAsc(ChatRoom chatRoom);
+    List<ChatMessage> findByChatRoomOrderByCreatedAtAsc(ChatRoom chatRoom);
 }
