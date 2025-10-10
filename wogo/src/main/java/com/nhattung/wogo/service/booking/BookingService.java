@@ -277,6 +277,7 @@ public class BookingService implements IBookingService {
         Booking booking = saveBooking(BookingRequestDTO
                 .builder()
                 .bookingCode(job.getJobRequestCode())
+                .bookingDate(job.getBookingDate())
                 .workerId(request.getWorkerId())
                 .service(serviceService.getServiceByIdEntity(job.getService().getId()))
                 .description(job.getDescription())
@@ -450,7 +451,7 @@ public class BookingService implements IBookingService {
     @Override
     public Booking saveBooking(BookingRequestDTO request) {
         User user = userService.getCurrentUser();
-        Worker worker = workerService.getWorkerByUserId(request.getWorkerId());
+        Worker worker = workerService.getWorkerById(request.getWorkerId());
         return bookingRepository.save(createBooking(request, user, worker));
     }
 
@@ -458,11 +459,19 @@ public class BookingService implements IBookingService {
     private Booking createBooking(BookingRequestDTO request, User user, Worker worker) {
         return Booking.builder()
                 .bookingCode(request.getBookingCode())
-                .service(request.getService()).user(user).worker(worker)
-                .bookingDate(request.getBookingDate()).startDate(null).endDate(null)
-                .description(request.getDescription()).distanceKm(request.getDistanceKm())
-                .bookingStatus(BookingStatus.PENDING).durationMinutes(0).title(request.getService().getServiceName())
+                .service(request.getService())
+                .user(user)
+                .worker(worker)
+                .bookingDate(request.getBookingDate())
+                .startDate(null)
+                .endDate(null)
+                .description(request.getDescription())
+                .distanceKm(request.getDistanceKm())
+                .bookingStatus(BookingStatus.PENDING)
+                .durationMinutes(0)
+                .title(request.getService().getServiceName())
                 .bookingAddress(request.getBookingAddress())
+                .totalAmount(request.getTotalAmount())
                 .build();
     }
 

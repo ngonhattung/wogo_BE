@@ -9,4 +9,5 @@ public interface IWorkerService {
     Worker getWorkerByUserId(Long userId);
     boolean isWorkerExists(Long userId);
     void updateWorker(UpdateWorkerRequestDTO request,Worker worker);
+    Worker getWorkerById(Long workerId);
 }

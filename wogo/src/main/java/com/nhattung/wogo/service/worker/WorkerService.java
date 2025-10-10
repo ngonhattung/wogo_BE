@@ -46,6 +46,12 @@ public class WorkerService implements IWorkerService {
 
     }
 
+    @Override
+    public Worker getWorkerById(Long workerId) {
+        return workerRepository.findById(workerId)
+                .orElseThrow(() -> new AppException(ErrorCode.WORKER_NOT_FOUND));
+    }
+
     private Worker createWorker(WorkerRequestDTO request) {
         return Worker.builder()
                 .user(request.getUser())
