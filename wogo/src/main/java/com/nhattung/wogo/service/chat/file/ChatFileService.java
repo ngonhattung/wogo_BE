@@ -1,5 +1,6 @@
 package com.nhattung.wogo.service.chat.file;
 
+import com.nhattung.wogo.dto.response.ChatFileResponseDTO;
 import com.nhattung.wogo.dto.response.UploadS3Response;
 import com.nhattung.wogo.entity.ChatFile;
 import com.nhattung.wogo.entity.ChatMessage;
@@ -8,6 +9,7 @@ import com.nhattung.wogo.exception.AppException;
 import com.nhattung.wogo.repository.ChatFileRepository;
 import com.nhattung.wogo.utils.UploadToS3;
 import lombok.RequiredArgsConstructor;
+import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -19,7 +21,7 @@ public class ChatFileService implements IChatFileService {
 
     private final ChatFileRepository chatFileRepository;
     private final UploadToS3 uploadToS3;
-
+    private final ModelMapper modelMapper;
     @Override
     public void saveChatFile(ChatMessage chatMessage, List<MultipartFile> files) {
         if(files == null || files.isEmpty()) {
@@ -48,8 +50,14 @@ public class ChatFileService implements IChatFileService {
     }
 
     @Override
-    public List<ChatFile> getChatFilesByMessageId(Long messageId) {
+    public List<ChatFileResponseDTO> getChatFilesByMessageId(Long messageId) {
         return chatFileRepository.findByChatMessageId(messageId)
-                .orElseThrow(() -> new AppException(ErrorCode.CHAT_FILE_NOT_FOUND));
+                .stream()
+                .map(this::convertToResponseDTO)
+                .toList();
+    }
+
+    private ChatFileResponseDTO convertToResponseDTO(ChatFile chatFile) {
+        return modelMapper.map(chatFile, ChatFileResponseDTO.class);
     }
 }

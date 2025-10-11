@@ -1,6 +1,7 @@
 package com.nhattung.wogo.service.chat.message;
 
 import com.nhattung.wogo.dto.request.ChatMessageRequestDTO;
+import com.nhattung.wogo.dto.response.ChatFileResponseDTO;
 import com.nhattung.wogo.dto.response.ChatResponseDTO;
 import com.nhattung.wogo.dto.response.ChatRoomMessagesResponseDTO;
 import com.nhattung.wogo.dto.response.ChatRoomResponseDTO;
@@ -109,15 +110,15 @@ public class ChatMessageService implements IChatMessageService {
 
     private ChatResponseDTO convertToResponseDTO(ChatMessage chatMessage) {
         ChatResponseDTO dto = modelMapper.map(chatMessage, ChatResponseDTO.class);
-
+        List<ChatFileResponseDTO> fileDTOs = chatFileService.getChatFilesByMessageId(chatMessage.getId())
+                .stream()
+                .map(file -> modelMapper.map(file, ChatFileResponseDTO.class))
+                .toList();
         if (chatMessage.getCreatedAt() != null) {
             dto.setCreatedAt(chatMessage.getCreatedAt().toLocalDateTime());
         }
 
-        if (dto.getFileUrls() == null) {
-            dto.setFileUrls(new ArrayList<>()); // default []
-        }
-
+        dto.setFileUrls(fileDTOs);
         return dto;
     }
 }

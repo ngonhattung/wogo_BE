@@ -9,5 +9,5 @@ import java.util.Optional;
 
 @Repository
 public interface ChatFileRepository extends JpaRepository<ChatFile, Long> {
-    Optional<List<ChatFile>> findByChatMessageId(Long messageId);
+    List<ChatFile> findByChatMessageId(Long messageId);
 }

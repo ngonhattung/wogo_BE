@@ -20,10 +20,7 @@ public class ChatResponseDTO {
     private String content;
     private MessageType messageType;
     private SenderType senderType;
-
-    @Builder.Default
-    private List<ChatFileResponseDTO> fileUrls = new ArrayList<>();
-
+    private List<ChatFileResponseDTO> fileUrls;
     private UserResponseDTO sender;
     private LocalDateTime createdAt;
 }
