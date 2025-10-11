@@ -247,7 +247,7 @@ public class BookingService implements IBookingService {
         return sendQuoteService.saveSendQuote(CreateSendQuoteRequestDTO.builder()
                 .job(job)
                 .quotedPrice(request.getQuotedPrice())
-                .distanceToJob(WogoConstants.ROAD_WAY * distance)
+                .distanceToJob(distance)
                 .build());
 
     }
