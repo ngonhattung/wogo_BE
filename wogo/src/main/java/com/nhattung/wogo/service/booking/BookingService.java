@@ -162,7 +162,7 @@ public class BookingService implements IBookingService {
                 .latWorker(workerAddress.getLatitude())
                 .lonWorker(workerAddress.getLongitude())
                 .build());
-        job.setDistance(WogoConstants.ROAD_WAY * distance);
+        job.setDistance(distance);
     }
 
     @Override
@@ -315,6 +315,11 @@ public class BookingService implements IBookingService {
             handlePaymentAndWallet(booking, request);
         }
 
+        if(request.getStatus() == BookingStatus.WORKING)
+        {
+            booking.setStartDate(LocalDateTime.now());
+            bookingRepository.save(booking);
+        }
         bookingRepository.save(booking);
     }
 
@@ -359,18 +364,24 @@ public class BookingService implements IBookingService {
 
     @Override
     public double haversine(HaversineRequestDTO request) {
-        double dLat = Math.toRadians(request.getLatWorker() - request.getLatCustomer());
-        double dLon = Math.toRadians(request.getLonWorker() - request.getLonCustomer());
-        double rLatCustomer = Math.toRadians(request.getLatCustomer());
-        double rLatWorker = Math.toRadians(request.getLatWorker());
+        double lat1 = Math.toRadians(request.getLatCustomer());
+        double lon1 = Math.toRadians(request.getLonCustomer());
+        double lat2 = Math.toRadians(request.getLatWorker());
+        double lon2 = Math.toRadians(request.getLonWorker());
 
-        double a = Math.pow(Math.sin(dLat / 2), 2) + Math.cos(rLatCustomer) * Math.cos(rLatWorker) * Math.pow(Math.sin(dLon / 2), 2);
+        double dLat = lat2 - lat1;
+        double dLon = lon2 - lon1;
+
+        double a = Math.pow(Math.sin(dLat / 2), 2)
+                + Math.cos(lat1) * Math.cos(lat2)
+                * Math.pow(Math.sin(dLon / 2), 2);
 
         double c = 2 * Math.asin(Math.sqrt(a));
 
-        return WogoConstants.EARTH_RADIUS_KM * c; // km
-
+        return WogoConstants.ROAD_WAY * WogoConstants.EARTH_RADIUS_KM * c;
     }
+
+
 
     @Override
     public TransactionResponseDTO createBookingTransaction(String bookingCode) {
