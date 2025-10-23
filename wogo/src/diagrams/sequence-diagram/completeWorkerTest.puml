@@ -1,0 +1,84 @@
+@startuml
+!include sequence-style.puml
+title Complete Worker Test Sequence Diagram (Có timeline + return numbering)
+
+actor "Worker" as Worker
+participant "<u>UI" as View
+participant "<u>WorkerVerifyController" as Controller
+participant "WorkerVerifyService" as Service
+participant "WorkerVerificationTestService" as TestService
+participant "WorkerVerificationService" as VerifyService
+database "Database" as DB
+
+
+activate Worker
+Worker -> View : 1 Gửi kết quả bài test (Submit)
+activate View
+
+View -> Controller : 1.1 POST /completeWorkerTest(request)
+activate Controller
+Controller -> Service : 1.1.1 Gọi completeWorkerTest(request)
+activate Service
+
+Service -> TestService : 1.1.1.1 Lấy bài test theo testId
+activate TestService
+TestService --> Service : 1.1.1.2 Trả về WorkerVerificationTest
+deactivate TestService
+
+Service -> VerifyService : 1.1.1.3 Lấy xác minh worker theo testId
+activate VerifyService
+VerifyService --> Service : 1.1.1.4 Trả về WorkerVerification
+deactivate VerifyService
+
+Service -> Service : 1.1.1.5 Tính số câu đúng và phần trăm điểm
+Service -> Service : 1.1.1.6 Kiểm tra đạt hay không (isPassed)
+
+alt isPassed == true
+    Service -> Service : 1.1.1.7a Gán quyền Worker, tạo service & ví
+    Service -> TestService : 1.1.1.8a Cập nhật WorkerVerificationTest (PASSED)
+    activate TestService
+    TestService -> DB : 1.1.1.8a.1 UPDATE WorkerVerificationTest
+    activate DB
+    DB --> TestService : 1.1.1.8a.2 OK
+    deactivate DB
+    TestService --> Service : 1.1.1.9a OK
+    deactivate TestService
+
+    Service -> VerifyService : 1.1.1.10a Cập nhật WorkerVerification (APPROVED)
+    activate VerifyService
+    VerifyService -> DB : 1.1.1.10a.1 UPDATE WorkerVerification
+    activate DB
+    DB --> VerifyService : 1.1.1.10a.2 OK
+    deactivate DB
+    VerifyService --> Service : 1.1.1.11a OK
+    deactivate VerifyService
+
+else isPassed == false
+    Service -> TestService : 1.1.1.8b Cập nhật WorkerVerificationTest (FAILED)
+    activate TestService
+    TestService -> DB : 1.1.1.8b.1 UPDATE WorkerVerificationTest
+    activate DB
+    DB --> TestService : 1.1.1.8b.2 OK
+    deactivate DB
+    TestService --> Service : 1.1.1.9b OK
+    deactivate TestService
+
+    Service -> VerifyService : 1.1.1.10b Cập nhật WorkerVerification (REJECTED)
+    activate VerifyService
+    VerifyService -> DB : 1.1.1.10b.1 UPDATE WorkerVerification
+    activate DB
+    DB --> VerifyService : 1.1.1.10b.2 OK
+    deactivate DB
+    VerifyService --> Service : 1.1.1.11b OK
+    deactivate VerifyService
+end
+
+Service --> Controller : 1.1.2 Trả về CompleteTestResponseDTO(isPassed, score)
+deactivate Service
+Controller --> View : 1.1.3 Hiển thị kết quả bài test
+deactivate Controller
+View --> Worker : 1.1.4 Giao diện hiển thị kết quả
+deactivate View
+deactivate Worker
+
+@enduml

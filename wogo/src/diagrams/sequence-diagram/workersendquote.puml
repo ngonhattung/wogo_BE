@@ -1,0 +1,114 @@
+@startuml
+!include sequence-style.puml
+title Worker Send Quote Sequence Diagram (Business-Level, Unified Format)
+
+actor "Worker" as Worker
+participant "<u>UI" as View
+participant "<u>BookingController" as Controller
+participant "BookingService" as BookingService
+participant "JobService" as JobService
+participant "WorkerService" as WorkerService
+participant "WebSocketBroker" as Socket
+database "Database" as DB
+
+activate Worker
+Worker -> View : 1 Click "Gửi báo giá"
+activate View
+
+View -> Controller : 1.1 POST /send-quote(request)
+activate Controller
+
+' --- Lấy workerId từ Security Context ---
+Controller -> Controller : 1.1.1 Lấy workerId (current user)
+
+' --- Kiểm tra tính hợp lệ của Job ---
+Controller -> BookingService : 1.1.2 verifyJobRequest(request)
+activate BookingService
+
+BookingService -> BookingService : 1.1.2.1 Gọi getJobAndValidate(request)
+note right of BookingService
+Hàm nội bộ kiểm tra:
+- Job có còn PENDING không
+- Worker có tồn tại không
+- Worker có gửi báo giá trước đó chưa
+- Worker có phải chủ job không
+end note
+
+BookingService -> JobService : 1.1.2.2 getJobByJobRequestCode(jobRequestCode)
+activate JobService
+JobService -> DB : 1.1.2.2.1 Truy vấn job theo mã yêu cầu
+activate DB
+DB --> JobService : 1.1.2.2.2 JobResponseDTO
+deactivate DB
+JobService --> BookingService : 1.1.2.3 Trả về JobResponseDTO
+deactivate JobService
+
+' --- Kiểm tra trạng thái Job ---
+BookingService -> BookingService : 1.1.2.4 Kiểm tra job.status == PENDING
+alt Job không còn PENDING
+    BookingService --> Controller : 1.1.2.5a Trả về false (job không hợp lệ)
+else Job còn PENDING
+    ' --- Lấy Worker hiện tại ---
+    BookingService -> WorkerService : 1.1.2.5b getWorkerByUserId(currentUserId)
+    activate WorkerService
+    WorkerService -> DB : 1.1.2.5b.1 Truy vấn worker theo userId
+    activate DB
+    DB --> WorkerService : 1.1.2.5b.2 Worker entity
+    deactivate DB
+    WorkerService --> BookingService : 1.1.2.6 Trả về Worker
+    deactivate WorkerService
+
+    BookingService -> BookingService : 1.1.2.7 Kiểm tra điều kiện báo giá (đã gửi / chủ job)
+    alt Worker đã gửi báo giá trước đó
+        BookingService -> Controller : 1.1.2.8a Ném lỗi YOU_ALREADY_SEND_QUOTE
+        Controller --> View : 1.1.2.8a.1 Thông báo lỗi
+    else Worker hợp lệ
+        BookingService --> Controller : 1.1.2.8b Trả về true (job hợp lệ)
+    end
+end
+deactivate BookingService
+
+' --- Xử lý theo kết quả verify ---
+alt Job hợp lệ (isValid == true)
+    Controller -> JobService : 1.1.3 Lấy thông tin job theo mã yêu cầu (getJobByJobRequestCode)
+    activate JobService
+    JobService -> DB : 1.1.3.1 Truy vấn job theo mã yêu cầu
+    activate DB
+    DB --> JobService : 1.1.3.2 JobResponseDTO
+    deactivate DB
+    JobService --> Controller : 1.1.3.3 Trả về JobResponseDTO
+    deactivate JobService
+
+    ' --- Push WebSocket tới khách hàng ---
+    Controller -> Socket : 1.1.4 convertAndSend("/topic/send-quote/{serviceId}", job)
+    activate Socket
+    Socket --> Customer : 1.1.4.1 Gửi realtime “Job đã được gửi báo giá”
+    deactivate Socket
+
+    ' --- Thực hiện gửi báo giá ---
+    Controller -> BookingService : 1.1.5 sendQuote(request)
+    activate BookingService
+    BookingService -> DB : 1.1.5.1 INSERT INTO worker_quote (...)
+    activate DB
+    DB --> BookingService : 1.1.5.2 WorkerQuote entity
+    deactivate DB
+    BookingService --> Controller : 1.1.5.3 Trả về WorkerQuoteResponseDTO
+    deactivate BookingService
+
+    Controller --> View : 1.1.6 Trả ApiResponse<WorkerQuoteResponseDTO>
+else Job không hợp lệ (isValid == false)
+    ' --- Push lỗi qua WebSocket riêng của thợ ---
+    Controller -> Socket : 1.1.7 convertAndSendToUser(workerId, "/queue/errors", "Job is not available")
+    activate Socket
+    Socket --> Worker : 1.1.7.1 Gửi realtime “Job is not available”
+    deactivate Socket
+
+    Controller --> View : 1.1.8 Trả ApiResponse với message “Job request is no longer available”
+end
+
+deactivate Controller
+View --> Worker : 1.1.9 Hiển thị kết quả báo giá
+deactivate View
+deactivate Worker
+
+@enduml

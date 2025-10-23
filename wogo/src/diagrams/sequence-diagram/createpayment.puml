@@ -1,0 +1,74 @@
+@startuml
+!include sequence-style.puml
+title Create Payment Sequence Diagram
+
+actor "Customer" as Customer
+participant "<u>UI" as View
+participant "<u>PaymentController" as Controller
+participant "BookingService" as BookingService
+participant "WorkerWalletRevenueService" as WalletService
+participant "WalletTransactionService" as TransactionService
+participant "SepayVerifyService" as SepayService
+database "Database" as DB
+
+activate Customer
+Customer -> View : 1 Click thanh toán
+activate View
+
+View -> Controller : 1.1 POST /create-payment/{bookingCode}
+activate Controller
+Controller -> BookingService : 1.1.1 Gọi createBookingTransaction(bookingCode)
+activate BookingService
+
+' --- Lấy thông tin booking ---
+BookingService -> DB : 1.1.1.1 Truy vấn booking theo bookingCode
+activate DB
+DB --> BookingService : 1.1.1.2 Trả về Booking entity
+deactivate DB
+
+' --- Kiểm tra số tiền hợp lệ ---
+BookingService -> BookingService : 1.1.1.3 Kiểm tra totalAmount > 0
+alt Số tiền không hợp lệ
+    BookingService -> Controller : 1.1.1.4a Ném lỗi INVALID_BOOKING_AMOUNT
+    Controller --> View : 1.1.1.4a.1 Trả lỗi "INVALID_BOOKING_AMOUNT"
+    note right of Controller
+    Luồng kết thúc nếu số tiền không hợp lệ.
+    end note
+else Hợp lệ
+    ' --- Lấy ví của Worker ---
+    BookingService -> WalletService : 1.1.1.4b Gọi getWalletByUserId()
+    activate WalletService
+    WalletService -> DB : 1.1.1.4b.1 Truy vấn WorkerWalletRevenue
+    activate DB
+    DB --> WalletService : 1.1.1.4b.2 WorkerWalletRevenue entity
+    deactivate DB
+    WalletService --> BookingService : 1.1.1.5 Trả về WalletRevenue
+    deactivate WalletService
+
+    ' --- Tạo giao dịch ví (WalletTransaction) ---
+    BookingService -> TransactionService : 1.1.1.6 Gọi saveWalletTransaction(PAYMENT)
+    activate TransactionService
+    TransactionService -> DB : 1.1.1.6.1 INSERT WalletTransaction (status=PENDING)
+    activate DB
+    DB --> TransactionService : 1.1.1.6.2 Trả về WalletTransaction
+    deactivate DB
+    TransactionService --> BookingService : 1.1.1.7 OK
+    deactivate TransactionService
+
+    ' --- Gọi Sepay để tạo QR ---
+    BookingService -> SepayService : 1.1.1.8 Gọi createQRCodeForPayment(booking)
+    activate SepayService
+    SepayService --> BookingService : 1.1.1.9 Trả về link QR (linkTransaction)
+    deactivate SepayService
+
+    BookingService --> Controller : 1.1.2 Trả TransactionResponseDTO(linkQR, status=false)
+end
+
+deactivate BookingService
+Controller --> View : 1.1.3 Trả ApiResponse<TransactionResponseDTO>
+deactivate Controller
+View --> Customer : 1.1.4 Hiển thị QR code thanh toán
+deactivate View
+deactivate Customer
+
+@enduml

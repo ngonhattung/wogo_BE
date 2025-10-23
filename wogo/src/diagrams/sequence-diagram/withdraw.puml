@@ -1,0 +1,77 @@
+@startuml
+!include sequence-style.puml
+title Create Withdrawal Request Sequence Diagram
+
+actor "Worker" as Worker
+participant "<u>UI" as View
+participant "<u>WithdrawalController" as Controller
+participant "WithdrawalService" as Service
+participant "WorkerService" as WorkerService
+participant "WorkerWalletRevenueService" as WalletService
+participant "WalletTransactionService" as TransactionService
+database "Database" as DB
+
+activate Worker
+Worker -> View : 1 Chọn rút tiền (POST /withdrawals)
+activate View
+
+View -> Controller : 1.1 POST /withdrawals(request)
+activate Controller
+Controller -> Service : 1.1.1 Gọi createWithdrawalRequest(request)
+activate Service
+
+' --- Lấy thông tin Worker ---
+Service -> WorkerService : 1.1.1.1 getWorkerByUserId(currentUserId)
+activate WorkerService
+WorkerService -> DB : 1.1.1.1.1 Truy vấn worker theo userId
+activate DB
+DB --> WorkerService : 1.1.1.1.2 Worker entity
+deactivate DB
+WorkerService --> Service : 1.1.1.2 Trả về Worker
+deactivate WorkerService
+
+' --- Tạo Withdrawal entity ---
+Service -> Service : 1.1.1.3 Gọi createWithdrawal(request, worker)
+note right of Service
+Hàm nội bộ tạo đối tượng Withdrawal
+với trạng thái PENDING và thời gian requestedAt = now()
+end note
+
+' --- Lấy ví doanh thu của Worker ---
+Service -> WalletService : 1.1.1.4 getWalletByUserId()
+activate WalletService
+WalletService -> DB : 1.1.1.4.1 Truy vấn WorkerWalletRevenue
+activate DB
+DB --> WalletService : 1.1.1.4.2 WorkerWalletRevenue entity
+deactivate DB
+WalletService --> Service : 1.1.1.5 Trả về WorkerWalletRevenue
+deactivate WalletService
+
+' --- Lưu giao dịch ví (WalletTransaction) ---
+Service -> TransactionService : 1.1.1.6 saveWalletTransaction(requestDTO)
+activate TransactionService
+TransactionService -> DB : 1.1.1.6.1 INSERT INTO wallet_transaction (...)
+activate DB
+DB --> TransactionService : 1.1.1.6.2 WalletTransaction entity
+deactivate DB
+TransactionService --> Service : 1.1.1.7 Trả về WalletTransaction
+deactivate TransactionService
+
+' --- Chuẩn bị response ---
+Service -> Service : 1.1.1.8 convertToDTO(withdrawal)
+note right of Service
+Set thêm transactionCode và transactionType
+từ WalletTransaction trước khi trả về.
+end note
+
+Service --> Controller : 1.1.2 Trả về WithdrawalResponseDTO
+deactivate Service
+
+Controller --> View : 1.1.3 Trả về ApiResponse<WithdrawalResponseDTO>
+deactivate Controller
+
+View --> Worker : 1.1.4 Hiển thị giao diện chờ admin duyệt
+deactivate View
+deactivate Worker
+
+@enduml

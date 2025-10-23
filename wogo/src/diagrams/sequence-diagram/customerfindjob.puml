@@ -1,0 +1,89 @@
+@startuml
+!include sequence-style.puml
+title Create Job Sequence Diagram (Fixed UML-compliant + WebSocket + Timeline)
+
+actor "Customer" as Customer
+participant "<u>UI" as View
+participant "<u>BookingController" as Controller
+participant "BookingService" as Service
+participant "JobService" as JobService
+participant "AddressService" as AddressService
+participant "NotificationService" as NotiService
+participant "WebSocketBroker" as Socket
+database "Database" as DB
+
+activate Customer
+Customer -> View : 1 Click tìm thợ
+activate View
+
+View -> Controller : 1.1 POST /create-job(request, files)
+activate Controller
+Controller -> Service : 1.1.1 Gọi createJob(request, files)
+activate Service
+
+' --- Kiểm tra job pending ---
+Service -> JobService : 1.1.1.1 Lấy danh sách Job PENDING của user
+activate JobService
+JobService -> DB : 1.1.1.1.1 Truy vấn jobs theo userId & status = PENDING
+activate DB
+DB --> JobService : 1.1.1.1.2 Danh sách JobResponseDTO
+deactivate DB
+JobService --> Service : 1.1.1.2 Trả về existingJobs
+deactivate JobService
+
+' --- Kiểm tra điều kiện ---
+Service -> Service : 1.1.1.3 Kiểm tra job trùng serviceId & PENDING
+alt Đã tồn tại job PENDING
+    Service -> Controller : 1.1.1.4a Ném lỗi EXISTING_PENDING_JOB_REQUEST
+    Controller --> View : 1.1.1.4a.1 Trả lỗi "EXISTING_PENDING_JOB_REQUEST"
+    note right of Controller
+    Kết thúc luồng khi có lỗi.
+    end note
+else Không có job trùng
+    ' --- Lưu địa chỉ khách hàng ---
+    Service -> AddressService : 1.1.1.4b Lưu hoặc cập nhật địa chỉ khách hàng
+    activate AddressService
+    AddressService -> DB : 1.1.1.4b.1 INSERT/UPDATE address
+    activate DB
+    DB --> AddressService : 1.1.1.4b.2 OK
+    deactivate DB
+    AddressService --> Service : 1.1.1.5 Hoàn tất cập nhật địa chỉ
+    deactivate AddressService
+
+    ' --- Lưu job ---
+    Service -> JobService : 1.1.1.6 Tạo Job mới (saveJob)
+    activate JobService
+    JobService -> DB : 1.1.1.6.1 INSERT INTO jobs (...)
+    activate DB
+    DB --> JobService : 1.1.1.6.2 JobResponseDTO
+    deactivate DB
+    JobService --> Service : 1.1.1.7 Trả về JobResponseDTO
+    deactivate JobService
+
+    ' --- Lưu thông báo ---
+    Service -> NotiService : 1.1.1.8 Lưu Notification
+    activate NotiService
+    NotiService -> DB : 1.1.1.8.1 INSERT Notification
+    activate DB
+    DB --> NotiService : 1.1.1.8.2 OK
+    deactivate DB
+    NotiService --> Service : 1.1.1.9 OK
+    deactivate NotiService
+end
+
+' --- Push WebSocket ---
+Service --> Controller : 1.1.2 Trả về JobResponseDTO
+deactivate Service
+
+Controller -> Socket : 1.1.3 Gửi message qua WebSocket (/topic/new-job/{serviceId})
+activate Socket
+Socket --> Workers : 1.1.4 Đẩy realtime JobResponseDTO đến thợ đang subscribe
+deactivate Socket
+
+Controller --> View : 1.1.5 Trả về ApiResponse<JobResponseDTO>
+deactivate Controller
+View --> Customer : 1.1.6 Hiển thị giao diện tìm thợ
+deactivate View
+deactivate Customer
+
+@enduml

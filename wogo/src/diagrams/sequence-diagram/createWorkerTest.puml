@@ -1,0 +1,71 @@
+@startuml
+!include sequence-style.puml
+title Create Worker Test Sequence Diagram
+
+actor "Worker" as Worker
+participant "<u>UI" as View
+participant "<u>WorkerVerifyController" as Controller
+participant "WorkerVerifyService" as Service
+participant "WorkerServiceService" as WorkerService
+participant "QuestionCategoryService" as CategoryService
+participant "WorkerVerificationTestService" as TestService
+participant "WorkerVerificationService" as VerifyService
+participant "QuestionService" as QuestionService
+database "Database" as DB
+
+activate Worker
+Worker -> View : 1 Click "Thêm nghiệp vụ"
+activate View
+
+View -> Controller : 1.1 POST /createWorkerTest(request)
+activate Controller
+Controller -> Service : 1.1.1 Gọi createWorkerTest(request)
+activate Service
+
+Service -> WorkerService : 1.1.1.1 Kiểm tra worker đã có nghiệp vụ chưa
+activate WorkerService
+WorkerService --> Service : 1.1.1.2 Kết quả: true/false
+deactivate WorkerService
+
+alt Worker đã có nghiệp vụ
+    Service -> Service : 1.1.1.3a Ném lỗi WORKER_SERVICE_EXISTS
+else Chưa có
+    Service -> CategoryService : 1.1.1.3b Lấy danh mục câu hỏi theo serviceId
+    activate CategoryService
+    CategoryService --> Service : 1.1.1.4 Trả về QuestionCategory
+    deactivate CategoryService
+
+    Service -> TestService : 1.1.1.5 Tạo WorkerVerificationTest
+    activate TestService
+    TestService -> DB : 1.1.1.5.1 INSERT WorkerVerificationTest
+    activate DB
+    DB --> TestService : 1.1.1.5.2 OK (WorkerVerificationTest)
+    deactivate DB
+    TestService --> Service : 1.1.1.6 Trả về WorkerVerificationTest
+    deactivate TestService
+
+    Service -> VerifyService : 1.1.1.7 Tạo WorkerVerification tương ứng
+    activate VerifyService
+    VerifyService -> DB : 1.1.1.7.1 INSERT WorkerVerification
+    activate DB
+    DB --> VerifyService : 1.1.1.7.2 OK (WorkerVerification)
+    deactivate DB
+    VerifyService --> Service : 1.1.1.8 Trả về WorkerVerification
+    deactivate VerifyService
+
+    Service -> QuestionService : 1.1.1.9 Lấy danh sách câu hỏi ngẫu nhiên
+    activate QuestionService
+    QuestionService --> Service : 1.1.1.10 Trả về List<QuestionResponseDTO>
+    deactivate QuestionService
+end
+
+Service --> Controller : 1.1.2 Trả về CreateTestResponseDTO(testId, questions)
+deactivate Service
+Controller --> View : 1.1.3 Hiển thị "Create worker test successfully"
+deactivate Controller
+View --> Worker : 1.1.4 Giao diện hiển thị kết quả
+deactivate View
+deactivate Worker
+
+
+@enduml

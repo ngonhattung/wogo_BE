@@ -1,0 +1,35 @@
+@startuml
+' Activity diagram cho "Tạo bài test khi thêm nghiệp vụ"
+' Swimlanes: Actor (Worker) và System
+
+|Actor|
+start
+:Worker gửi yêu cầu\nPOST /createWorkerTest\n(WorkerTestRequestDTO);
+partition System {
+  :Nhận request và xác thực người dùng;
+  :Kiểm tra worker đã có service chưa\n(checkWorkerServiceExists(serviceId));
+  if (worker has service?) then (yes)
+    :Ném AppException\nWORKER_SERVICE_EXISTS;
+    stop
+  else (no)
+    :Lấy QuestionCategory theo serviceId\n(getCategoryEntityByServiceId);
+    if (category found?) then (no)
+      :Ném AppException\nCATEGORY_NOT_FOUND;
+      stop
+    else (yes)
+      fork
+        :Tạo WorkerVerificationTest\n(workerVerificationTestService.save...);
+        :Lưu thông tin bài test (PENDING, passThreshold...);
+      fork again
+        :Tạo WorkerVerification\n(workerVerificationService.save...);
+        :Gán verificationType = TEST, liên kết service;
+      end fork
+      :Lấy danh sách câu hỏi ngẫu nhiên\n(questionService.findRandomQuestions);
+      :Trả về CreateTestResponseDTO\n{ testId, questions };
+      stop
+    endif
+  endif
+}
+|Actor|
+end
+@enduml

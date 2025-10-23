@@ -2,7 +2,6 @@ package com.nhattung.wogo.service.booking;
 
 import com.nhattung.wogo.constants.WogoConstants;
 import com.nhattung.wogo.dto.request.*;
-import com.nhattung.wogo.dto.request.SendQuoteRequestDTO;
 import com.nhattung.wogo.dto.response.*;
 import com.nhattung.wogo.entity.*;
 import com.nhattung.wogo.enums.*;
@@ -10,16 +9,16 @@ import com.nhattung.wogo.exception.AppException;
 import com.nhattung.wogo.repository.BookingHistoryRepository;
 import com.nhattung.wogo.repository.BookingRepository;
 import com.nhattung.wogo.service.booking.file.IBookingFileService;
-import com.nhattung.wogo.service.notification.INotificationService;
-import com.nhattung.wogo.service.user.address.IAddressService;
 import com.nhattung.wogo.service.chat.room.IChatRoomService;
 import com.nhattung.wogo.service.job.IJobService;
+import com.nhattung.wogo.service.notification.INotificationService;
 import com.nhattung.wogo.service.payment.IPaymentService;
-import com.nhattung.wogo.service.sendquote.ISendQuoteService;
 import com.nhattung.wogo.service.payment.sepay.SepayVerifyService;
+import com.nhattung.wogo.service.sendquote.ISendQuoteService;
 import com.nhattung.wogo.service.serviceWG.IServiceService;
 import com.nhattung.wogo.service.serviceWG.suggest.ISuggestService;
 import com.nhattung.wogo.service.user.IUserService;
+import com.nhattung.wogo.service.user.address.IAddressService;
 import com.nhattung.wogo.service.wallet.expense.IWorkerWalletExpenseService;
 import com.nhattung.wogo.service.wallet.revenue.IWorkerWalletRevenueService;
 import com.nhattung.wogo.service.wallet.transaction.IWalletTransactionService;
@@ -37,7 +36,9 @@ import org.springframework.web.multipart.MultipartFile;
 import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
 import java.util.stream.Stream;
 
 @Service
@@ -54,7 +55,6 @@ public class BookingService implements IBookingService {
     private final IBookingFileService bookingFileService;
     private final ModelMapper modelMapper;
     private final IPaymentService paymentService;
-    private final ISuggestService suggestService;
     private final IJobService jobService;
     private final ISendQuoteService sendQuoteService;
     private final IChatRoomService chatRoomService;
@@ -77,28 +77,20 @@ public class BookingService implements IBookingService {
             throw new AppException(ErrorCode.EXISTING_PENDING_JOB_REQUEST);
         }
 
-
         //Lưu vị trí của KHACHS hàng
         addressService.saveOrUpdateAddress(AddressRequestDTO.builder()
                 .latitude(request.getLatitudeUser())
                 .longitude(request.getLongitudeUser())
                 .role(ROLE.CUSTOMER.name()).build());
 
-        //Goi suggest de tinh gia
-        EstimatedResponseDTO estimated = suggestService.suggestPrice(EstimatedPriceRequestDTO.builder()
-                .serviceId(request.getServiceId())
-                .distanceKm(WogoConstants.DEFAULT_DISTANCE_KM) // Thay bằng khoảng cách thực tế nếu có
-                .build());
-
-
         JobResponseDTO jobResponseDTO = jobService.saveJob(CreateJobRequestDTO.builder()
                 .serviceId(request.getServiceId())
                 .description(request.getDescription())
                 .address(request.getAddress())
                 .bookingDate(request.getBookingDate() != null ? request.getBookingDate() : LocalDateTime.now().plusHours(1))
-                .estimatedPriceLower(estimated.getEstimatedPriceLower())
-                .estimatedPriceHigher(estimated.getEstimatedPriceHigher())
-                .estimatedDurationMinutes(estimated.getEstimatedDurationMinutes())
+                .estimatedPriceLower(request.getEstimatedPriceLower())
+                .estimatedPriceHigher(request.getEstimatedPriceHigher())
+                .estimatedDurationMinutes(request.getEstimatedDurationMinutes())
                 .longitudeUser(request.getLongitudeUser())
                 .latitudeUser(request.getLatitudeUser())
                 .build(), files);
@@ -485,11 +477,6 @@ public class BookingService implements IBookingService {
                 .totalAmount(request.getTotalAmount())
                 .build();
     }
-
-//    private String generateBookingCode() {
-//        String uuid = UUID.randomUUID().toString().replace("-", "").toUpperCase();
-//        return "BK-" + uuid.substring(0, 8) + "-" + LocalDateTime.now().getYear();
-//    }
 
 
     private BookingResponseDTO convertToBookingResponseDTO(Booking booking) {

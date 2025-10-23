@@ -21,4 +21,11 @@ public class FindServiceRequestDTO {
     private LocalDateTime bookingDate;
     private double latitudeUser;
     private double longitudeUser;
+
+
+    //Estimated
+    private BigDecimal estimatedPriceLower;
+    private BigDecimal estimatedPriceHigher;
+    private int estimatedDurationMinutes;
+
 }

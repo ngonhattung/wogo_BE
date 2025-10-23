@@ -1,0 +1,52 @@
+@startuml
+!include sequence-style.puml
+title Verify Payment Sequence Diagram (Business-Level, Unified Format)
+
+actor "Customer" as FE
+participant "<u>PaymentController" as Controller
+participant "SepayVerifyService" as SepayService
+participant "BookingService" as BookingService
+participant "WebSocketBroker" as Socket
+database "Database" as DB
+
+activate FE
+FE -> Controller : 1 Gửi yêu cầu kiểm tra thanh toán (POST /verify-payment/{bookingCode})
+activate Controller
+
+' --- Gọi service kiểm tra Sepay ---
+Controller -> SepayService : 1.1 checkTransactionForPayment(bookingCode)
+activate SepayService
+SepayService -> SepayService : 1.1.1 checkTransaction(keyword)
+note right of SepayService
+Lấy danh sách giao dịch gần nhất
+và kiểm tra content có chứa bookingCode.
+end note
+SepayService --> Controller : 1.1.2 Trả về boolean isPaid
+deactivate SepayService
+
+alt isPaid == true
+    ' --- Cập nhật trạng thái booking ---
+    Controller -> BookingService : 1.2 updateStatusBooking(PAID)
+    activate BookingService
+    BookingService -> DB : 1.2.1 UPDATE booking SET status='PAID'
+    activate DB
+    DB --> BookingService : 1.2.2 OK
+    deactivate DB
+    BookingService --> Controller : 1.2.3 OK
+    deactivate BookingService
+
+    ' --- Push realtime cho khách & thợ ---
+    Controller -> Socket : 1.3 convertAndSend("/topic/bookingStatus/{bookingCode}", PAID)
+    activate Socket
+    Socket --> Subscribers : 1.3.1 Gửi BookingStatus.PAID qua WebSocket
+    deactivate Socket
+
+    Controller --> FE : 1.4 Trả ApiResponse(true, "Payment verified successfully")
+else isPaid == false
+    Controller --> FE : 1.4 Trả ApiResponse(false, "Payment verification failed")
+end
+
+deactivate Controller
+deactivate FE
+
+@enduml

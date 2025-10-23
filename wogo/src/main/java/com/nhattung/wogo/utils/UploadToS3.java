@@ -26,7 +26,7 @@ public class UploadToS3 {
     private static final Set<String> ALLOWED_MIME_TYPES = Set.of(
             "image/jpeg", "image/png", "image/gif", "image/webp",
             "video/mp4", "video/mpeg", "video/quicktime", "video/x-msvideo",
-            "file/pdf"
+            "file/pdf","image/heic"
     );
     public UploadS3Response uploadFileToS3(MultipartFile file) {
         String fileName = UUID.randomUUID() + "_" + System.currentTimeMillis() + "_" + file.getOriginalFilename();

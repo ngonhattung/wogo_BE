@@ -142,7 +142,7 @@ public class BookingController {
                 .build();
     }
 
-    // Driver gửi GPS
+    // Driver gửi GPS mỗi 3s
     @PostMapping("/send-location/{bookingCode}")
     public ApiResponse<Void> sendLocation(@PathVariable String bookingCode,
                                           @RequestBody @Valid RealtimeLocationDTO request) {
@@ -208,6 +208,7 @@ public class BookingController {
                 .build();
     }
 
+    //FE call mỗi 3s một lần để check trạng thái thanh toán
     @PostMapping("/verify-payment/{bookingCode}")
     public ApiResponse<Boolean> verifyPayment(@PathVariable String bookingCode) {
         boolean isPaid = sepayVerifyService.checkTransactionForPayment(bookingCode);

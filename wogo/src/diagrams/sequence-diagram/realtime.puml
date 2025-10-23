@@ -1,0 +1,46 @@
+@startuml
+!include sequence-style.puml
+title Driver Send Location Sequence Diagram (Business-Level, Unified Format)
+
+actor "Worker (Driver)" as Worker
+participant "<u>UI" as View
+participant "<u>BookingController" as Controller
+participant "<u>BookingService" as BookingService
+participant "RedisTemplate" as Redis
+participant "WebSocketBroker" as Socket
+
+activate Worker
+Worker -> View : 1 Gửi tọa độ GPS (POST /send-location/{bookingCode})
+activate View
+
+View -> Controller : 1.1 POST /send-location/{bookingCode} (RealtimeLocationDTO)
+activate Controller
+Controller -> Controller : 1.1.1 setUpdatedAt(System.currentTimeMillis())
+
+' --- Gọi Service lưu vị trí vào Redis ---
+Controller -> BookingService : 1.1.2 saveLocation(bookingCode, request)
+activate BookingService
+BookingService -> Redis : 1.1.2.1 set(key, request)
+note right of Redis
+Lưu dữ liệu vị trí theo key:
+"realtime:location:{bookingCode}"
+end note
+activate Redis
+Redis --> BookingService : 1.1.2.2 OK
+deactivate Redis
+BookingService --> Controller : 1.1.3 Hoàn tất lưu vị trí
+deactivate BookingService
+
+' --- Gửi realtime cho khách hàng ---
+Controller -> Socket : 1.1.4 convertAndSend("/topic/driverLocation/{bookingCode}", request)
+activate Socket
+Socket --> Customer : 1.1.4.1 Gửi realtime vị trí mới của thợ
+deactivate Socket
+
+Controller --> View : 1.1.5 Trả ApiResponse("Location sent successfully")
+deactivate Controller
+View --> Worker : 1.1.6 Hiển thị "Vị trí đã được gửi thành công"
+deactivate View
+deactivate Worker
+
+@enduml

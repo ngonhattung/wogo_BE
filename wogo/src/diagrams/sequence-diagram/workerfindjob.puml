@@ -1,0 +1,93 @@
+@startuml
+!include sequence-style.puml
+title Worker Find Available Jobs Sequence Diagram (Business-Level, Unified Format)
+
+actor "Worker" as Worker
+participant "<u>UI" as View
+participant "<u>BookingController" as Controller
+participant "BookingService" as Service
+participant "WorkerWalletExpenseService" as WalletService
+participant "AddressService" as AddressService
+participant "ServiceService" as ServiceService
+participant "JobService" as JobService
+database "Database" as DB
+
+activate Worker
+Worker -> View : 1 Trượt để tìm việc
+activate View
+
+View -> Controller : 1.1 GET /job-available
+activate Controller
+Controller -> Service : 1.1.1 Gọi getListPendingJobsMatchWorker()
+activate Service
+
+' --- Kiểm tra ví chi phí ---
+Service -> WalletService : 1.1.1.1 Gọi getWalletByUserId()
+activate WalletService
+WalletService -> DB : 1.1.1.1.1 Truy vấn ví chi phí thợ
+activate DB
+DB --> WalletService : 1.1.1.1.2 WorkerWalletExpense entity
+deactivate DB
+WalletService --> Service : 1.1.1.2 Trả về ví chi phí
+deactivate WalletService
+
+Service -> Service : 1.1.1.3 Kiểm tra số dư ví >= MINIMUM_WALLET_BALANCE
+alt Số dư ví âm hơn MINIMUM_WALLET_BALANCE
+    Service -> Controller : 1.1.1.4a Ném lỗi WALLET_BALANCE_NOT_ENOUGH
+    Controller --> View : 1.1.1.4a.1 Trả lỗi "WALLET_BALANCE_NOT_ENOUGH"
+    note right of Controller
+    Luồng kết thúc nếu ví không đủ tiền.
+    end note
+else Số dư ví hợp lệ
+    ' --- Lấy địa chỉ của thợ ---
+    Service -> AddressService : 1.1.1.4b Tìm địa chỉ thợ theo userId
+    activate AddressService
+    AddressService -> DB : 1.1.1.4b.1 Truy vấn địa chỉ thợ
+    activate DB
+    DB --> AddressService : 1.1.1.4b.2 Address entity
+    deactivate DB
+    AddressService --> Service : 1.1.1.5 Trả về địa chỉ thợ
+    deactivate AddressService
+
+    ' --- Lấy danh sách service mà thợ có thể làm ---
+    Service -> ServiceService : 1.1.1.6 Lấy tất cả serviceId của thợ
+    activate ServiceService
+    ServiceService -> DB : 1.1.1.6.1 Truy vấn serviceId theo workerId
+    activate DB
+    DB --> ServiceService : 1.1.1.6.2 List<ServiceResponseDTO>
+    deactivate DB
+    ServiceService --> Service : 1.1.1.7 Trả về danh sách serviceIds
+    deactivate ServiceService
+
+    ' --- Kiểm tra danh sách service ---
+    Service -> Service : 1.1.1.8 Kiểm tra serviceIds có rỗng không
+    alt serviceIds rỗng
+        Service -> Controller : 1.1.1.9a Trả về danh sách rỗng
+        Controller --> View : 1.1.1.9a.1 Hiển thị “Không có công việc phù hợp”
+    else Có serviceIds
+        ' --- Lấy danh sách job theo serviceId ---
+        loop Theo từng serviceId
+            Service -> JobService : 1.1.1.9b Gọi getJobsByServiceId(serviceId)
+            activate JobService
+            JobService -> DB : 1.1.1.9b.1 Truy vấn job theo serviceId
+            activate DB
+            DB --> JobService : 1.1.1.9b.2 List<JobSummaryResponseDTO>
+            deactivate DB
+            JobService --> Service : 1.1.1.10 Trả danh sách job
+            deactivate JobService
+
+            ' --- Tính khoảng cách từ thợ đến job ---
+            Service -> Service : 1.1.1.11 setDistance(job, addressWorker)
+        end
+        Service --> Controller : 1.1.2 Trả danh sách JobSummaryResponseDTO
+    end
+end
+
+deactivate Service
+Controller --> View : 1.1.3 Trả ApiResponse<List<JobSummaryResponseDTO>>
+deactivate Controller
+View --> Worker : 1.1.4 Hiển thị danh sách việc phù hợp
+deactivate View
+deactivate Worker
+
+@enduml

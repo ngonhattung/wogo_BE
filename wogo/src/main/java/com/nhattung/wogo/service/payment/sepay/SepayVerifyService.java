@@ -88,17 +88,6 @@ public class SepayVerifyService implements ISepayVerifyService {
         );
     }
 
-    @Override
-    public CreateDepositResponseDTO createQRCodeForDeposit(Deposit deposit) {
-        return CreateDepositResponseDTO.builder()
-                .depositId(deposit.getId())
-                .qrCodeUrl(generateQRCode(
-                        deposit.getAmount().toString(),
-                        WogoConstants.TRANSACTION_DEPOSIT_CONTENT_PREFIX + SecurityUtils.getCurrentUserId()
-                ))
-                .build();
-    }
-
     private String generateQRCode(String amount, String description) {
         try {
             return String.format("https://qr.sepay.vn/img?acc=%s&bank=%s&amount=%s&des=%s",
@@ -110,5 +99,16 @@ public class SepayVerifyService implements ISepayVerifyService {
         } catch (Exception e) {
             throw new AppException(ErrorCode.QR_LINK_GENERATION_FAILED);
         }
+    }
+
+    @Override
+    public CreateDepositResponseDTO createQRCodeForDeposit(Deposit deposit) {
+        return CreateDepositResponseDTO.builder()
+                .depositId(deposit.getId())
+                .qrCodeUrl(generateQRCode(
+                        deposit.getAmount().toString(),
+                        WogoConstants.TRANSACTION_DEPOSIT_CONTENT_PREFIX + SecurityUtils.getCurrentUserId()
+                ))
+                .build();
     }
 }
