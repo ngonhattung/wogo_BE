@@ -9,4 +9,5 @@ public class UserResponseDTO {
     private String phone;
     private String fullName;
     private String avatarUrl;
+    private Long workerId;
 }
