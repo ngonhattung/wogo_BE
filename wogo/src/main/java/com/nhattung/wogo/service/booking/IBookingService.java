@@ -19,6 +19,7 @@ public interface IBookingService {
     double haversine(HaversineRequestDTO request);
 
     WorkerQuoteResponseDTO sendQuote(SendQuoteRequestDTO request);
+    BookingResponseDTO negotiatePrice(NegotiatePriceRequestDTO request);
     BookingResponseDTO confirmPrice(ConfirmPriceRequestDTO request);
     BookingResponseDTO placeJob(PlaceJobRequestDTO request);
 

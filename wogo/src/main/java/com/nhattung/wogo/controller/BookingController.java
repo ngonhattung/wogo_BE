@@ -183,16 +183,36 @@ public class BookingController {
                 .build();
     }
 
+    //thợ call sau khi tới nhà
+    @PostMapping("/negotiate-price")
+    public ApiResponse<BookingResponseDTO> negotiatePrice(@RequestBody NegotiatePriceRequestDTO request) {
 
-    @PostMapping("/confirm-price")
-    public ApiResponse<BookingResponseDTO> confirmPrice(@RequestBody ConfirmPriceRequestDTO request) {
-
-        BookingResponseDTO booking = bookingService.confirmPrice(request);
+        BookingResponseDTO booking = bookingService.negotiatePrice(request);
 
         //Push realtime cho khách hàng
         messagingTemplate.convertAndSend(
-                "/topic/confirmPrice/" + request.getBookingCode(), request
+                "/topic/negotiatePrice/" + request.getBookingCode(), request
         );
+
+        return ApiResponse.<BookingResponseDTO>builder()
+                .message("Confirm price successfully")
+                .result(booking)
+                .build();
+    }
+
+
+    //khách bấm đồng ý hoặc từ chối
+    @PostMapping("/confirm-price")
+    public ApiResponse<BookingResponseDTO> confirmPrice(@RequestBody ConfirmPriceRequestDTO request) {
+
+
+        if(!request.isAcceptTerms()){
+            return ApiResponse.<BookingResponseDTO>builder()
+                    .message("You must accept the terms and conditions")
+                    .build();
+        }
+
+        BookingResponseDTO booking = bookingService.confirmPrice(request);
 
         return ApiResponse.<BookingResponseDTO>builder()
                 .message("Confirm price successfully")

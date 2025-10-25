@@ -49,19 +49,19 @@ public class WalletTransaction {
     private BookingPayment payment;
 
     @OneToOne
-    @JoinColumn(name = "deposit_id", nullable = false)
+    @JoinColumn(name = "deposit_id")
     private Deposit deposit;
 
     @OneToOne
-    @JoinColumn(name = "withdrawal_id", nullable = false)
+    @JoinColumn(name = "withdrawal_id")
     private Withdrawal withdrawal;
 
     @ManyToOne
-    @JoinColumn(name = "walletRevenue_id", nullable = false)
+    @JoinColumn(name = "walletRevenue_id")
     private WorkerWalletRevenue walletRevenue;
 
     @ManyToOne
-    @JoinColumn(name = "walletExpense_id", nullable = false)
+    @JoinColumn(name = "walletExpense_id")
     private WorkerWalletExpense walletExpense;
 
 }

@@ -5,9 +5,8 @@ import lombok.Data;
 import java.math.BigDecimal;
 
 @Data
-public class ConfirmPriceRequestDTO {
+public class NegotiatePriceRequestDTO {
     private String bookingCode;
     private BigDecimal finalPrice;
     private String notes;
-    private boolean acceptTerms;
 }

@@ -244,6 +244,21 @@ public class BookingService implements IBookingService {
 
     }
 
+    @Override
+    public BookingResponseDTO negotiatePrice(NegotiatePriceRequestDTO request) {
+        Booking booking = bookingRepository.findByBookingCode(request.getBookingCode())
+                .orElseThrow(() -> new AppException(ErrorCode.BOOKING_NOT_FOUND));
+
+        if (booking.getBookingStatus() != BookingStatus.ARRIVED) {
+            throw new AppException(ErrorCode.BOOKING_CANNOT_CONFIRM_PRICE);
+        }
+
+        booking.setBookingStatus(BookingStatus.NEGOTIATING);
+        Booking bookingSaved = bookingRepository.save(booking);
+
+        return convertToBookingResponseDTO(bookingRepository.save(bookingSaved));
+    }
+
 
     private String generateCodeForChat(String jobRequestCode, Long workerId, Long userId) {
         return "job:" + jobRequestCode + ":worker:" + workerId + ":user:" + userId;
@@ -378,7 +393,8 @@ public class BookingService implements IBookingService {
     @Override
     public TransactionResponseDTO createBookingTransaction(String bookingCode) {
 
-        Booking booking = bookingRepository.findByBookingCode(bookingCode).orElseThrow(() -> new AppException(ErrorCode.BOOKING_NOT_FOUND));
+        Booking booking = bookingRepository.findByBookingCode(bookingCode)
+                .orElseThrow(() -> new AppException(ErrorCode.BOOKING_NOT_FOUND));
 
         if (booking.getTotalAmount() == null || booking.getTotalAmount().doubleValue() <= 0) {
             throw new AppException(ErrorCode.INVALID_BOOKING_AMOUNT);
@@ -386,12 +402,14 @@ public class BookingService implements IBookingService {
 
         WorkerWalletRevenue walletRevenue = workerWalletRevenueService.getWalletByUserId();
 
-        BigDecimal workerAmount = booking.getTotalAmount().subtract(booking.getPlatformFee());
+        BigDecimal workerAmount = booking.getTotalAmount()
+                .subtract(booking.getPlatformFee());
 
         walletTransactionService.saveWalletTransaction(WalletTransactionRequestDTO.builder()
                 .amount(booking.getTotalAmount())
                 .transactionType(TransactionType.PAYMENT)
-                .status(PaymentStatus.PENDING).description("Payment for booking: " + booking.getBookingCode())
+                .status(PaymentStatus.PENDING)
+                .description("Payment for booking: " + booking.getBookingCode())
                 .payment(booking.getBookingPayment())
                 .walletRevenue(walletRevenue)
                 .balanceBefore(walletRevenue.getRevenueBalance())
@@ -400,7 +418,10 @@ public class BookingService implements IBookingService {
 
         String linkQR = sepayVerifyService.createQRCodeForPayment(booking);
 
-        return TransactionResponseDTO.builder().linkTransaction(linkQR).transactionStatus(false).build();
+        return TransactionResponseDTO.builder()
+                .linkTransaction(linkQR)
+                .transactionStatus(false)
+                .build();
     }
 
     @Override
@@ -432,8 +453,6 @@ public class BookingService implements IBookingService {
         }
 
         return convertToBookingResponseDTO(bookingRepository.save(bookingSaved));
-
-
     }
 
     @Override
