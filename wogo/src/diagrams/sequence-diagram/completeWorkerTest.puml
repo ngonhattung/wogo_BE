@@ -17,7 +17,7 @@ activate View
 
 View -> Controller : 1.1 POST /completeWorkerTest(request)
 activate Controller
-Controller -> Service : 1.1.1 Gọi completeWorkerTest(request)
+Controller -> Service : 1.1.1 completeWorkerTest(request)
 activate Service
 
 Service -> TestService : 1.1.1.1 Lấy bài test theo testId

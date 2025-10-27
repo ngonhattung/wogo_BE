@@ -34,6 +34,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.Collections;
@@ -249,14 +250,12 @@ public class BookingService implements IBookingService {
         Booking booking = bookingRepository.findByBookingCode(request.getBookingCode())
                 .orElseThrow(() -> new AppException(ErrorCode.BOOKING_NOT_FOUND));
 
-        if (booking.getBookingStatus() != BookingStatus.ARRIVED) {
-            throw new AppException(ErrorCode.BOOKING_CANNOT_CONFIRM_PRICE);
+        if (booking.getBookingStatus() == BookingStatus.ARRIVED) {
+            booking.setBookingStatus(BookingStatus.NEGOTIATING);
+            booking = bookingRepository.save(booking);
         }
 
-        booking.setBookingStatus(BookingStatus.NEGOTIATING);
-        Booking bookingSaved = bookingRepository.save(booking);
-
-        return convertToBookingResponseDTO(bookingRepository.save(bookingSaved));
+        return convertToBookingResponseDTO(booking);
     }
 
 
@@ -426,33 +425,42 @@ public class BookingService implements IBookingService {
 
     @Override
     public BookingResponseDTO confirmPrice(ConfirmPriceRequestDTO request) {
-
+        // Lấy booking
         Booking booking = bookingRepository.findByBookingCode(request.getBookingCode())
                 .orElseThrow(() -> new AppException(ErrorCode.BOOKING_NOT_FOUND));
 
-        if (booking.getBookingStatus() != BookingStatus.ARRIVED) {
+        // Nếu người dùng chưa chấp nhận điều khoản -> chỉ trả về booking hiện tại, không cập nhật gì
+        if (!request.isAcceptTerms()) {
+            return convertToBookingResponseDTO(booking);
+        }
+
+        // Kiểm tra trạng thái booking
+        if (booking.getBookingStatus() != BookingStatus.NEGOTIATING) {
             throw new AppException(ErrorCode.BOOKING_CANNOT_CONFIRM_PRICE);
         }
 
+        // Tính phí nền tảng
         BigDecimal platformFee = booking.getTotalAmount()
                 .multiply(BigDecimal.valueOf(WogoConstants.PLATFORM_FEE_PERCENTAGE))
-                .setScale(2, BigDecimal.ROUND_HALF_UP);
+                .setScale(2, RoundingMode.HALF_UP);
 
         booking.setPlatformFee(platformFee);
         booking.setTotalAmount(request.getFinalPrice());
         booking.setExtraServicesNotes(request.getNotes());
-        booking.setBookingStatus(BookingStatus.NEGOTIATING);
 
-        Booking bookingSaved = bookingRepository.save(booking);
+        // Lưu booking sau khi cập nhật
+        Booking savedBooking = bookingRepository.save(booking);
 
-        if (bookingSaved.getBookingPayment() == null) {
+        // Nếu chưa có payment thì tạo mới
+        if (savedBooking.getBookingPayment() == null) {
             paymentService.savePayment(PaymentRequestDTO.builder()
-                    .booking(bookingSaved)
-                    .amount(booking.getTotalAmount())
+                    .booking(savedBooking)
+                    .amount(savedBooking.getTotalAmount())
                     .build());
         }
 
-        return convertToBookingResponseDTO(bookingRepository.save(bookingSaved));
+        // Trả về thông tin booking sau khi cập nhật
+        return convertToBookingResponseDTO(savedBooking);
     }
 
     @Override
