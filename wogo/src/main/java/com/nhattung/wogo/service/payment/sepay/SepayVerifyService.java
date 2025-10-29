@@ -6,7 +6,6 @@ import com.nhattung.wogo.entity.Booking;
 import com.nhattung.wogo.entity.Deposit;
 import com.nhattung.wogo.enums.ErrorCode;
 import com.nhattung.wogo.exception.AppException;
-import com.nhattung.wogo.service.payment.IPaymentService;
 import com.nhattung.wogo.utils.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -51,12 +50,34 @@ public class SepayVerifyService implements ISepayVerifyService {
         for (Map<String, Object> txn : transactions) {
             String content = (String) txn.get("transaction_content");
 
-            if (content == null || content.isEmpty() || "null".equals(content)) {
+            if (content == null || content.isEmpty() || "null".equalsIgnoreCase(content)) {
                 continue;
             }
 
-            String[] parts = content.split("\\.", 5); // split tối đa 5 phần
-            if (parts.length > 3 && keyword.equals(parts[3])) {
+            // Chuẩn hóa chuỗi (xóa khoảng trắng thừa)
+            content = content.trim();
+
+            // Thử tách bằng cả dấu chấm và dấu gạch ngang
+            String[] partsDot = content.split("\\.", 5);
+            String[] partsDash = content.split("-", 5);
+
+            // Kiểm tra từng phần sau khi tách
+            if (containsKeyword(partsDot, keyword) || containsKeyword(partsDash, keyword)) {
+                return true;
+            }
+
+            // Nếu vẫn không thấy, thử kiểm tra toàn bộ chuỗi (phòng khi không có dấu phân cách)
+            if (content.contains(keyword)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // Hàm phụ kiểm tra keyword có trong mảng phần tách
+    private boolean containsKeyword(String[] parts, String keyword) {
+        for (String part : parts) {
+            if (part != null && part.trim().equalsIgnoreCase(keyword)) {
                 return true;
             }
         }

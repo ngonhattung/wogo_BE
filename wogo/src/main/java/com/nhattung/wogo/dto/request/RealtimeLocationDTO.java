@@ -1,11 +1,14 @@
 package com.nhattung.wogo.dto.request;
 
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
-import org.hibernate.annotations.UpdateTimestamp;
+import lombok.NoArgsConstructor;
 
 @Data
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class RealtimeLocationDTO {
     private double latitude;
     private double longitude;

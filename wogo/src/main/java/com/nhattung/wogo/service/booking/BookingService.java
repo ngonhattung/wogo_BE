@@ -16,7 +16,6 @@ import com.nhattung.wogo.service.payment.IPaymentService;
 import com.nhattung.wogo.service.payment.sepay.SepayVerifyService;
 import com.nhattung.wogo.service.sendquote.ISendQuoteService;
 import com.nhattung.wogo.service.serviceWG.IServiceService;
-import com.nhattung.wogo.service.serviceWG.suggest.ISuggestService;
 import com.nhattung.wogo.service.user.IUserService;
 import com.nhattung.wogo.service.user.address.IAddressService;
 import com.nhattung.wogo.service.wallet.expense.IWorkerWalletExpenseService;
@@ -323,7 +322,7 @@ public class BookingService implements IBookingService {
 
         booking.setBookingStatus(request.getStatus());
 
-        if (request.getPaymentMethod() != null && request.getStatus() == BookingStatus.COMPLETED) {
+        if (request.getPaymentMethod() != null && request.getStatus() == BookingStatus.PAID) {
             handlePaymentAndWallet(booking, request);
         }
 
@@ -405,21 +404,21 @@ public class BookingService implements IBookingService {
             throw new AppException(ErrorCode.INVALID_BOOKING_AMOUNT);
         }
 
-//        WorkerWalletRevenue walletRevenue = workerWalletRevenueService.getWalletByUserId();
-//
-//        BigDecimal workerAmount = booking.getTotalAmount()
-//                .subtract(booking.getPlatformFee());
+        WorkerWalletRevenue walletRevenue = workerWalletRevenueService.getWalletByUserId();
 
-//        walletTransactionService.saveWalletTransaction(WalletTransactionRequestDTO.builder()
-//                .amount(booking.getTotalAmount())
-//                .transactionType(TransactionType.PAYMENT)
-//                .status(PaymentStatus.PENDING)
-//                .description("Payment for booking: " + booking.getBookingCode())
-//                .payment(booking.getBookingPayment())
-//                .walletRevenue(walletRevenue)
-//                .balanceBefore(walletRevenue.getRevenueBalance())
-//                .balanceAfter(walletRevenue.getRevenueBalance().add(workerAmount))
-//                .build());
+        BigDecimal workerAmount = booking.getTotalAmount()
+                .subtract(booking.getPlatformFee());
+
+        walletTransactionService.saveWalletTransaction(WalletTransactionRequestDTO.builder()
+                .amount(booking.getTotalAmount())
+                .transactionType(TransactionType.PAYMENT)
+                .status(PaymentStatus.PENDING)
+                .description("Payment for booking: " + booking.getBookingCode())
+                .payment(booking.getBookingPayment())
+                .walletRevenue(walletRevenue)
+                .balanceBefore(walletRevenue.getRevenueBalance())
+                .balanceAfter(walletRevenue.getRevenueBalance().add(workerAmount))
+                .build());
 
         String linkQR = sepayVerifyService.createQRCodeForPayment(booking);
 

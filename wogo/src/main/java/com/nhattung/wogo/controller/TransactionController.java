@@ -12,9 +12,13 @@ import com.nhattung.wogo.enums.PaymentStatus;
 import com.nhattung.wogo.service.payment.sepay.ISepayVerifyService;
 import com.nhattung.wogo.service.transaction.deposit.IDepositService;
 import com.nhattung.wogo.service.transaction.withdrawal.IWithdrawalService;
+import com.nhattung.wogo.service.wallet.expense.IWorkerWalletExpenseService;
+import com.nhattung.wogo.service.wallet.revenue.IWorkerWalletRevenueService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.bind.annotation.*;
+
+import java.math.BigDecimal;
 
 @RestController
 @RequiredArgsConstructor
@@ -22,9 +26,29 @@ import org.springframework.web.bind.annotation.*;
 public class TransactionController {
 
     private final IWithdrawalService withdrawalService;
+    private final IWorkerWalletRevenueService walletRevenueService;
+    private final IWorkerWalletExpenseService walletExpenseService;
     private final IDepositService depositService;
     private final ISepayVerifyService sepayVerifyService;
     private final SimpMessagingTemplate messagingTemplate;
+
+
+    @GetMapping("/walletRevenueBalance")
+    public ApiResponse<BigDecimal> getWalletRevenueBalance() {
+        return ApiResponse.<BigDecimal>builder()
+                .message("Wallet revenue balance retrieved successfully")
+                .result(walletRevenueService.getWalletByUserId().getRevenueBalance())
+                .build();
+    }
+
+    @GetMapping("/walletExpenseBalance")
+    public ApiResponse<BigDecimal> getWalletExpenseBalance() {
+        return ApiResponse.<BigDecimal>builder()
+                .message("Wallet expense balance retrieved successfully")
+                .result(walletExpenseService.getWalletByUserId().getExpenseBalance())
+                .build();
+    }
+
 
     @PostMapping("/withdrawals")
     public ApiResponse<WithdrawalResponseDTO> createWithdrawal(@RequestBody WithdrawalRequestDTO request) {
