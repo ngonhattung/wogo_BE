@@ -24,7 +24,7 @@ public interface IBookingService {
     BookingResponseDTO placeJob(PlaceJobRequestDTO request);
 
     RealtimeLocationDTO getLocation(String bookingCode);
-    List<BookingHistoryResponseDTO> getBookingHistory();
+    List<BookingHistoryResponseDTO> getBookingHistory(boolean isWorker);
     List<JobSummaryResponseDTO> getListPendingJobsMatchWorker();
     Booking getBookingById(Long id);
     BookingResponseDTO getBookingByBookingCode(String bookingCode);

@@ -254,10 +254,11 @@ public class BookingController {
     }
 
     @GetMapping("/history")
-    public ApiResponse<List<BookingHistoryResponseDTO>> getBookingHistory() {
+    public ApiResponse<List<BookingHistoryResponseDTO>> getBookingHistory(
+            @RequestParam(name = "isWorker", defaultValue = "false") boolean isWorker) {
         return ApiResponse.<List<BookingHistoryResponseDTO>>builder()
                 .message("Booking history retrieved successfully")
-                .result(bookingService.getBookingHistory())
+                .result(bookingService.getBookingHistory(isWorker))
                 .build();
     }
 

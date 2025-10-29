@@ -307,7 +307,13 @@ public class BookingService implements IBookingService {
     @Override
     public RealtimeLocationDTO getLocation(String bookingCode) {
         String key = RedisKeyUtil.realtimeLocationKey(bookingCode);
-        return (RealtimeLocationDTO) redisTemplate.opsForValue().get(key);
+        Object locationObj = redisTemplate.opsForValue().get(key);
+
+        if (locationObj == null) {
+            return null;
+        }
+
+        return modelMapper.map(locationObj, RealtimeLocationDTO.class);
     }
 
     @Override
@@ -399,21 +405,21 @@ public class BookingService implements IBookingService {
             throw new AppException(ErrorCode.INVALID_BOOKING_AMOUNT);
         }
 
-        WorkerWalletRevenue walletRevenue = workerWalletRevenueService.getWalletByUserId();
+//        WorkerWalletRevenue walletRevenue = workerWalletRevenueService.getWalletByUserId();
+//
+//        BigDecimal workerAmount = booking.getTotalAmount()
+//                .subtract(booking.getPlatformFee());
 
-        BigDecimal workerAmount = booking.getTotalAmount()
-                .subtract(booking.getPlatformFee());
-
-        walletTransactionService.saveWalletTransaction(WalletTransactionRequestDTO.builder()
-                .amount(booking.getTotalAmount())
-                .transactionType(TransactionType.PAYMENT)
-                .status(PaymentStatus.PENDING)
-                .description("Payment for booking: " + booking.getBookingCode())
-                .payment(booking.getBookingPayment())
-                .walletRevenue(walletRevenue)
-                .balanceBefore(walletRevenue.getRevenueBalance())
-                .balanceAfter(walletRevenue.getRevenueBalance().add(workerAmount))
-                .build());
+//        walletTransactionService.saveWalletTransaction(WalletTransactionRequestDTO.builder()
+//                .amount(booking.getTotalAmount())
+//                .transactionType(TransactionType.PAYMENT)
+//                .status(PaymentStatus.PENDING)
+//                .description("Payment for booking: " + booking.getBookingCode())
+//                .payment(booking.getBookingPayment())
+//                .walletRevenue(walletRevenue)
+//                .balanceBefore(walletRevenue.getRevenueBalance())
+//                .balanceAfter(walletRevenue.getRevenueBalance().add(workerAmount))
+//                .build());
 
         String linkQR = sepayVerifyService.createQRCodeForPayment(booking);
 
@@ -464,8 +470,8 @@ public class BookingService implements IBookingService {
     }
 
     @Override
-    public List<BookingHistoryResponseDTO> getBookingHistory() {
-        List<Object[]> results = historyRepository.findBookingHistoryByUser(SecurityUtils.getCurrentUserId());
+    public List<BookingHistoryResponseDTO> getBookingHistory(boolean isWorker) {
+        List<Object[]> results = historyRepository.findBookingHistoryByUser(SecurityUtils.getCurrentUserId(),isWorker);
         return results.stream()
                 .map(r -> new BookingHistoryResponseDTO(
                         (String) r[0],

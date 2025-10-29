@@ -14,7 +14,6 @@ import org.springframework.stereotype.Service;
 public class WorkerWalletRevenueService implements IWorkerWalletRevenueService {
 
     private final WorkerWalletRevenueRepository workerWalletRevenueRepository;
-    private final ModelMapper modelMapper;
     @Override
     public void saveWorkerWalletRevenue(WorkerWalletRevenueRequestDTO request) {
         WorkerWalletRevenue walletRevenue = WorkerWalletRevenue.builder()

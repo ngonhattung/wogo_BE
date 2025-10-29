@@ -66,7 +66,7 @@ public class JobService implements IJobService {
 
     private String generateJobRequestCode() {
         String uuid = UUID.randomUUID().toString().replace("-", "").toUpperCase();
-        return "JR-" + uuid.substring(0, 8) + "-" + LocalDateTime.now().getYear();
+        return "JR" + uuid.substring(0, 8) + LocalDateTime.now().getYear();
     }
 
     @Override
