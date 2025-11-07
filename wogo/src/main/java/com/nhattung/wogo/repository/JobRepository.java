@@ -17,10 +17,23 @@ public interface JobRepository extends JpaRepository<Job, Long> {
     Optional<Job> findValidJobByJobRequestCode(String jobRequestCode, LocalDateTime now);
 
     @Query("""
-                SELECT j
-                FROM Job j
-                WHERE j.user.id = :userId
-                  AND (:status = 'ALL' OR j.status = :status)
+        SELECT j
+        FROM Job j
+        LEFT JOIN Booking b
+          ON b.bookingCode = j.jobRequestCode
+        WHERE j.user.id = :userId
+          AND (
+               :status = 'ALL'
+               OR j.status = :status
+              )
+          AND NOT (
+               j.status = 'ACCEPTED'
+               AND b.bookingStatus IN (
+                    com.nhattung.wogo.enums.BookingStatus.CANCELLED,
+                    com.nhattung.wogo.enums.BookingStatus.COMPLETED
+               )
+              )
+        ORDER BY j.createdAt DESC
             """)
     Optional<List<Job>> findValidJobsByUserId(Long userId,JobRequestStatus status);
 

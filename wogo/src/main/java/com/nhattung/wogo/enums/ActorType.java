@@ -1,7 +1,7 @@
 package com.nhattung.wogo.enums;
 
-public enum Canceller {
-    USER,
+public enum ActorType {
+    CUSTOMER,
     WORKER,
     SYSTEM
 }

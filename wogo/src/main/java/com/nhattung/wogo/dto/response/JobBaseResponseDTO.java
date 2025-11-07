@@ -1,6 +1,6 @@
 package com.nhattung.wogo.dto.response;
 
-import com.nhattung.wogo.enums.Canceller;
+import com.nhattung.wogo.enums.ActorType;
 import com.nhattung.wogo.enums.JobRequestStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -25,11 +25,10 @@ public class JobBaseResponseDTO {
     private String bookingAddress;
     private BigDecimal estimatedPriceLower;
     private BigDecimal estimatedPriceHigher;
-    private int estimatedDurationMinutes;
     private JobRequestStatus status;
     private List<JobFileResponseDTO> files;
     private UserResponseDTO user;
     private ServiceResponseDTO service;
     private String cancelReason;
-    private Canceller cancelledBy;
+    private ActorType cancelledBy;
 }

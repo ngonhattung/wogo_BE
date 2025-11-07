@@ -22,9 +22,9 @@ Controller -> Service : 1.1.1 Gọi createJob(request, files)
 activate Service
 
 ' --- Kiểm tra job pending ---
-Service -> JobService : 1.1.1.1 Lấy danh sách Job PENDING của user
+Service -> JobService : 1.1.1.1 getJobsByUserIdByStatus(JobRequestStatus.PENDING)
 activate JobService
-JobService -> DB : 1.1.1.1.1 Truy vấn jobs theo userId & status = PENDING
+JobService -> DB : 1.1.1.1.1 get jobs theo userId & status = PENDING
 activate DB
 DB --> JobService : 1.1.1.1.2 Danh sách JobResponseDTO
 deactivate DB
@@ -41,7 +41,7 @@ alt Đã tồn tại job PENDING
     end note
 else Không có job trùng
     ' --- Lưu địa chỉ khách hàng ---
-    Service -> AddressService : 1.1.1.4b Lưu hoặc cập nhật địa chỉ khách hàng
+    Service -> AddressService : 1.1.1.4b addressService.saveOrUpdateAddress(AddressRequestDTO)
     activate AddressService
     AddressService -> DB : 1.1.1.4b.1 INSERT/UPDATE address
     activate DB
@@ -51,7 +51,7 @@ else Không có job trùng
     deactivate AddressService
 
     ' --- Lưu job ---
-    Service -> JobService : 1.1.1.6 Tạo Job mới (saveJob)
+    Service -> JobService : 1.1.1.6 jobService.saveJob(CreateJobRequestDTO)
     activate JobService
     JobService -> DB : 1.1.1.6.1 INSERT INTO jobs (...)
     activate DB
@@ -61,7 +61,7 @@ else Không có job trùng
     deactivate JobService
 
     ' --- Lưu thông báo ---
-    Service -> NotiService : 1.1.1.8 Lưu Notification
+    Service -> NotiService : 1.1.1.8 notificationService.saveNotification(NotificationRequestDTO)
     activate NotiService
     NotiService -> DB : 1.1.1.8.1 INSERT Notification
     activate DB

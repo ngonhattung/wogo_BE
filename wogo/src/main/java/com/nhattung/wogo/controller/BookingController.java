@@ -3,6 +3,8 @@ package com.nhattung.wogo.controller;
 import com.nhattung.wogo.dto.request.*;
 import com.nhattung.wogo.dto.request.SendQuoteRequestDTO;
 import com.nhattung.wogo.dto.response.*;
+import com.nhattung.wogo.entity.Booking;
+import com.nhattung.wogo.enums.ActorType;
 import com.nhattung.wogo.enums.BookingStatus;
 import com.nhattung.wogo.service.booking.IBookingService;
 import com.nhattung.wogo.service.job.JobService;
@@ -25,15 +27,6 @@ public class BookingController {
     private final SimpMessagingTemplate messagingTemplate;
     private final ISepayVerifyService sepayVerifyService;
     private final JobService jobService;
-
-
-    @GetMapping("/getByCode/{bookingCode}")
-    public ApiResponse<BookingResponseDTO> getJobByJobRequestCode(@PathVariable String bookingCode) {
-        return ApiResponse.<BookingResponseDTO>builder()
-                .message("Job request retrieved successfully")
-                .result(bookingService.getBookingByBookingCode(bookingCode))
-                .build();
-    }
 
     @PostMapping("/create-job")
     public ApiResponse<JobResponseDTO> findWorkers(@Valid @ModelAttribute FindServiceRequestDTO request,
@@ -68,9 +61,6 @@ public class BookingController {
     @PostMapping("/send-quote")
     public ApiResponse<WorkerQuoteResponseDTO> sendQuote(@RequestBody SendQuoteRequestDTO request) {
 
-
-        Long workerId = SecurityUtils.getCurrentUserId();
-
         //Lưu thêm địa chỉ thợ cho trường hợp realtime
 
         boolean isValid = bookingService.verifyJobRequest(request);
@@ -92,7 +82,7 @@ public class BookingController {
                     .build();
         }else {
             //subscribe ngay khi connect với socket
-            messagingTemplate.convertAndSendToUser(workerId.toString(), "/queue/errors",
+            messagingTemplate.convertAndSendToUser(SecurityUtils.getCurrentUserId().toString(), "/queue/errors",
                     "Job is not available");
             return ApiResponse.<WorkerQuoteResponseDTO>builder()
                     .message("Job request is no longer available")
@@ -127,18 +117,28 @@ public class BookingController {
     }
 
     @PostMapping("/cancel-job")
-    public ApiResponse<Void> cancelJob(@RequestBody PlaceJobRequestDTO request) {
+    public ApiResponse<Void> cancelJob(@RequestBody CancelJobRequestDTO request) {
 
-        //Sau 2p nếu khách không quyết định tự cancel
+
+        jobService.updateStatusCancelJob(request.getReason(), ActorType.CUSTOMER, request.getJobRequestCode());
+
         //Push realtime cho tất cả thợ là job đã bị huỷ (subscribe theo requestCode (để gửi cho tất cả thợ báo giá) ngay sau khi gửi quote )
         messagingTemplate.convertAndSend(
-                "/topic/job-placed/" + request.getJobRequestCode(),
+                "/topic/job-canceled/" + request.getJobRequestCode(),
                 "Job has been cancelled"
         );
 
 
         return ApiResponse.<Void>builder()
                 .message("Cancel job successfully")
+                .build();
+    }
+
+    @GetMapping("/getByCode/{bookingCode}")
+    public ApiResponse<BookingResponseDTO> getJobByJobRequestCode(@PathVariable String bookingCode) {
+        return ApiResponse.<BookingResponseDTO>builder()
+                .message("Job request retrieved successfully")
+                .result(bookingService.getBookingByBookingCode(bookingCode))
                 .build();
     }
 
@@ -259,6 +259,31 @@ public class BookingController {
         return ApiResponse.<List<BookingHistoryResponseDTO>>builder()
                 .message("Booking history retrieved successfully")
                 .result(bookingService.getBookingHistory(isWorker))
+                .build();
+    }
+
+    @PostMapping("/cancel-booking")
+    public ApiResponse<Void> cancelBooking(@RequestBody CancelBookingRequestDTO request) {
+
+        Booking booking = bookingService.cancelBooking(request);
+
+        if(request.getCanceller().equals(ActorType.CUSTOMER))
+        {
+            //Push realtime cho thợ đã được chọn (subscribe theo workerId để gửi riêng cho thợ đó)
+            messagingTemplate.convertAndSend(
+                    "/topic/cancel-job/" + booking.getUser().getId(),
+                    booking
+            );
+        }
+
+        //Push realtime cho thợ đã được chọn (subscribe theo workerId để gửi riêng cho thợ đó)
+        messagingTemplate.convertAndSend(
+                "/topic/cancel-job/" + booking.getWorker().getId(),
+                booking
+        );
+
+        return ApiResponse.<Void>builder()
+                .message("Booking cancelled successfully")
                 .build();
     }
 

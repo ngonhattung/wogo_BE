@@ -13,7 +13,7 @@ import com.nhattung.wogo.entity.RefreshToken;
 import com.nhattung.wogo.repository.RefreshTokenRepository;
 import com.nhattung.wogo.security.jwt.JwtUtils;
 import com.nhattung.wogo.security.user.WogoUserDetailsService;
-import com.nhattung.wogo.service.user.UserService;
+import com.nhattung.wogo.service.user.IUserService;
 import com.nhattung.wogo.utils.SecurityUtils;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -23,10 +23,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RequiredArgsConstructor
 @RestController
@@ -36,7 +33,7 @@ public class AuthController {
     private final AuthenticationManager authenticationManager;
     private final WogoUserDetailsService userDetailsService;
     private final JwtUtils jwtUtils;
-    private final UserService authService;
+    private final IUserService authService;
     private final RefreshTokenRepository refreshTokenRepository;
 
     @PostMapping("/signup")
@@ -134,5 +131,23 @@ public class AuthController {
                     .message("Logout failed! " + e.getMessage())
                     .build();
         }
+    }
+
+    @GetMapping("/isExistPhone")
+    public ApiResponse<Boolean> isExistPhone(@RequestParam String phone) {
+        boolean isExist = authService.isPhoneExist(phone);
+        return ApiResponse.<Boolean>builder()
+                .message("Check phone existence success!")
+                .result(isExist)
+                .build();
+    }
+
+    @PostMapping("/updatePassword")
+    public ApiResponse<Boolean> updatePassword(@RequestParam String phone, @RequestParam String newPassword) {
+        boolean isUpdated = authService.updatePasswordByPhone(phone, newPassword);
+        return ApiResponse.<Boolean>builder()
+                .message("Update password success!")
+                .result(isUpdated)
+                .build();
     }
 }

@@ -1,14 +1,13 @@
 package com.nhattung.wogo.entity;
 
-import com.nhattung.wogo.enums.PaymentMethod;
-import com.nhattung.wogo.enums.PaymentStatus;
+import com.nhattung.wogo.enums.ActorType;
+import com.nhattung.wogo.enums.BookingStatus;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
-import java.math.BigDecimal;
 import java.sql.Timestamp;
-import java.time.LocalDateTime;
 
 @Getter
 @Setter
@@ -16,29 +15,32 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @Builder
 @Entity
-public class BookingPayment {
+public class BookingStatusHistory {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    private BigDecimal totalAmount;
 
     @Enumerated(EnumType.STRING)
-    private PaymentStatus paymentStatus;
+    private BookingStatus oldStatus;
 
     @Enumerated(EnumType.STRING)
-    private PaymentMethod paymentMethod;
+    private BookingStatus newStatus;
 
-    private LocalDateTime paidAt;
+    private Long changedByUserId;
+
+    @Enumerated(EnumType.STRING)
+    private ActorType changedBy;
+
+    private String changeReason;
 
     @CreationTimestamp
     private Timestamp createdAt;
 
-    @OneToOne
+    @UpdateTimestamp
+    private Timestamp changedAt;
+
+    @ManyToOne
     @JoinColumn(name = "booking_id", nullable = false)
     private Booking booking;
-
-    @OneToOne(mappedBy = "payment", cascade = CascadeType.ALL, orphanRemoval = true)
-    private WalletTransaction walletTransaction;
-
 }

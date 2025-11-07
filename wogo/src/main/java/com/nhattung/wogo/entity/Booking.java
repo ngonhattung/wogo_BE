@@ -1,5 +1,6 @@
 package com.nhattung.wogo.entity;
 
+import com.nhattung.wogo.enums.ActorType;
 import com.nhattung.wogo.enums.BookingStatus;
 import jakarta.persistence.*;
 import lombok.*;
@@ -35,9 +36,12 @@ public class Booking {
     private LocalDateTime startDate;
     private LocalDateTime endDate;
     private String bookingAddress;
-    private int durationMinutes;
     private double distanceKm;
     private String extraServicesNotes;
+    private String cancelReason;
+
+    @Enumerated(EnumType.STRING)
+    private ActorType cancelledBy;
 
 
     @CreationTimestamp
@@ -57,16 +61,19 @@ public class Booking {
     @JoinColumn(name = "service_id", nullable = false)
     private ServiceWG service;
 
-    @OneToMany(mappedBy = "booking", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Review> reviews;
+    @OneToOne(mappedBy = "booking", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Review review;
 
     @OneToMany(mappedBy = "booking", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Promotion> promotions;
 
     @OneToOne(mappedBy = "booking", cascade = CascadeType.ALL, orphanRemoval = true)
-    private BookingPayment bookingPayment;
+    private Payment bookingPayment;
 
     @OneToMany(mappedBy = "booking", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<BookingFile> bookingFiles;
+
+    @OneToMany(mappedBy = "booking", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<BookingStatusHistory> bookingStatusHistories;
 
 }

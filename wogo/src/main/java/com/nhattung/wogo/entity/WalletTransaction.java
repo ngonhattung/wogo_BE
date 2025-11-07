@@ -2,7 +2,6 @@ package com.nhattung.wogo.entity;
 
 import com.nhattung.wogo.enums.PaymentStatus;
 import com.nhattung.wogo.enums.TransactionType;
-import com.nhattung.wogo.enums.WalletType;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -10,7 +9,6 @@ import org.hibernate.annotations.CreationTimestamp;
 import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
-import java.util.UUID;
 
 @Getter
 @Setter
@@ -44,9 +42,8 @@ public class WalletTransaction {
 
 
 
-    @OneToOne
-    @JoinColumn(name = "payment_id", nullable = false)
-    private BookingPayment payment;
+    @OneToOne(mappedBy = "walletTransaction", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Payment payment;
 
     @OneToOne
     @JoinColumn(name = "deposit_id")

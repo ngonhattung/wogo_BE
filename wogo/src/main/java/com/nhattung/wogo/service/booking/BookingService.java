@@ -9,6 +9,7 @@ import com.nhattung.wogo.exception.AppException;
 import com.nhattung.wogo.repository.BookingHistoryRepository;
 import com.nhattung.wogo.repository.BookingRepository;
 import com.nhattung.wogo.service.booking.file.IBookingFileService;
+import com.nhattung.wogo.service.booking.statushistory.IBookingStatusHistoryService;
 import com.nhattung.wogo.service.chat.room.IChatRoomService;
 import com.nhattung.wogo.service.job.IJobService;
 import com.nhattung.wogo.service.notification.INotificationService;
@@ -64,6 +65,7 @@ public class BookingService implements IBookingService {
     private final SepayVerifyService sepayVerifyService;
     private final BookingHistoryRepository historyRepository;
     private final INotificationService notificationService;
+    private final IBookingStatusHistoryService bookingStatusHistoryService;
 
     @Override
     public JobResponseDTO createJob(FindServiceRequestDTO request, List<MultipartFile> files) {
@@ -90,7 +92,6 @@ public class BookingService implements IBookingService {
                 .bookingDate(request.getBookingDate() != null ? request.getBookingDate() : LocalDateTime.now().plusHours(1))
                 .estimatedPriceLower(request.getEstimatedPriceLower())
                 .estimatedPriceHigher(request.getEstimatedPriceHigher())
-                .estimatedDurationMinutes(request.getEstimatedDurationMinutes())
                 .longitudeUser(request.getLongitudeUser())
                 .latitudeUser(request.getLatitudeUser())
                 .build(), files);
@@ -98,9 +99,10 @@ public class BookingService implements IBookingService {
         //Lưu thông báo
         notificationService.saveNotification(NotificationRequestDTO.builder()
                 .title("Tình hình dịch vụ" + "#" + jobResponseDTO.getJobRequestCode())
-                .description("Yêu cầu dịch vụ của bạn đã được tạo thành công và đang chờ thợ chấp nhận.")
+                .description("Yêu cầu dịch vụ của bạn đã được tạo thành công")
                 .type(NotificationType.SERVICE)
                 .targetRole(ROLE.CUSTOMER)
+                .targetUserId(jobResponseDTO.getUser().getId())
                 .build());
 
         return jobResponseDTO;
@@ -236,6 +238,17 @@ public class BookingService implements IBookingService {
                 .lonWorker(request.getLongitude())
                 .build());
 
+        //lưu thông báo
+        notificationService.saveNotification(NotificationRequestDTO.builder()
+                .title("Báo giá đã được gửi")
+                .description("Bạn đã gửi báo giá cho yêu cầu dịch vụ mã #" + job.getJobRequestCode() +
+                        ". Vui lòng chờ phản hồi từ khách hàng.")
+                .type(NotificationType.SERVICE)
+                .targetRole(ROLE.WORKER)
+                .targetUserId(workerId)
+                .build());
+
+
         return sendQuoteService.saveSendQuote(CreateSendQuoteRequestDTO.builder()
                 .job(job)
                 .quotedPrice(request.getQuotedPrice())
@@ -320,42 +333,107 @@ public class BookingService implements IBookingService {
         Booking booking = bookingRepository.findByBookingCode(request.getBookingCode())
                 .orElseThrow(() -> new AppException(ErrorCode.BOOKING_NOT_FOUND));
 
-        booking.setBookingStatus(request.getStatus());
+        BookingStatus oldStatus = booking.getBookingStatus();
+        BookingStatus newStatus = request.getStatus();
 
-        if (request.getPaymentMethod() != null && request.getStatus() == BookingStatus.PAID) {
+        // Xử lý thanh toán nếu hoàn thành
+        if (newStatus == BookingStatus.COMPLETED && request.getPaymentMethod() != null) {
             handlePaymentAndWallet(booking, request);
         }
 
-        if(request.getStatus() == BookingStatus.WORKING)
-        {
+        // Ghi thời gian bắt đầu khi chuyển sang WORKING
+        if (newStatus == BookingStatus.WORKING && booking.getStartDate() == null) {
             booking.setStartDate(LocalDateTime.now());
-            bookingRepository.save(booking);
         }
+
+        // Lưu lịch sử thay đổi trạng thái
+        bookingStatusHistoryService.saveBookingStatusHistory(
+                CreateBookingStatusHistoryRequestDTO.builder()
+                        .booking(booking)
+                        .oldStatus(oldStatus)
+                        .newStatus(newStatus)
+                        .changedByType(ActorType.WORKER)
+                        .changedById(booking.getWorker().getId())
+                        .reason(null)
+                        .build()
+        );
+
+        // Cập nhật trạng thái cuối cùng và lưu 1 lần
+        booking.setBookingStatus(newStatus);
         bookingRepository.save(booking);
     }
 
-    private void handlePaymentAndWallet(Booking booking, UpdateStatusBookingRequestDTO request) {
+    @Override
+    public Booking cancelBooking(CancelBookingRequestDTO request) {
+        Booking booking = bookingRepository.findByBookingCode(request.getBookingCode())
+                .orElseThrow(() -> new AppException(ErrorCode.BOOKING_NOT_FOUND));
 
-        switch (request.getPaymentMethod()) {
-            case CASH -> handleCashPayment(booking);
-            case BANK_TRANSFER -> handleBankTransfer(booking);
-            default -> { return; }
+        BookingStatus oldStatus = booking.getBookingStatus();
+        BookingStatus newStatus = BookingStatus.CANCELLED;
+
+        // Xác định ai là người hủy
+        Long changedById;
+        if (request.getCanceller() == ActorType.WORKER) {
+            changedById = booking.getWorker() != null ? booking.getWorker().getId() : null;
+        } else { // USER / CUSTOMER
+            changedById = booking.getUser() != null ? booking.getUser().getId() : null;
         }
 
-        BookingPayment payment = paymentService.updatePaymentStatus(
-                PaymentRequestDTO.builder()
+        // Cập nhật booking
+        booking.setCancelledBy(request.getCanceller());
+        booking.setCancelReason(request.getReason());
+        booking.setEndDate(LocalDateTime.now());
+        booking.setBookingStatus(newStatus);
+
+        // Lưu lịch sử trạng thái
+        bookingStatusHistoryService.saveBookingStatusHistory(
+                CreateBookingStatusHistoryRequestDTO.builder()
                         .booking(booking)
-                        .paymentMethod(request.getPaymentMethod())
+                        .oldStatus(oldStatus)
+                        .newStatus(newStatus)
+                        .changedByType(request.getCanceller())
+                        .changedById(changedById)
+                        .reason(request.getReason())
                         .build()
         );
 
-        walletTransactionService.processWalletTransaction(
-                ProcessWalletTransactionRequestDTO.builder()
-                        .transactionId(payment.getWalletTransaction().getId())
-                        .status(PaymentStatus.COMPLETED)
-                        .processedAt(LocalDateTime.now())
+        bookingRepository.save(booking);
+
+        //Update thông báo
+
+        return booking;
+    }
+
+    private void handlePaymentAndWallet(Booking booking, UpdateStatusBookingRequestDTO request) {
+        PaymentMethod method = request.getPaymentMethod();
+
+        // 1. Payment logic
+        if (method == PaymentMethod.CASH) {
+            handleCashPayment(booking);
+        } else if (method == PaymentMethod.BANK_TRANSFER) {
+            handleBankTransfer(booking);
+        } else {
+            return;
+        }
+
+        // 2. Update Payment Status
+        Payment payment = paymentService.updatePaymentStatus(
+                PaymentRequestDTO.builder()
+                        .booking(booking)
+                        .paymentMethod(method)
                         .build()
         );
+
+        // 3. ONLY process wallet for BANK_TRANSFER
+        if (method == PaymentMethod.BANK_TRANSFER) {
+            walletTransactionService.processWalletTransaction(
+                    ProcessWalletTransactionRequestDTO.builder()
+                            .transactionId(payment.getWalletTransaction().getId())
+                            .status(PaymentStatus.COMPLETED)
+                            .processedAt(LocalDateTime.now())
+                            .build()
+            );
+        }
     }
 
     private void handleCashPayment(Booking booking) {
@@ -414,10 +492,15 @@ public class BookingService implements IBookingService {
                 .transactionType(TransactionType.PAYMENT)
                 .status(PaymentStatus.PENDING)
                 .description("Payment for booking: " + booking.getBookingCode())
-                .payment(booking.getBookingPayment())
                 .walletRevenue(walletRevenue)
                 .balanceBefore(walletRevenue.getRevenueBalance())
                 .balanceAfter(walletRevenue.getRevenueBalance().add(workerAmount))
+                .build());
+
+        paymentService.savePayment(PaymentRequestDTO.builder()
+                .booking(booking)
+                .amount(booking.getTotalAmount())
+                .paymentMethod(PaymentMethod.BANK_TRANSFER)
                 .build());
 
         String linkQR = sepayVerifyService.createQRCodeForPayment(booking);
@@ -445,7 +528,7 @@ public class BookingService implements IBookingService {
         }
 
         // Tính phí nền tảng
-        BigDecimal platformFee = booking.getTotalAmount()
+        BigDecimal platformFee = request.getFinalPrice()
                 .multiply(BigDecimal.valueOf(WogoConstants.PLATFORM_FEE_PERCENTAGE))
                 .setScale(2, RoundingMode.HALF_UP);
 
@@ -503,7 +586,6 @@ public class BookingService implements IBookingService {
                 .description(request.getDescription())
                 .distanceKm(request.getDistanceKm())
                 .bookingStatus(BookingStatus.PENDING)
-                .durationMinutes(0)
                 .title(request.getService().getServiceName())
                 .bookingAddress(request.getBookingAddress())
                 .totalAmount(request.getTotalAmount())

@@ -15,7 +15,6 @@ public class CreateJobRequestDTO {
     private LocalDateTime bookingDate;
     private BigDecimal estimatedPriceLower;
     private BigDecimal estimatedPriceHigher;
-    private int estimatedDurationMinutes;
     private double latitudeUser;
     private double longitudeUser;
 }

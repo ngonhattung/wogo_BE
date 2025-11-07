@@ -24,7 +24,6 @@ public class WalletTransactionService implements IWalletTransactionService {
                 .transactionType(request.getTransactionType())
                 .paymentStatus(request.getStatus())
                 .description(request.getDescription())
-                .payment(request.getPayment())
                 .withdrawal(request.getWithdrawal())
                 .deposit(request.getDeposit())
                 .transactionCode(UUID.randomUUID().toString())

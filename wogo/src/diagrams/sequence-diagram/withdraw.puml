@@ -17,13 +17,13 @@ activate View
 
 View -> Controller : 1.1 POST /withdrawals(request)
 activate Controller
-Controller -> Service : 1.1.1 Gọi createWithdrawalRequest(request)
+Controller -> Service : 1.1.1 createWithdrawalRequest(request)
 activate Service
 
 ' --- Lấy thông tin Worker ---
 Service -> WorkerService : 1.1.1.1 getWorkerByUserId(currentUserId)
 activate WorkerService
-WorkerService -> DB : 1.1.1.1.1 Truy vấn worker theo userId
+WorkerService -> DB : 1.1.1.1.1 get worker theo userId
 activate DB
 DB --> WorkerService : 1.1.1.1.2 Worker entity
 deactivate DB
@@ -31,7 +31,7 @@ WorkerService --> Service : 1.1.1.2 Trả về Worker
 deactivate WorkerService
 
 ' --- Tạo Withdrawal entity ---
-Service -> Service : 1.1.1.3 Gọi createWithdrawal(request, worker)
+Service -> Service : 1.1.1.3 createWithdrawal(request, worker)
 note right of Service
 Hàm nội bộ tạo đối tượng Withdrawal
 với trạng thái PENDING và thời gian requestedAt = now()
@@ -40,7 +40,7 @@ end note
 ' --- Lấy ví doanh thu của Worker ---
 Service -> WalletService : 1.1.1.4 getWalletByUserId()
 activate WalletService
-WalletService -> DB : 1.1.1.4.1 Truy vấn WorkerWalletRevenue
+WalletService -> DB : 1.1.1.4.1 get WorkerWalletRevenue
 activate DB
 DB --> WalletService : 1.1.1.4.2 WorkerWalletRevenue entity
 deactivate DB

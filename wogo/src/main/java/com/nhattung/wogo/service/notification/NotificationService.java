@@ -3,6 +3,7 @@ package com.nhattung.wogo.service.notification;
 import com.nhattung.wogo.dto.request.NotificationRequestDTO;
 import com.nhattung.wogo.dto.response.NotificationResponseDTO;
 import com.nhattung.wogo.entity.Notification;
+import com.nhattung.wogo.entity.User;
 import com.nhattung.wogo.enums.ErrorCode;
 import com.nhattung.wogo.enums.ROLE;
 import com.nhattung.wogo.exception.AppException;
@@ -24,13 +25,16 @@ public class NotificationService implements INotificationService{
 
     @Override
     public void saveNotification(NotificationRequestDTO request) {
+
+        User user = userService.getUserByIdEntity(request.getTargetUserId());
+
         Notification notification = Notification.builder()
                 .title(request.getTitle())
                 .description(request.getDescription())
                 .type(request.getType())
                 .imageUrl(request.getImageUrl())
                 .targetRole(request.getTargetRole())
-                .user(userService.getCurrentUser())
+                .user(user)
                 .build();
         notificationRepository.save(notification);
     }

@@ -26,6 +26,5 @@ public class FindServiceRequestDTO {
     //Estimated
     private BigDecimal estimatedPriceLower;
     private BigDecimal estimatedPriceHigher;
-    private int estimatedDurationMinutes;
 
 }

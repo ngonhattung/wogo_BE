@@ -8,12 +8,8 @@ import java.math.BigDecimal;
 @Data
 @Builder
 public class EstimatedApiResponseDTO {
-    private Range range;
-    private int durationMinutes;
-
-    @Data
-    public static class Range {
-        private BigDecimal low;
-        private BigDecimal high;
-    }
+    private int serviceId;
+    private BigDecimal minPrice;
+    private BigDecimal maxPrice;
+    private int recordsFound;
 }

@@ -10,9 +10,10 @@ import com.nhattung.wogo.entity.*;
 import com.nhattung.wogo.enums.*;
 import com.nhattung.wogo.exception.AppException;
 import com.nhattung.wogo.repository.QuestionOptionRepository;
+import com.nhattung.wogo.service.notification.INotificationService;
 import com.nhattung.wogo.service.question.IQuestionService;
 import com.nhattung.wogo.service.question.questioncategory.IQuestionCategoryService;
-import com.nhattung.wogo.service.serviceWG.ServiceService;
+import com.nhattung.wogo.service.serviceWG.IServiceService;
 import com.nhattung.wogo.service.user.IUserService;
 import com.nhattung.wogo.service.wallet.expense.IWorkerWalletExpenseService;
 import com.nhattung.wogo.service.wallet.revenue.IWorkerWalletRevenueService;
@@ -48,7 +49,8 @@ public class WorkerVerifyService implements IWorkerVerifyService {
     private final IWorkerDocumentService workerDocumentService;
     private final IWorkerWalletExpenseService workerWalletExpenseService;
     private final IWorkerWalletRevenueService workerWalletRevenueService;
-    private final ServiceService serviceService;
+    private final IServiceService serviceService;
+    private final INotificationService notificationService;
 
     @Override
     @Transactional
@@ -189,24 +191,43 @@ public class WorkerVerifyService implements IWorkerVerifyService {
     private WorkerDocumentResponseDTO processWorkerDocumentVerification(WorkerDocumentRequestDTO request) {
         VerificationStatus status = request.getVerificationStatus();
 
-        // Get WorkerVerification by document ID
-        WorkerVerification workerVerification = workerVerificationService.getWorkerVerificationByWorkerDocumentId(request.getId());
+        // Lấy thông tin xác thực theo document ID
+        WorkerVerification workerVerification = workerVerificationService
+                .getWorkerVerificationByWorkerDocumentId(request.getId());
 
-        // Update WorkerVerification status
+        // Cập nhật trạng thái xác thực
         updateWorkerVerificationStatus(workerVerification.getId(), status);
 
+        // Nếu duyệt -> đảm bảo user có role WORKER + khởi tạo Worker, Service, Wallet nếu chưa có
         if (status == VerificationStatus.APPROVED) {
-            ensureUserHasWorkerRole(workerVerification.getUser().getId());
-            ensureWorkerAndServiceAndWallet(workerVerification.getUser(), workerVerification.getService());
+            handleApprovedVerification(workerVerification);
         }
 
-        // Update and return WorkerDocument
+        // Gửi thông báo đến Worker
+        String description = (status == VerificationStatus.APPROVED)
+                ? "Chúc mừng! Hồ sơ nghiệp vụ của bạn đã được phê duyệt. Bây giờ bạn có thể bắt đầu nhận công việc."
+                : "Rất tiếc! Hồ sơ nghiệp vụ của bạn chưa được phê duyệt. Vui lòng kiểm tra và gửi lại.";
+
+        notificationService.saveNotification(NotificationRequestDTO.builder()
+                .title("Kết quả xác thực nghiệp vụ")
+                .description(description)
+                .type(NotificationType.SYSTEM)
+                .targetRole(ROLE.WORKER)
+                .targetUserId(workerVerification.getUser().getId())
+                .build());
+
+        // Cập nhật trạng thái tài liệu và trả về
         return workerDocumentService.updateWorkerDocument(
                 WorkerDocumentRequestDTO.builder()
                         .id(request.getId())
                         .verificationStatus(status)
                         .build()
         );
+    }
+
+    private void handleApprovedVerification(WorkerVerification workerVerification) {
+        ensureUserHasWorkerRole(workerVerification.getUser().getId());
+        ensureWorkerAndServiceAndWallet(workerVerification.getUser(), workerVerification.getService());
     }
 
     private void updateWorkerVerificationStatus(Long verificationId, VerificationStatus status) {

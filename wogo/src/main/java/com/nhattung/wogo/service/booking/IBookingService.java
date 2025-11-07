@@ -28,4 +28,6 @@ public interface IBookingService {
     List<JobSummaryResponseDTO> getListPendingJobsMatchWorker();
     Booking getBookingById(Long id);
     BookingResponseDTO getBookingByBookingCode(String bookingCode);
+
+    Booking cancelBooking(CancelBookingRequestDTO request);
 }

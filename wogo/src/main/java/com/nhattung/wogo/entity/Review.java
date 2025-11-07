@@ -27,7 +27,7 @@ public class Review {
     @UpdateTimestamp
     private Timestamp updatedAt;
 
-    @ManyToOne
+    @OneToOne
     @JoinColumn(name = "booking_id", nullable = false)
     private Booking booking;
 

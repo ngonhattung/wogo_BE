@@ -17,11 +17,11 @@ activate View
 
 View -> Controller : 1.1 POST /create-payment/{bookingCode}
 activate Controller
-Controller -> BookingService : 1.1.1 Gọi createBookingTransaction(bookingCode)
+Controller -> BookingService : 1.1.1 createBookingTransaction(bookingCode)
 activate BookingService
 
 ' --- Lấy thông tin booking ---
-BookingService -> DB : 1.1.1.1 Truy vấn booking theo bookingCode
+BookingService -> DB : 1.1.1.1 findByBookingCode(bookingCode)
 activate DB
 DB --> BookingService : 1.1.1.2 Trả về Booking entity
 deactivate DB
@@ -36,9 +36,9 @@ alt Số tiền không hợp lệ
     end note
 else Hợp lệ
     ' --- Lấy ví của Worker ---
-    BookingService -> WalletService : 1.1.1.4b Gọi getWalletByUserId()
+    BookingService -> WalletService : 1.1.1.4b getWalletByUserId()
     activate WalletService
-    WalletService -> DB : 1.1.1.4b.1 Truy vấn WorkerWalletRevenue
+    WalletService -> DB : 1.1.1.4b.1 workerWalletRevenueService.getWalletByUserId()
     activate DB
     DB --> WalletService : 1.1.1.4b.2 WorkerWalletRevenue entity
     deactivate DB
@@ -46,9 +46,9 @@ else Hợp lệ
     deactivate WalletService
 
     ' --- Tạo giao dịch ví (WalletTransaction) ---
-    BookingService -> TransactionService : 1.1.1.6 Gọi saveWalletTransaction(PAYMENT)
+    BookingService -> TransactionService : 1.1.1.6 saveWalletTransaction(PAYMENT)
     activate TransactionService
-    TransactionService -> DB : 1.1.1.6.1 INSERT WalletTransaction (status=PENDING)
+    TransactionService -> DB : 1.1.1.6.1 walletTransactionService.saveWalletTransaction(WalletTransactionRequestDTO) (status=PENDING)
     activate DB
     DB --> TransactionService : 1.1.1.6.2 Trả về WalletTransaction
     deactivate DB
@@ -56,7 +56,7 @@ else Hợp lệ
     deactivate TransactionService
 
     ' --- Gọi Sepay để tạo QR ---
-    BookingService -> SepayService : 1.1.1.8 Gọi createQRCodeForPayment(booking)
+    BookingService -> SepayService : 1.1.1.8 createQRCodeForPayment(booking)
     activate SepayService
     SepayService --> BookingService : 1.1.1.9 Trả về link QR (linkTransaction)
     deactivate SepayService

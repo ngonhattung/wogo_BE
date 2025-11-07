@@ -51,9 +51,6 @@ sepay:
   token: RPXS3OBCLMQGXFJY3ODGUIWS7XEFQMIKBPNOKUTBC7VGP2V2TZXWWFACOGA6I1YN
   historyUrl: https://my.sepay.vn/userapi/transactions/list
 
-suggest:
-  url: http://localhost:8000/api/v1/pricing/suggest-random
-
 logging:
   level:
     org:

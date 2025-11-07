@@ -20,12 +20,12 @@ activate Controller
 Controller -> Service : 1.1.1 completeWorkerTest(request)
 activate Service
 
-Service -> TestService : 1.1.1.1 Lấy bài test theo testId
+Service -> TestService : 1.1.1.1 getWorkerVerificationTestById(testId)
 activate TestService
 TestService --> Service : 1.1.1.2 Trả về WorkerVerificationTest
 deactivate TestService
 
-Service -> VerifyService : 1.1.1.3 Lấy xác minh worker theo testId
+Service -> VerifyService : 1.1.1.3 getWorkerVerificationByWorkerTestId(testId)
 activate VerifyService
 VerifyService --> Service : 1.1.1.4 Trả về WorkerVerification
 deactivate VerifyService

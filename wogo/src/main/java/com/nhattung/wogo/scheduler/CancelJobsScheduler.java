@@ -1,5 +1,6 @@
 package com.nhattung.wogo.scheduler;
 
+import com.nhattung.wogo.enums.ActorType;
 import com.nhattung.wogo.service.job.IJobService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -19,7 +20,7 @@ public class CancelJobsScheduler {
     @Transactional
     public void cancelExpiredJobs() {
         try {
-            jobService.updateStatusCancelJob();
+            jobService.updateStatusCancelJob("Hủy sau 24h và không tìm được thợ", ActorType.SYSTEM, null);
             logger.info("Cancel expired jobs completed successfully at {}", java.time.LocalDateTime.now());
         } catch (Exception e) {
             logger.error("Error during canceling expired jobs", e);

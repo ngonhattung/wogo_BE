@@ -78,6 +78,12 @@ public class UserService implements IUserService {
     }
 
     @Override
+    public User getUserByIdEntity(Long userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+    }
+
+    @Override
     public PageResponse<UserResponseDTO> getAllUsers(int page, int size) {
         if (page < 0 || size <= 0) {
             throw new AppException(ErrorCode.INVALID_PAGE_SIZE);
@@ -159,6 +165,22 @@ public class UserService implements IUserService {
                 .orElseThrow(() -> new AppException(ErrorCode.ROLE_NOT_FOUND));
 
         return userRoleRepository.existsByUserAndRole(user, role);
+    }
+
+    @Override
+    public boolean isPhoneExist(String phone) {
+        return userRepository.existsByPhone(phone);
+    }
+
+    @Override
+    public boolean updatePasswordByPhone(String phone, String newPassword) {
+        User user = userRepository.findByPhone(phone);
+        if (user == null) {
+            throw new AppException(ErrorCode.USER_NOT_FOUND);
+        }
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+        return true;
     }
 
     public UserResponseDTO convertUserToDto(User user) {

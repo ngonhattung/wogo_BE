@@ -2,70 +2,63 @@
 !include sequence-style.puml
 title Create Worker Test Sequence Diagram
 
-actor "Worker" as Worker
-participant "<u>UI" as View
-participant "<u>WorkerVerifyController" as Controller
-participant "WorkerVerifyService" as Service
-participant "WorkerServiceService" as WorkerService
-participant "QuestionCategoryService" as CategoryService
-participant "WorkerVerificationTestService" as TestService
-participant "WorkerVerificationService" as VerifyService
-participant "QuestionService" as QuestionService
-database "Database" as DB
+actor "Worker" as W
+participant "UI" as UI
+participant "WorkerVerifyController" as C
+participant "WorkerVerifyService" as S
+participant "WorkerServiceService" as WS
+participant "QuestionCategoryService" as QC
+participant "WorkerVerificationTestService" as TS
+participant "WorkerVerificationService" as VS
+participant "QuestionService" as Q
+database "DB" as DB
 
-activate Worker
-Worker -> View : 1 Click "Thêm nghiệp vụ"
-activate View
+activate W
+W -> UI : 1 Click "Thêm nghiệp vụ"
+activate UI
 
-View -> Controller : 1.1 POST /createWorkerTest(request)
-activate Controller
-Controller -> Service : 1.1.1 Gọi createWorkerTest(request)
-activate Service
+UI -> C : 1.1 POST /createWorkerTest(request)
+activate C
+C -> S : 1.1.1 Gọi createWorkerTest(request)
+activate S
 
-Service -> WorkerService : 1.1.1.1 Kiểm tra worker đã có nghiệp vụ chưa
-activate WorkerService
-WorkerService --> Service : 1.1.1.2 Kết quả: true/false
-deactivate WorkerService
+S -> WS : 1.1.1.1 checkWorkerServiceExists(request.getServiceId())
+activate WS
+WS --> S : 1.1.1.2 Kết quả: true/false
+deactivate WS
 
 alt Worker đã có nghiệp vụ
-    Service -> Service : 1.1.1.3a Ném lỗi WORKER_SERVICE_EXISTS
+    S -> S : 1.1.1.3a Ném lỗi WORKER_SERVICE_EXISTS
 else Chưa có
-    Service -> CategoryService : 1.1.1.3b Lấy danh mục câu hỏi theo serviceId
-    activate CategoryService
-    CategoryService --> Service : 1.1.1.4 Trả về QuestionCategory
-    deactivate CategoryService
+    S -> QC : 1.1.1.3b getCategoryEntityByServiceId(request.getServiceId())
+    activate QC
+    QC --> S : 1.1.1.4 Trả về QuestionCategory
+    deactivate QC
 
-    Service -> TestService : 1.1.1.5 Tạo WorkerVerificationTest
-    activate TestService
-    TestService -> DB : 1.1.1.5.1 INSERT WorkerVerificationTest
-    activate DB
-    DB --> TestService : 1.1.1.5.2 OK (WorkerVerificationTest)
-    deactivate DB
-    TestService --> Service : 1.1.1.6 Trả về WorkerVerificationTest
-    deactivate TestService
+    S -> TS : 1.1.1.5 saveWorkerVerificationTest(...)
+    activate TS
+    TS -> DB : 1.1.1.5.1 INSERT WorkerVerificationTest
+    DB --> TS : 1.1.1.5.2 OK
+    TS --> S : 1.1.1.6 Trả về WorkerVerificationTest
+    deactivate TS
 
-    Service -> VerifyService : 1.1.1.7 Tạo WorkerVerification tương ứng
-    activate VerifyService
-    VerifyService -> DB : 1.1.1.7.1 INSERT WorkerVerification
-    activate DB
-    DB --> VerifyService : 1.1.1.7.2 OK (WorkerVerification)
-    deactivate DB
-    VerifyService --> Service : 1.1.1.8 Trả về WorkerVerification
-    deactivate VerifyService
+    S -> VS : 1.1.1.7 saveWorkerVerification(...)
+    activate VS
+    VS -> DB : 1.1.1.7.1 INSERT WorkerVerification
+    DB --> VS : 1.1.1.7.2 OK
+    VS --> S : 1.1.1.8 Trả về WorkerVerification
+    deactivate VS
 
-    Service -> QuestionService : 1.1.1.9 Lấy danh sách câu hỏi ngẫu nhiên
-    activate QuestionService
-    QuestionService --> Service : 1.1.1.10 Trả về List<QuestionResponseDTO>
-    deactivate QuestionService
+    S -> Q : 1.1.1.9 findRandomQuestions(questionCategory.getId())
+    activate Q
+    Q --> S : 1.1.1.10 Trả về List<QuestionResponseDTO>
+    deactivate Q
 end
 
-Service --> Controller : 1.1.2 Trả về CreateTestResponseDTO(testId, questions)
-deactivate Service
-Controller --> View : 1.1.3 Hiển thị "Create worker test successfully"
-deactivate Controller
-View --> Worker : 1.1.4 Giao diện hiển thị kết quả
-deactivate View
-deactivate Worker
+S --> C : 1.1.2 Trả về CreateTestResponseDTO(testId, questions)
+deactivate S
+C --> UI : 1.1.3 Giao diện danh sách câu hỏi
+deactivate C
 
 
 @enduml

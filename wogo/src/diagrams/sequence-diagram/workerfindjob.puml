@@ -18,13 +18,13 @@ activate View
 
 View -> Controller : 1.1 GET /job-available
 activate Controller
-Controller -> Service : 1.1.1 Gọi getListPendingJobsMatchWorker()
+Controller -> Service : 1.1.1 getListPendingJobsMatchWorker()
 activate Service
 
 ' --- Kiểm tra ví chi phí ---
-Service -> WalletService : 1.1.1.1 Gọi getWalletByUserId()
+Service -> WalletService : 1.1.1.1 getWalletByUserId()
 activate WalletService
-WalletService -> DB : 1.1.1.1.1 Truy vấn ví chi phí thợ
+WalletService -> DB : 1.1.1.1.1 GET ví chi phí thợ
 activate DB
 DB --> WalletService : 1.1.1.1.2 WorkerWalletExpense entity
 deactivate DB
@@ -40,9 +40,9 @@ alt Số dư ví âm hơn MINIMUM_WALLET_BALANCE
     end note
 else Số dư ví hợp lệ
     ' --- Lấy địa chỉ của thợ ---
-    Service -> AddressService : 1.1.1.4b Tìm địa chỉ thợ theo userId
+    Service -> AddressService : 1.1.1.4b findByWorkerId(SecurityUtils.getCurrentUserId())
     activate AddressService
-    AddressService -> DB : 1.1.1.4b.1 Truy vấn địa chỉ thợ
+    AddressService -> DB : 1.1.1.4b.1 GET địa chỉ thợ
     activate DB
     DB --> AddressService : 1.1.1.4b.2 Address entity
     deactivate DB
@@ -50,9 +50,9 @@ else Số dư ví hợp lệ
     deactivate AddressService
 
     ' --- Lấy danh sách service mà thợ có thể làm ---
-    Service -> ServiceService : 1.1.1.6 Lấy tất cả serviceId của thợ
+    Service -> ServiceService : 1.1.1.6 serviceService.getAllServicesOfWorker()
     activate ServiceService
-    ServiceService -> DB : 1.1.1.6.1 Truy vấn serviceId theo workerId
+    ServiceService -> DB : 1.1.1.6.1 GET serviceId match theo workerId
     activate DB
     DB --> ServiceService : 1.1.1.6.2 List<ServiceResponseDTO>
     deactivate DB
@@ -60,16 +60,16 @@ else Số dư ví hợp lệ
     deactivate ServiceService
 
     ' --- Kiểm tra danh sách service ---
-    Service -> Service : 1.1.1.8 Kiểm tra serviceIds có rỗng không
+    Service -> Service : 1.1.1.8 serviceIds.isEmpty()
     alt serviceIds rỗng
         Service -> Controller : 1.1.1.9a Trả về danh sách rỗng
         Controller --> View : 1.1.1.9a.1 Hiển thị “Không có công việc phù hợp”
     else Có serviceIds
         ' --- Lấy danh sách job theo serviceId ---
         loop Theo từng serviceId
-            Service -> JobService : 1.1.1.9b Gọi getJobsByServiceId(serviceId)
+            Service -> JobService : 1.1.1.9b getJobsByServiceId(serviceId)
             activate JobService
-            JobService -> DB : 1.1.1.9b.1 Truy vấn job theo serviceId
+            JobService -> DB : 1.1.1.9b.1 GET job theo serviceId
             activate DB
             DB --> JobService : 1.1.1.9b.2 List<JobSummaryResponseDTO>
             deactivate DB

@@ -18,14 +18,11 @@ activate View
 View -> Controller : 1.1 POST /send-quote(request)
 activate Controller
 
-' --- Lấy workerId từ Security Context ---
-Controller -> Controller : 1.1.1 Lấy workerId (current user)
-
 ' --- Kiểm tra tính hợp lệ của Job ---
-Controller -> BookingService : 1.1.2 verifyJobRequest(request)
+Controller -> BookingService : 1.2 verifyJobRequest(request)
 activate BookingService
 
-BookingService -> BookingService : 1.1.2.1 Gọi getJobAndValidate(request)
+BookingService -> BookingService : 1.2.1 getJobAndValidate(request)
 note right of BookingService
 Hàm nội bộ kiểm tra:
 - Job có còn PENDING không
@@ -34,80 +31,80 @@ Hàm nội bộ kiểm tra:
 - Worker có phải chủ job không
 end note
 
-BookingService -> JobService : 1.1.2.2 getJobByJobRequestCode(jobRequestCode)
+BookingService -> JobService : 1.2.2 getJobByJobRequestCode(jobRequestCode)
 activate JobService
-JobService -> DB : 1.1.2.2.1 Truy vấn job theo mã yêu cầu
+JobService -> DB : 1.2.2.1 GET JobRequest
 activate DB
-DB --> JobService : 1.1.2.2.2 JobResponseDTO
+DB --> JobService : 1.2.2.2 JobResponseDTO
 deactivate DB
-JobService --> BookingService : 1.1.2.3 Trả về JobResponseDTO
+JobService --> BookingService : 1.2.2.3 Trả về JobResponseDTO
 deactivate JobService
 
 ' --- Kiểm tra trạng thái Job ---
-BookingService -> BookingService : 1.1.2.4 Kiểm tra job.status == PENDING
+BookingService -> BookingService : 1.2.3 Kiểm tra job.status == PENDING
 alt Job không còn PENDING
-    BookingService --> Controller : 1.1.2.5a Trả về false (job không hợp lệ)
+    BookingService --> Controller : 1.2.4a Trả về false (job không hợp lệ)
 else Job còn PENDING
     ' --- Lấy Worker hiện tại ---
-    BookingService -> WorkerService : 1.1.2.5b getWorkerByUserId(currentUserId)
+    BookingService -> WorkerService : 1.2.4b getWorkerByUserId(currentUserId)
     activate WorkerService
-    WorkerService -> DB : 1.1.2.5b.1 Truy vấn worker theo userId
+    WorkerService -> DB : 1.2.4b.1 GET Worker
     activate DB
-    DB --> WorkerService : 1.1.2.5b.2 Worker entity
+    DB --> WorkerService : 1.2.4b.2 Worker entity
     deactivate DB
-    WorkerService --> BookingService : 1.1.2.6 Trả về Worker
+    WorkerService --> BookingService : 1.2.4c Trả về Worker
     deactivate WorkerService
 
-    BookingService -> BookingService : 1.1.2.7 Kiểm tra điều kiện báo giá (đã gửi / chủ job)
+    BookingService -> BookingService : 1.2.5 Kiểm tra điều kiện báo giá (đã gửi / chủ job)
     alt Worker đã gửi báo giá trước đó
-        BookingService -> Controller : 1.1.2.8a Ném lỗi YOU_ALREADY_SEND_QUOTE
-        Controller --> View : 1.1.2.8a.1 Thông báo lỗi
+        BookingService -> Controller : 1.2.6a Ném lỗi YOU_ALREADY_SEND_QUOTE
+        Controller --> View : 1.2.6a.1 Thông báo lỗi
     else Worker hợp lệ
-        BookingService --> Controller : 1.1.2.8b Trả về true (job hợp lệ)
+        BookingService --> Controller : 1.2.6b Trả về true (job hợp lệ)
     end
 end
 deactivate BookingService
 
 ' --- Xử lý theo kết quả verify ---
 alt Job hợp lệ (isValid == true)
-    Controller -> JobService : 1.1.3 Lấy thông tin job theo mã yêu cầu (getJobByJobRequestCode)
+    Controller -> JobService : 1.3 jobService.getJobByJobRequestCodeEntity(request.getJobRequestCode())
     activate JobService
-    JobService -> DB : 1.1.3.1 Truy vấn job theo mã yêu cầu
+    JobService -> DB : 1.3.1 GET JobByJobRequest
     activate DB
-    DB --> JobService : 1.1.3.2 JobResponseDTO
+    DB --> JobService : 1.3.2 JobResponseDTO
     deactivate DB
-    JobService --> Controller : 1.1.3.3 Trả về JobResponseDTO
+    JobService --> Controller : 1.3.3 Trả về JobResponseDTO
     deactivate JobService
 
     ' --- Push WebSocket tới khách hàng ---
-    Controller -> Socket : 1.1.4 convertAndSend("/topic/send-quote/{serviceId}", job)
+    Controller -> Socket : 1.4 convertAndSend("/topic/send-quote/{serviceId}", job)
     activate Socket
-    Socket --> Customer : 1.1.4.1 Gửi realtime “Job đã được gửi báo giá”
+    Socket --> Customer : 1.4.1 Gửi realtime “Job đã được gửi báo giá”
     deactivate Socket
 
     ' --- Thực hiện gửi báo giá ---
-    Controller -> BookingService : 1.1.5 sendQuote(request)
+    Controller -> BookingService : 1.5 sendQuote(request)
     activate BookingService
-    BookingService -> DB : 1.1.5.1 INSERT INTO worker_quote (...)
+    BookingService -> DB : 1.5.1 INSERT INTO worker_quote (...)
     activate DB
-    DB --> BookingService : 1.1.5.2 WorkerQuote entity
+    DB --> BookingService : 1.5.2 WorkerQuote entity
     deactivate DB
-    BookingService --> Controller : 1.1.5.3 Trả về WorkerQuoteResponseDTO
+    BookingService --> Controller : 1.5.3 Trả về WorkerQuoteResponseDTO
     deactivate BookingService
 
-    Controller --> View : 1.1.6 Trả ApiResponse<WorkerQuoteResponseDTO>
+    Controller --> View : 1.6 Trả ApiResponse<WorkerQuoteResponseDTO>
 else Job không hợp lệ (isValid == false)
     ' --- Push lỗi qua WebSocket riêng của thợ ---
-    Controller -> Socket : 1.1.7 convertAndSendToUser(workerId, "/queue/errors", "Job is not available")
+    Controller -> Socket : 1.7 convertAndSendToUser(workerId, "/queue/errors", "Job is not available")
     activate Socket
-    Socket --> Worker : 1.1.7.1 Gửi realtime “Job is not available”
+    Socket --> Worker : 1.7.1 Gửi realtime “Job is not available”
     deactivate Socket
 
-    Controller --> View : 1.1.8 Trả ApiResponse với message “Job request is no longer available”
+    Controller --> View : 1.8 Trả ApiResponse với message “Job request is no longer available”
 end
 
 deactivate Controller
-View --> Worker : 1.1.9 Hiển thị kết quả báo giá
+View --> Worker : 1.9 Hiển thị thông báo báo giá thành công
 deactivate View
 deactivate Worker
 

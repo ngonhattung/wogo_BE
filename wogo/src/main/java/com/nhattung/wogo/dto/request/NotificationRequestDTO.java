@@ -13,4 +13,5 @@ public class NotificationRequestDTO {
     private NotificationType type;
     private String imageUrl;
     private ROLE targetRole;
+    private Long targetUserId;
 }

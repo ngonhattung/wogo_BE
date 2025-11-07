@@ -5,8 +5,7 @@ import com.nhattung.wogo.dto.response.*;
 import com.nhattung.wogo.entity.Job;
 import com.nhattung.wogo.entity.JobFile;
 import com.nhattung.wogo.entity.ServiceWG;
-import com.nhattung.wogo.entity.User;
-import com.nhattung.wogo.enums.Canceller;
+import com.nhattung.wogo.enums.ActorType;
 import com.nhattung.wogo.enums.ErrorCode;
 import com.nhattung.wogo.enums.JobRequestStatus;
 import com.nhattung.wogo.exception.AppException;
@@ -58,7 +57,6 @@ public class JobService implements IJobService {
                 .bookingAddress(request.getAddress())
                 .estimatedPriceLower(request.getEstimatedPriceLower())
                 .estimatedPriceHigher(request.getEstimatedPriceHigher())
-                .estimatedDurationMinutes(request.getEstimatedDurationMinutes())
                 .longitude(request.getLongitudeUser())
                 .latitude(request.getLatitudeUser())
                 .build();
@@ -110,14 +108,14 @@ public class JobService implements IJobService {
     }
 
     @Override
-    public void updateStatusCancelJob() {
+    public void updateStatusCancelJob(String reason, ActorType canceller, String jobRequestCode) {
         //Lấy ra danh sách hết hạn chưa có thợ nhận
         List<Job> jobs = jobRepository.findJobsToCancel(JobRequestStatus.PENDING,LocalDateTime.now())
                 .orElse(new ArrayList<>());
         jobRepository.saveAll(jobs.stream().peek(job -> {
             job.setStatus(JobRequestStatus.CANCELLED);
-            job.setCancelledBy(Canceller.SYSTEM);
-            job.setCancelReason("Hủy sau 24h và không tìm được thợ");
+            job.setCancelledBy(canceller);
+            job.setCancelReason(reason);
         }).toList());
     }
 

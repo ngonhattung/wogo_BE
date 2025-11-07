@@ -1,6 +1,7 @@
 package com.nhattung.wogo.dto.request;
 
 import com.nhattung.wogo.entity.Booking;
+import com.nhattung.wogo.entity.WalletTransaction;
 import com.nhattung.wogo.enums.PaymentMethod;
 import lombok.Builder;
 import lombok.Data;
@@ -12,6 +13,7 @@ import java.time.LocalDateTime;
 @Builder
 public class PaymentRequestDTO {
     private Booking booking;
+    private WalletTransaction walletTransaction;
     private PaymentMethod paymentMethod;
     private BigDecimal amount;
 }

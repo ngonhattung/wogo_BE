@@ -10,10 +10,13 @@ import org.springframework.web.multipart.MultipartFile;
 public interface IUserService {
     UserResponseDTO createUser(RegisterRequestDTO request);
     UserResponseDTO getUserById(Long userId);
+    User getUserByIdEntity(Long userId);
     PageResponse<UserResponseDTO> getAllUsers(int page, int size);
     UserResponseDTO updateUser(UserRequestDTO user, MultipartFile avatar);
     User getCurrentUser();
     //add userRole for user
     void addUserRole(Long userId, String roleName);
     boolean isExistRole(Long userId, String roleName);
+    boolean isPhoneExist(String phone);
+    boolean updatePasswordByPhone(String phone, String newPassword);
 }

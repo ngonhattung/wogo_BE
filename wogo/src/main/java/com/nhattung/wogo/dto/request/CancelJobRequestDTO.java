@@ -4,10 +4,10 @@ import lombok.Builder;
 import lombok.Data;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 
 @Data
 @Builder
-public class EstimatedPriceRequestDTO {
-    private Long serviceId;
+public class CancelJobRequestDTO {
+    private String jobRequestCode;
+    private String reason;
 }

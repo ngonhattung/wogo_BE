@@ -1,10 +1,9 @@
 package com.nhattung.wogo.entity;
 
-import com.nhattung.wogo.enums.Canceller;
+import com.nhattung.wogo.enums.ActorType;
 import com.nhattung.wogo.enums.JobRequestStatus;
 import jakarta.persistence.*;
 import lombok.*;
-import lombok.extern.java.Log;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.math.BigDecimal;
@@ -36,7 +35,7 @@ public class Job {
     private String cancelReason;
 
     @Enumerated(EnumType.STRING)
-    private Canceller cancelledBy;
+    private ActorType cancelledBy;
 
     @Enumerated(EnumType.STRING)
     private JobRequestStatus status;
