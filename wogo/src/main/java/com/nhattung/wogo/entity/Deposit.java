@@ -36,7 +36,7 @@ public class Deposit {
     @CreationTimestamp
     private Timestamp createdAt;
 
-    @OneToOne
+    @ManyToOne
     @JoinColumn(name = "worker_id", nullable = false)
     private Worker worker;
 

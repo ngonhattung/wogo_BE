@@ -9,7 +9,7 @@ public enum ErrorCode {
     UNCATEGORIZED_EXCEPTION(9999, "Có lỗi xảy ra, vui lòng thử lại sau", HttpStatus.INTERNAL_SERVER_ERROR),
 
     //authentication and authorization errors
-    INVALID_KEY(9001, "Khóa không hợp lệ", HttpStatus.BAD_REQUEST),
+    INVALID_KEY(9001, "Dữ liệu không hợp lệ. Vui lòng kiểm tra và thử lại.", HttpStatus.BAD_REQUEST),
     UNAUTHENTICATED(9002, "Chưa xác thực", HttpStatus.UNAUTHORIZED),
     UNAUTHORIZED(9003, "Bạn không có quyền truy cập", HttpStatus.FORBIDDEN),
     INVALID_CREDENTIALS(9004, "Tên đăng nhập hoặc mật khẩu không đúng", HttpStatus.UNAUTHORIZED),

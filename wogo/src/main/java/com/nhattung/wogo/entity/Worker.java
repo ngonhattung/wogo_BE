@@ -47,20 +47,17 @@ public class Worker {
     @OneToMany(mappedBy = "worker", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Review> reviews;
 
-//    @OneToMany(mappedBy = "worker", cascade = CascadeType.ALL, orphanRemoval = true)
-//    private List<ChatRoom> chatRooms;
-
     @OneToOne(mappedBy = "worker", cascade = CascadeType.ALL, orphanRemoval = true)
     private WorkerWalletRevenue workerWalletRevenue;
 
     @OneToOne(mappedBy = "worker", cascade = CascadeType.ALL, orphanRemoval = true)
     private WorkerWalletExpense workerWalletExpense;
 
-    @OneToOne(mappedBy = "worker", cascade = CascadeType.ALL, orphanRemoval = true)
-    private Deposit deposit;
+    @OneToMany(mappedBy = "worker", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Deposit> deposits;
 
-    @OneToOne(mappedBy = "worker", cascade = CascadeType.ALL, orphanRemoval = true)
-    private Withdrawal withdrawal;
+    @OneToMany(mappedBy = "worker", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Withdrawal> withdrawals;
 
     @OneToMany(mappedBy = "worker", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<WorkerQuote> workerQuotes;
