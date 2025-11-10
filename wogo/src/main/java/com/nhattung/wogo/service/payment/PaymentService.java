@@ -22,12 +22,22 @@ public class PaymentService  implements IPaymentService{
 
     @Override
     public void savePayment(PaymentRequestDTO request) {
-        paymentRepository.save(Payment.builder()
-                        .booking(request.getBooking())
-                        .totalAmount(request.getAmount())
-                        .paymentStatus(PaymentStatus.PENDING)
-                        .paymentMethod(request.getPaymentMethod())
-                .build());
+        Payment.PaymentBuilder paymentBuilder = Payment.builder()
+                .totalAmount(request.getAmount())
+                .paymentStatus(PaymentStatus.PENDING)
+                .paymentMethod(request.getPaymentMethod());
+
+        if (request.getBooking() != null) {
+            paymentBuilder.booking(request.getBooking());
+        }
+        else if (request.getWalletTransaction() != null) {
+            paymentBuilder.walletTransaction(request.getWalletTransaction());
+        }
+        else {
+            throw new AppException(ErrorCode.INVALID_PAYMENT);
+        }
+
+        paymentRepository.save(paymentBuilder.build());
     }
 
     @Override

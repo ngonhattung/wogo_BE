@@ -2,6 +2,7 @@ package com.nhattung.wogo.service.wallet.transaction;
 
 import com.nhattung.wogo.dto.request.ProcessWalletTransactionRequestDTO;
 import com.nhattung.wogo.dto.request.WalletTransactionRequestDTO;
+import com.nhattung.wogo.dto.response.WalletTransactionResponseDTO;
 import com.nhattung.wogo.entity.WalletTransaction;
 import com.nhattung.wogo.enums.ErrorCode;
 import com.nhattung.wogo.exception.AppException;
@@ -9,6 +10,7 @@ import com.nhattung.wogo.repository.WalletTransactionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -45,5 +47,15 @@ public class WalletTransactionService implements IWalletTransactionService {
         walletTransaction.setProcessedAt(request.getProcessedAt());
 
         walletTransactionRepository.save(walletTransaction);
+    }
+
+    @Override
+    public List<WalletTransactionResponseDTO> getHistoryWithdrawalTransactions(Long workerId) {
+        return walletTransactionRepository.getHistoryWithdrawalTransactions(workerId);
+    }
+
+    @Override
+    public List<WalletTransactionResponseDTO> getHistoryDepositTransactions(Long workerId) {
+        return walletTransactionRepository.getHistoryDepositTransactions(workerId);
     }
 }

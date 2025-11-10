@@ -2,83 +2,319 @@
 !include sequence-style.puml
 title Complete Worker Test Sequence Diagram (Có timeline + return numbering)
 
-actor "Worker" as Worker
-participant "<u>UI" as View
-participant "<u>WorkerVerifyController" as Controller
-participant "WorkerVerifyService" as Service
-participant "WorkerVerificationTestService" as TestService
-participant "WorkerVerificationService" as VerifyService
-database "Database" as DB
+actor Client
+participant "Controller\n(WorkerController)" as Controller
+participant "WorkerVerifyService" as VerifyService
+participant "WorkerVerificationTestService" as WVTService
+participant "WorkerVerificationTestRepository" as WVTRepo
+participant "<<entity>>\nWorkerVerificationTest" as WVTEntity
+participant "WorkerVerificationService" as WVService
+participant "WorkerVerificationRepository" as WVRepo
+participant "<<entity>>\nWorkerVerification" as WVEntity
+participant "<<entity>>\nQuestionCategory" as QCEntity
+participant "<<entity>>\nUser" as UserEntity
+participant "<<entity>>\nService" as ServiceEntity
+participant "UserService" as UserSvc
+participant "UserRepository" as UserRepo
+participant "<<entity>>\nUserRole" as UserRoleEntity
+participant "WorkerService" as WorkerSvc
+participant "WorkerRepository" as WorkerRepo
+participant "<<entity>>\nWorker" as WorkerEntity
+participant "WorkerServiceService" as WSSvc
+participant "WorkerServiceRepository" as WSRepo
+participant "<<entity>>\nWorkerService" as WSEntity
+participant "WorkerWalletExpenseService" as WWESvc
+participant "WorkerWalletExpenseRepository" as WWERepo
+participant "<<entity>>\nWorkerWalletExpense" as WWEEntity
+participant "WorkerWalletRevenueService" as WWRSvc
+participant "WorkerWalletRevenueRepository" as WWRRepo
+participant "<<entity>>\nWorkerWalletRevenue" as WWREntity
 
-
-activate Worker
-Worker -> View : 1 Gửi kết quả bài test (Submit)
-activate View
-
-View -> Controller : 1.1 POST /completeWorkerTest(request)
+Client -> Controller: POST /complete-test\n(SubmitTestRequestDTO)
 activate Controller
-Controller -> Service : 1.1.1 completeWorkerTest(request)
-activate Service
 
-Service -> TestService : 1.1.1.1 getWorkerVerificationTestById(testId)
-activate TestService
-TestService --> Service : 1.1.1.2 Trả về WorkerVerificationTest
-deactivate TestService
-
-Service -> VerifyService : 1.1.1.3 getWorkerVerificationByWorkerTestId(testId)
+Controller -> VerifyService: completeWorkerTest(request)
 activate VerifyService
-VerifyService --> Service : 1.1.1.4 Trả về WorkerVerification
-deactivate VerifyService
 
-Service -> Service : 1.1.1.5 Tính số câu đúng và phần trăm điểm
-Service -> Service : 1.1.1.6 Kiểm tra đạt hay không (isPassed)
+== Get Worker Verification Test ==
+VerifyService -> WVTService: getWorkerVerificationTestById(testId)
+activate WVTService
 
-alt isPassed == true
-    Service -> Service : 1.1.1.7a Gán quyền Worker, tạo service & ví
-    Service -> TestService : 1.1.1.8a Cập nhật WorkerVerificationTest (PASSED)
-    activate TestService
-    TestService -> DB : 1.1.1.8a.1 UPDATE WorkerVerificationTest
-    activate DB
-    DB --> TestService : 1.1.1.8a.2 OK
-    deactivate DB
-    TestService --> Service : 1.1.1.9a OK
-    deactivate TestService
+WVTService -> WVTRepo: findById(testId)
+activate WVTRepo
+WVTRepo -> WVTEntity: query by testId
+activate WVTEntity
+WVTEntity --> WVTRepo: WorkerVerificationTest instance
+deactivate WVTEntity
+WVTRepo --> WVTService: WorkerVerificationTest
+deactivate WVTRepo
 
-    Service -> VerifyService : 1.1.1.10a Cập nhật WorkerVerification (APPROVED)
-    activate VerifyService
-    VerifyService -> DB : 1.1.1.10a.1 UPDATE WorkerVerification
-    activate DB
-    DB --> VerifyService : 1.1.1.10a.2 OK
-    deactivate DB
-    VerifyService --> Service : 1.1.1.11a OK
-    deactivate VerifyService
+WVTService --> VerifyService: WorkerVerificationTest
+deactivate WVTService
 
-else isPassed == false
-    Service -> TestService : 1.1.1.8b Cập nhật WorkerVerificationTest (FAILED)
-    activate TestService
-    TestService -> DB : 1.1.1.8b.1 UPDATE WorkerVerificationTest
-    activate DB
-    DB --> TestService : 1.1.1.8b.2 OK
-    deactivate DB
-    TestService --> Service : 1.1.1.9b OK
-    deactivate TestService
+== Get Worker Verification ==
+VerifyService -> WVService: getWorkerVerificationByWorkerTestId(testId)
+activate WVService
 
-    Service -> VerifyService : 1.1.1.10b Cập nhật WorkerVerification (REJECTED)
-    activate VerifyService
-    VerifyService -> DB : 1.1.1.10b.1 UPDATE WorkerVerification
-    activate DB
-    DB --> VerifyService : 1.1.1.10b.2 OK
-    deactivate DB
-    VerifyService --> Service : 1.1.1.11b OK
-    deactivate VerifyService
+WVService -> WVRepo: findByWorkerTestId(testId)
+activate WVRepo
+WVRepo -> WVEntity: query by workerTestId
+activate WVEntity
+WVEntity --> WVRepo: WorkerVerification instance
+deactivate WVEntity
+WVRepo --> WVService: WorkerVerification
+deactivate WVRepo
+
+WVService --> VerifyService: WorkerVerification
+deactivate WVService
+
+== Calculate Score ==
+VerifyService -> VerifyService: calculateCorrectAndAddHistoryAnswers(answers, test)
+note right: Tính số câu đúng\nvà lưu lịch sử trả lời
+
+VerifyService -> VerifyService: Calculate scorePercentage\n= (correctAnswers * 100.0) / totalQuestions
+
+VerifyService -> VerifyService: Check isPassed\n= scorePercentage >= passThreshold
+
+== Update Test Entity ==
+VerifyService -> WVTEntity: setPassed(isPassed)
+activate WVTEntity
+VerifyService -> WVTEntity: setCorrectAnswers(correctAnswers)
+VerifyService -> WVTEntity: setTestStatus(status)
+VerifyService -> WVTEntity: setScorePercentage(scorePercentage)
+deactivate WVTEntity
+
+== Update Verification Entity ==
+VerifyService -> WVEntity: setVerificationStatus(status)
+activate WVEntity
+VerifyService -> WVEntity: setRejectionReason(reason)
+VerifyService -> WVEntity: setApprovedAt(timestamp)
+deactivate WVEntity
+
+alt Test Passed
+    == Get User and Service from Entities ==
+    VerifyService -> WVEntity: getUser()
+    activate WVEntity
+    WVEntity -> UserEntity: User instance
+    activate UserEntity
+    WVEntity --> VerifyService: User
+    deactivate WVEntity
+
+    VerifyService -> WVTEntity: getQuestionCategory()
+    activate WVTEntity
+    WVTEntity -> QCEntity: QuestionCategory instance
+    activate QCEntity
+    WVTEntity --> VerifyService: QuestionCategory
+    deactivate WVTEntity
+
+    VerifyService -> QCEntity: getService()
+    QCEntity -> ServiceEntity: Service instance
+    activate ServiceEntity
+    QCEntity --> VerifyService: Service
+    deactivate QCEntity
+
+    == Ensure User Has Worker Role ==
+    VerifyService -> VerifyService: ensureUserHasWorkerRole(userId)
+
+    VerifyService -> UserSvc: isExistRole(userId, ROLE.WORKER)
+    activate UserSvc
+
+    UserSvc -> UserRepo: existsByUserIdAndRoleName(userId, "WORKER")
+    activate UserRepo
+    UserRepo -> UserRoleEntity: query by userId and roleName
+    activate UserRoleEntity
+    UserRoleEntity --> UserRepo: exists result
+    deactivate UserRoleEntity
+    UserRepo --> UserSvc: boolean
+    deactivate UserRepo
+
+    alt Role Not Exists
+        UserSvc --> VerifyService: false
+
+        VerifyService -> UserSvc: addUserRole(userId, ROLE.WORKER)
+        UserSvc -> UserRepo: addRoleToUser(userId, roleName)
+        activate UserRepo
+        UserRepo -> UserRoleEntity: persist new UserRole
+        activate UserRoleEntity
+        UserRoleEntity --> UserRepo: UserRole instance
+        deactivate UserRoleEntity
+        UserRepo --> UserSvc: void
+        deactivate UserRepo
+        UserSvc --> VerifyService: void
+    else Role Exists
+        UserSvc --> VerifyService: true
+    end
+    deactivate UserSvc
+
+    == Ensure Worker and Service and Wallet ==
+    VerifyService -> VerifyService: ensureWorkerAndServiceAndWallet(user, service)
+
+    == Check Worker Exists ==
+    VerifyService -> WorkerSvc: isWorkerExists(userId)
+    activate WorkerSvc
+
+    WorkerSvc -> WorkerRepo: existsByUserId(userId)
+    activate WorkerRepo
+    WorkerRepo -> WorkerEntity: query by userId
+    activate WorkerEntity
+    WorkerEntity --> WorkerRepo: exists result
+    deactivate WorkerEntity
+    WorkerRepo --> WorkerSvc: boolean
+    deactivate WorkerRepo
+
+    alt Worker Exists
+        WorkerSvc --> VerifyService: true
+        deactivate WorkerSvc
+
+        VerifyService -> WorkerSvc: getWorkerByUserId(userId)
+        activate WorkerSvc
+        WorkerSvc -> WorkerRepo: findByUserId(userId)
+        activate WorkerRepo
+        WorkerRepo -> WorkerEntity: query by userId
+        activate WorkerEntity
+        WorkerEntity --> WorkerRepo: Worker instance
+        deactivate WorkerEntity
+        WorkerRepo --> WorkerSvc: Worker
+        deactivate WorkerRepo
+        WorkerSvc --> VerifyService: Worker
+        deactivate WorkerSvc
+
+    else Worker Not Exists
+        WorkerSvc --> VerifyService: false
+        deactivate WorkerSvc
+
+        VerifyService -> WorkerSvc: saveWorker(WorkerRequestDTO)
+        activate WorkerSvc
+        WorkerSvc -> WorkerRepo: save(worker)
+        activate WorkerRepo
+        WorkerRepo -> WorkerEntity: persist new Worker
+        activate WorkerEntity
+        WorkerEntity --> WorkerRepo: Worker instance
+        deactivate WorkerEntity
+        WorkerRepo --> WorkerSvc: Worker
+        deactivate WorkerRepo
+        WorkerSvc --> VerifyService: Worker
+        deactivate WorkerSvc
+    end
+
+    == Save Worker Service ==
+    VerifyService -> WSSvc: saveWorkerService(worker, service)
+    activate WSSvc
+
+    WSSvc -> WSRepo: save(workerService)
+    activate WSRepo
+    WSRepo -> WSEntity: persist WorkerService
+    activate WSEntity
+    WSEntity --> WSRepo: WorkerService instance
+    deactivate WSEntity
+    WSRepo --> WSSvc: WorkerService
+    deactivate WSRepo
+
+    WSSvc --> VerifyService: WorkerService
+    deactivate WSSvc
+
+    == Check Wallet Exists ==
+    VerifyService -> WWESvc: checkExistWalletByWorkerId(workerId)
+    activate WWESvc
+    WWESvc -> WWERepo: existsByWorkerId(workerId)
+    activate WWERepo
+    WWERepo -> WWEEntity: query by workerId
+    activate WWEEntity
+    WWEEntity --> WWERepo: exists result (expense)
+    deactivate WWEEntity
+    WWERepo --> WWESvc: boolean
+    deactivate WWERepo
+    WWESvc --> VerifyService: boolean (expenseExists)
+    deactivate WWESvc
+
+    VerifyService -> WWRSvc: checkExistWalletByWorkerId(workerId)
+    activate WWRSvc
+    WWRSvc -> WWRRepo: existsByWorkerId(workerId)
+    activate WWRRepo
+    WWRRepo -> WWREntity: query by workerId
+    activate WWREntity
+    WWREntity --> WWRRepo: exists result (revenue)
+    deactivate WWREntity
+    WWRRepo --> WWRSvc: boolean
+    deactivate WWRRepo
+    WWRSvc --> VerifyService: boolean (revenueExists)
+    deactivate WWRSvc
+
+    alt Both Wallets Not Exist
+        == Create Worker Wallet Expense ==
+        VerifyService -> WWESvc: saveWorkerWalletExpense(requestDTO)
+        activate WWESvc
+        WWESvc -> WWERepo: save(workerWalletExpense)
+        activate WWERepo
+        WWERepo -> WWEEntity: persist new WorkerWalletExpense\n(totalExpense=0, expenseBalance=0, isActive=true)
+        activate WWEEntity
+        WWEEntity --> WWERepo: WorkerWalletExpense instance
+        deactivate WWEEntity
+        WWERepo --> WWESvc: WorkerWalletExpense
+        deactivate WWERepo
+        WWESvc --> VerifyService: WorkerWalletExpense
+        deactivate WWESvc
+
+        == Create Worker Wallet Revenue ==
+        VerifyService -> WWRSvc: saveWorkerWalletRevenue(requestDTO)
+        activate WWRSvc
+        WWRSvc -> WWRRepo: save(workerWalletRevenue)
+        activate WWRRepo
+        WWRRepo -> WWREntity: persist new WorkerWalletRevenue\n(totalRevenue=0, revenueBalance=0, isActive=true)
+        activate WWREntity
+        WWREntity --> WWRRepo: WorkerWalletRevenue instance
+        deactivate WWREntity
+        WWRRepo --> WWRSvc: WorkerWalletRevenue
+        deactivate WWRRepo
+        WWRSvc --> VerifyService: WorkerWalletRevenue
+        deactivate WWRSvc
+    end
+
+    deactivate UserEntity
+    deactivate ServiceEntity
 end
 
-Service --> Controller : 1.1.2 Trả về CompleteTestResponseDTO(isPassed, score)
-deactivate Service
-Controller --> View : 1.1.3 Hiển thị kết quả bài test
+== Update Worker Verification Test ==
+VerifyService -> WVTService: updateWorkerVerificationTest(testId, updateDTO)
+activate WVTService
+
+WVTService -> WVTRepo: save(workerVerificationTest)
+activate WVTRepo
+WVTRepo -> WVTEntity: persist updated entity
+activate WVTEntity
+WVTEntity --> WVTRepo: saved entity
+deactivate WVTEntity
+WVTRepo --> WVTService: WorkerVerificationTest
+deactivate WVTRepo
+
+WVTService --> VerifyService: WorkerVerificationTest
+deactivate WVTService
+
+== Update Worker Verification ==
+VerifyService -> WVService: updateWorkerVerification(verificationId, updateDTO)
+activate WVService
+
+WVService -> WVRepo: save(workerVerification)
+activate WVRepo
+WVRepo -> WVEntity: persist updated entity
+activate WVEntity
+WVEntity --> WVRepo: saved entity
+deactivate WVEntity
+WVRepo --> WVService: WorkerVerification
+deactivate WVRepo
+
+WVService --> VerifyService: WorkerVerification
+deactivate WVService
+
+== Build Response ==
+VerifyService -> VerifyService: CompleteTestResponseDTO.builder()\n.isPassed(isPassed)\n.scorePercentage(scorePercentage)\n.build()
+
+VerifyService --> VerifyService: CompleteTestResponseDTO
+deactivate VerifyService
+
+Controller -> Controller: ApiResponse.builder()\n.message("Complete worker test successfully")\n.result(responseDTO)\n.build()
+
+Controller --> Client: ApiResponse<CompleteTestResponseDTO>
 deactivate Controller
-View --> Worker : 1.1.4 Giao diện hiển thị kết quả
-deactivate View
-deactivate Worker
 
 @enduml

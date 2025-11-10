@@ -38,8 +38,8 @@ public class SepayVerifyService implements ISepayVerifyService {
     }
 
     @Override
-    public boolean checkTransactionForDeposit() {
-        String keyword = WogoConstants.TRANSACTION_DEPOSIT_CONTENT_PREFIX + SecurityUtils.getCurrentUserId();
+    public boolean checkTransactionForDeposit(Long depositId) {
+        String keyword = WogoConstants.TRANSACTION_DEPOSIT_CONTENT_PREFIX + SecurityUtils.getCurrentUserId() + "TRANS" + depositId;
         return checkTransaction(keyword);
     }
 
@@ -128,7 +128,7 @@ public class SepayVerifyService implements ISepayVerifyService {
                 .depositId(deposit.getId())
                 .qrCodeUrl(generateQRCode(
                         deposit.getAmount().toString(),
-                        WogoConstants.TRANSACTION_DEPOSIT_CONTENT_PREFIX + SecurityUtils.getCurrentUserId()
+                        WogoConstants.TRANSACTION_DEPOSIT_CONTENT_PREFIX + SecurityUtils.getCurrentUserId() + "TRANS" + deposit.getId()
                 ))
                 .build();
     }

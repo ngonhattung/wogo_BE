@@ -18,7 +18,7 @@ public final class WogoConstants {
     public static final BigDecimal INITIAL_WALLET_BALANCE = BigDecimal.valueOf(0.00);
     public static final double DEFAULT_DISTANCE_KM = 1.0;
     public static final String TRANSACTION_PAYMENT_CONTENT_PREFIX = "TTDV";
-    public static final String TRANSACTION_DEPOSIT_CONTENT_PREFIX = "NAPTIEN_USERWOGO:";
+    public static final String TRANSACTION_DEPOSIT_CONTENT_PREFIX = "NAPTIENUSERWOGO";
     public static final int LIMIT_TRANSACTION_FETCH = 5;
     public static final double MINIMUM_WALLET_BALANCE = -50000;
 }

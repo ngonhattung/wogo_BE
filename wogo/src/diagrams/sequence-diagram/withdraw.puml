@@ -2,76 +2,169 @@
 !include sequence-style.puml
 title Create Withdrawal Request Sequence Diagram
 
-actor "Worker" as Worker
-participant "<u>UI" as View
-participant "<u>WithdrawalController" as Controller
-participant "WithdrawalService" as Service
-participant "WorkerService" as WorkerService
-participant "WorkerWalletRevenueService" as WalletService
-participant "WalletTransactionService" as TransactionService
-database "Database" as DB
+actor Worker
+participant "Controller\n(WithdrawalController)" as Controller
+participant "WithdrawalService" as WithdrawalSvc
+participant "WorkerService" as WorkerSvc
+participant "WorkerRepository" as WorkerRepo
+participant "<<entity>>\nWorker" as WorkerEntity
+participant "WorkerWalletRevenueService" as WWRSvc
+participant "WorkerWalletRevenueRepository" as WWRRepo
+participant "<<entity>>\nWorkerWalletRevenue" as WWREntity
+participant "WithdrawalRepository" as WithdrawalRepo
+participant "<<entity>>\nWithdrawal" as WithdrawalEntity
+participant "WalletTransactionService" as WTSvc
+participant "WalletTransactionRepository" as WTRepo
+participant "<<entity>>\nWalletTransaction" as WTEntity
+participant "PaymentService" as PaymentSvc
+participant "PaymentRepository" as PaymentRepo
+participant "<<entity>>\nPayment" as PaymentEntity
 
-activate Worker
-Worker -> View : 1 Chọn rút tiền (POST /withdrawals)
-activate View
-
-View -> Controller : 1.1 POST /withdrawals(request)
+Worker -> Controller: POST /withdrawals\n(WithdrawalRequestDTO)
 activate Controller
-Controller -> Service : 1.1.1 createWithdrawalRequest(request)
-activate Service
 
-' --- Lấy thông tin Worker ---
-Service -> WorkerService : 1.1.1.1 getWorkerByUserId(currentUserId)
-activate WorkerService
-WorkerService -> DB : 1.1.1.1.1 get worker theo userId
-activate DB
-DB --> WorkerService : 1.1.1.1.2 Worker entity
-deactivate DB
-WorkerService --> Service : 1.1.1.2 Trả về Worker
-deactivate WorkerService
+Controller -> WithdrawalSvc: createWithdrawalRequest(request)
+activate WithdrawalSvc
 
-' --- Tạo Withdrawal entity ---
-Service -> Service : 1.1.1.3 createWithdrawal(request, worker)
-note right of Service
-Hàm nội bộ tạo đối tượng Withdrawal
-với trạng thái PENDING và thời gian requestedAt = now()
-end note
+== Get Current Worker ==
+WithdrawalSvc -> WithdrawalSvc: SecurityUtils.getCurrentUserId()
 
-' --- Lấy ví doanh thu của Worker ---
-Service -> WalletService : 1.1.1.4 getWalletByUserId()
-activate WalletService
-WalletService -> DB : 1.1.1.4.1 get WorkerWalletRevenue
-activate DB
-DB --> WalletService : 1.1.1.4.2 WorkerWalletRevenue entity
-deactivate DB
-WalletService --> Service : 1.1.1.5 Trả về WorkerWalletRevenue
-deactivate WalletService
+WithdrawalSvc -> WorkerSvc: getWorkerByUserId(userId)
+activate WorkerSvc
 
-' --- Lưu giao dịch ví (WalletTransaction) ---
-Service -> TransactionService : 1.1.1.6 saveWalletTransaction(requestDTO)
-activate TransactionService
-TransactionService -> DB : 1.1.1.6.1 INSERT INTO wallet_transaction (...)
-activate DB
-DB --> TransactionService : 1.1.1.6.2 WalletTransaction entity
-deactivate DB
-TransactionService --> Service : 1.1.1.7 Trả về WalletTransaction
-deactivate TransactionService
+WorkerSvc -> WorkerRepo: findByUserId(userId)
+activate WorkerRepo
+WorkerRepo -> WorkerEntity: query by userId
+activate WorkerEntity
 
-' --- Chuẩn bị response ---
-Service -> Service : 1.1.1.8 convertToDTO(withdrawal)
-note right of Service
-Set thêm transactionCode và transactionType
-từ WalletTransaction trước khi trả về.
-end note
+alt Worker Not Found
+    WorkerEntity --> WorkerRepo: null
+    deactivate WorkerEntity
+    WorkerRepo --> WorkerSvc: Optional.empty()
+    deactivate WorkerRepo
+    WorkerSvc --> WithdrawalSvc: throw AppException\n(WORKER_NOT_FOUND)
+    WithdrawalSvc --> Controller: Error
+    Controller --> Worker: Error Response
+else Worker Found
+    WorkerEntity --> WorkerRepo: Worker instance
+    deactivate WorkerEntity
+    WorkerRepo --> WorkerSvc: Worker
+    deactivate WorkerRepo
+    WorkerSvc --> WithdrawalSvc: Worker
+    deactivate WorkerSvc
 
-Service --> Controller : 1.1.2 Trả về WithdrawalResponseDTO
-deactivate Service
+    == Get Worker Wallet Revenue ==
+    WithdrawalSvc -> WWRSvc: getWalletByUserId()
+    activate WWRSvc
 
-Controller --> View : 1.1.3 Trả về ApiResponse<WithdrawalResponseDTO>
-deactivate Controller
+    WWRSvc -> WWRSvc: SecurityUtils.getCurrentUserId()
 
-View --> Worker : 1.1.4 Hiển thị giao diện chờ admin duyệt
-deactivate View
-deactivate Worker
+    WWRSvc -> WWRRepo: findByWorkerId(userId)
+    activate WWRRepo
+    WWRRepo -> WWREntity: query by workerId
+    activate WWREntity
+    WWREntity --> WWRRepo: WorkerWalletRevenue instance
+    deactivate WWREntity
+    WWRRepo --> WWRSvc: WorkerWalletRevenue
+    deactivate WWRRepo
+
+    WWRSvc --> WithdrawalSvc: WorkerWalletRevenue
+    deactivate WWRSvc
+
+    == Check Balance ==
+    WithdrawalSvc -> WWREntity: getRevenueBalance()
+    activate WWREntity
+    WWREntity --> WithdrawalSvc: BigDecimal revenueBalance
+    deactivate WWREntity
+
+    WithdrawalSvc -> WithdrawalSvc: revenueBalance.compareTo(request.getAmount())
+
+    alt Insufficient Balance (balance < amount)
+        WithdrawalSvc --> Controller: throw AppException\n(INSUFFICIENT_BALANCE)
+        Controller --> Worker: Error Response
+    else Sufficient Balance (balance >= amount)
+
+        == Create Withdrawal Entity ==
+        WithdrawalSvc -> WithdrawalSvc: createWithdrawal(request, worker)
+
+        WithdrawalSvc -> WithdrawalSvc: Withdrawal.builder()\n.worker(worker)\n.amount(request.getAmount())\n.bankName(request.getBankName())\n.accountNumber(request.getAccountNumber())\n.accountHolderName(request.getAccountHolderName())\n.status(WithdrawalStatus.PENDING)\n.requestedAt(LocalDateTime.now())\n.build()
+
+        create WithdrawalEntity
+        WithdrawalSvc -> WithdrawalEntity: new Withdrawal()
+        activate WithdrawalEntity
+
+        == Save Withdrawal ==
+        WithdrawalSvc -> WithdrawalRepo: save(withdrawal)
+        activate WithdrawalRepo
+        WithdrawalRepo -> WithdrawalEntity: persist Withdrawal entity
+        WithdrawalEntity --> WithdrawalRepo: saved Withdrawal instance
+        WithdrawalRepo --> WithdrawalSvc: Withdrawal
+        deactivate WithdrawalRepo
+
+        == Calculate Balance After ==
+        WithdrawalSvc -> WithdrawalSvc: balanceAfter = revenueBalance - amount
+
+        == Create Wallet Transaction ==
+        WithdrawalSvc -> WTSvc: saveWalletTransaction(WalletTransactionRequestDTO)
+        activate WTSvc
+
+        WTSvc -> WTRepo: save(walletTransaction)
+        activate WTRepo
+        WTRepo -> WTEntity: persist new WalletTransaction\n(amount=withdrawal.amount,\ntransactionType=WITHDRAW,\nstatus=PENDING,\ndescription="Yêu cầu rút số tiền: " + amount + " VNĐ",\nwithdrawal=withdrawal,\nwalletRevenue=walletRevenue,\nbalanceBefore=revenueBalance,\nbalanceAfter=revenueBalance - amount)
+        activate WTEntity
+        WTEntity --> WTRepo: WalletTransaction instance
+        deactivate WTEntity
+        WTRepo --> WTSvc: WalletTransaction
+        deactivate WTRepo
+
+        WTSvc --> WithdrawalSvc: WalletTransaction
+        deactivate WTSvc
+
+        == Create Payment ==
+        WithdrawalSvc -> PaymentSvc: savePayment(PaymentRequestDTO)
+        activate PaymentSvc
+
+        PaymentSvc -> PaymentRepo: save(payment)
+        activate PaymentRepo
+        PaymentRepo -> PaymentEntity: persist new Payment\n(walletTransaction=walletTransaction,\namount=withdrawal.amount,\npaymentMethod=BANK_TRANSFER)
+        activate PaymentEntity
+        PaymentEntity --> PaymentRepo: Payment instance
+        deactivate PaymentEntity
+        PaymentRepo --> PaymentSvc: Payment
+        deactivate PaymentRepo
+
+        PaymentSvc --> WithdrawalSvc: Payment
+        deactivate PaymentSvc
+
+        == Build Response ==
+        WithdrawalSvc -> WithdrawalSvc: convertToDTO(withdrawal)
+
+        WithdrawalSvc -> WithdrawalEntity: Get withdrawal fields
+        WithdrawalEntity --> WithdrawalSvc: Withdrawal data
+
+        WithdrawalSvc -> WTEntity: getTransactionCode()
+        activate WTEntity
+        WTEntity --> WithdrawalSvc: String transactionCode
+        deactivate WTEntity
+
+        WithdrawalSvc -> WTEntity: getTransactionType()
+        activate WTEntity
+        WTEntity --> WithdrawalSvc: TransactionType.WITHDRAW
+        deactivate WTEntity
+
+        WithdrawalSvc -> WithdrawalSvc: responseDTO.setTransactionCode(transactionCode)
+        WithdrawalSvc -> WithdrawalSvc: responseDTO.setTransactionType(WITHDRAW)
+
+        WithdrawalSvc --> Controller: WithdrawalResponseDTO
+        deactivate WithdrawalSvc
+        deactivate WithdrawalEntity
+
+        == Build API Response ==
+        Controller -> Controller: ApiResponse.builder()\n.message("Withdrawal request created successfully")\n.result(withdrawalResponseDTO)\n.build()
+
+        Controller --> Worker: ApiResponse<WithdrawalResponseDTO>
+        deactivate Controller
+    end
+end
 
 @enduml

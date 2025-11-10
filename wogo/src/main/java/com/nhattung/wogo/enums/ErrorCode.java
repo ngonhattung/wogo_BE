@@ -98,6 +98,7 @@ public enum ErrorCode {
     INVALID_PAYMENT_METHOD(5011, "Phương thức thanh toán không hợp lệ", HttpStatus.BAD_REQUEST),
     INVALID_PAYMENT_TYPE(5012, "Loại thanh toán không hợp lệ", HttpStatus.BAD_REQUEST),
     INSUFFICIENT_BALANCE(5013, "Số dư không đủ để thực hiện giao dịch", HttpStatus.BAD_REQUEST),
+    INVALID_PAYMENT(5014, "Cần ít nhất Booking hoặc WalletTransaction.", HttpStatus.BAD_REQUEST),
     ;
 
     ErrorCode(int code, String message, HttpStatusCode statusCode) {

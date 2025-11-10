@@ -2,92 +2,163 @@
 !include sequence-style.puml
 title Worker Find Available Jobs Sequence Diagram (Business-Level, Unified Format)
 
-actor "Worker" as Worker
-participant "<u>UI" as View
-participant "<u>BookingController" as Controller
-participant "BookingService" as Service
-participant "WorkerWalletExpenseService" as WalletService
-participant "AddressService" as AddressService
-participant "ServiceService" as ServiceService
-participant "JobService" as JobService
-database "Database" as DB
+actor Worker
+participant "Controller\n(BookingController)" as Controller
+participant "BookingService" as BookingSvc
+participant "WorkerWalletExpenseService" as WWESvc
+participant "WorkerWalletExpenseRepository" as WWERepo
+participant "<<entity>>\nWorkerWalletExpense" as WWEEntity
+participant "AddressService" as AddressSvc
+participant "AddressRepository" as AddressRepo
+participant "<<entity>>\nAddress" as AddressEntity
+participant "ServiceService" as ServiceSvc
+participant "WorkerServiceRepository" as WSRepo
+participant "<<entity>>\nWorkerService" as WSEntity
+participant "<<entity>>\nService" as ServiceEntity
+participant "JobService" as JobSvc
+participant "JobRepository" as JobRepo
+participant "<<entity>>\nJob" as JobEntity
 
-activate Worker
-Worker -> View : 1 Trượt để tìm việc
-activate View
-
-View -> Controller : 1.1 GET /job-available
+Worker -> Controller: GET /job-available
 activate Controller
-Controller -> Service : 1.1.1 getListPendingJobsMatchWorker()
-activate Service
 
-' --- Kiểm tra ví chi phí ---
-Service -> WalletService : 1.1.1.1 getWalletByUserId()
-activate WalletService
-WalletService -> DB : 1.1.1.1.1 GET ví chi phí thợ
-activate DB
-DB --> WalletService : 1.1.1.1.2 WorkerWalletExpense entity
-deactivate DB
-WalletService --> Service : 1.1.1.2 Trả về ví chi phí
-deactivate WalletService
+Controller -> BookingSvc: getListPendingJobsMatchWorker()
+activate BookingSvc
 
-Service -> Service : 1.1.1.3 Kiểm tra số dư ví >= MINIMUM_WALLET_BALANCE
-alt Số dư ví âm hơn MINIMUM_WALLET_BALANCE
-    Service -> Controller : 1.1.1.4a Ném lỗi WALLET_BALANCE_NOT_ENOUGH
-    Controller --> View : 1.1.1.4a.1 Trả lỗi "WALLET_BALANCE_NOT_ENOUGH"
-    note right of Controller
-    Luồng kết thúc nếu ví không đủ tiền.
-    end note
-else Số dư ví hợp lệ
-    ' --- Lấy địa chỉ của thợ ---
-    Service -> AddressService : 1.1.1.4b findByWorkerId(SecurityUtils.getCurrentUserId())
-    activate AddressService
-    AddressService -> DB : 1.1.1.4b.1 GET địa chỉ thợ
-    activate DB
-    DB --> AddressService : 1.1.1.4b.2 Address entity
-    deactivate DB
-    AddressService --> Service : 1.1.1.5 Trả về địa chỉ thợ
-    deactivate AddressService
+== Check Wallet Balance ==
+BookingSvc -> WWESvc: getWalletByUserId()
+activate WWESvc
 
-    ' --- Lấy danh sách service mà thợ có thể làm ---
-    Service -> ServiceService : 1.1.1.6 serviceService.getAllServicesOfWorker()
-    activate ServiceService
-    ServiceService -> DB : 1.1.1.6.1 GET serviceId match theo workerId
-    activate DB
-    DB --> ServiceService : 1.1.1.6.2 List<ServiceResponseDTO>
-    deactivate DB
-    ServiceService --> Service : 1.1.1.7 Trả về danh sách serviceIds
-    deactivate ServiceService
+WWESvc -> WWESvc: SecurityUtils.getCurrentUserId()
 
-    ' --- Kiểm tra danh sách service ---
-    Service -> Service : 1.1.1.8 serviceIds.isEmpty()
-    alt serviceIds rỗng
-        Service -> Controller : 1.1.1.9a Trả về danh sách rỗng
-        Controller --> View : 1.1.1.9a.1 Hiển thị “Không có công việc phù hợp”
-    else Có serviceIds
-        ' --- Lấy danh sách job theo serviceId ---
-        loop Theo từng serviceId
-            Service -> JobService : 1.1.1.9b getJobsByServiceId(serviceId)
-            activate JobService
-            JobService -> DB : 1.1.1.9b.1 GET job theo serviceId
-            activate DB
-            DB --> JobService : 1.1.1.9b.2 List<JobSummaryResponseDTO>
-            deactivate DB
-            JobService --> Service : 1.1.1.10 Trả danh sách job
-            deactivate JobService
+WWESvc -> WWERepo: findByWorkerId(userId)
+activate WWERepo
+WWERepo -> WWEEntity: query by workerId
+activate WWEEntity
+WWEEntity --> WWERepo: WorkerWalletExpense instance
+deactivate WWEEntity
+WWERepo --> WWESvc: WorkerWalletExpense
+deactivate WWERepo
 
-            ' --- Tính khoảng cách từ thợ đến job ---
-            Service -> Service : 1.1.1.11 setDistance(job, addressWorker)
+WWESvc --> BookingSvc: WorkerWalletExpense
+deactivate WWESvc
+
+BookingSvc -> WWEEntity: getExpenseBalance()
+activate WWEEntity
+WWEEntity --> BookingSvc: BigDecimal expenseBalance
+deactivate WWEEntity
+
+alt Balance < MINIMUM_WALLET_BALANCE
+    BookingSvc --> Controller: throw AppException\n(WALLET_BALANCE_NOT_ENOUGH)
+    Controller --> Worker: Error Response
+else Balance >= MINIMUM_WALLET_BALANCE
+
+    == Get Worker Address ==
+    BookingSvc -> BookingSvc: SecurityUtils.getCurrentUserId()
+
+    BookingSvc -> AddressSvc: findByWorkerId(workerId)
+    activate AddressSvc
+
+    AddressSvc -> AddressRepo: findByUserIdAndRole(workerId, "WORKER")
+    activate AddressRepo
+    AddressRepo -> AddressEntity: query by userId and role=WORKER
+    activate AddressEntity
+    AddressEntity --> AddressRepo: Address instance
+    deactivate AddressEntity
+    AddressRepo --> AddressSvc: Address
+    deactivate AddressRepo
+
+    AddressSvc --> BookingSvc: Address (workerAddress)
+    deactivate AddressSvc
+
+    == Get Worker's Services ==
+    BookingSvc -> ServiceSvc: getAllServicesOfWorker()
+    activate ServiceSvc
+
+    ServiceSvc -> ServiceSvc: SecurityUtils.getCurrentUserId()
+
+    ServiceSvc -> WSRepo: findByWorkerId(workerId)
+    activate WSRepo
+    WSRepo -> WSEntity: query by workerId
+    activate WSEntity
+    WSEntity --> WSRepo: List<WorkerService> instances
+    deactivate WSEntity
+    WSRepo --> ServiceSvc: List<WorkerService>
+    deactivate WSRepo
+
+    loop For Each WorkerService
+        ServiceSvc -> WSEntity: getService()
+        activate WSEntity
+        WSEntity -> ServiceEntity: Service instance
+        activate ServiceEntity
+        WSEntity --> ServiceSvc: Service
+        deactivate WSEntity
+
+        ServiceSvc -> ServiceEntity: getChildServices()
+        alt Has Child Services
+            ServiceEntity --> ServiceSvc: List<Service> children
+            note right: If service has children\n(e.g., "Plumbing" has\n"Fix Pipe", "Install Sink")
+        else No Child Services
+            ServiceEntity --> ServiceSvc: null or empty
+            ServiceSvc -> ServiceEntity: getParentService()
+            ServiceEntity --> ServiceSvc: Service parent
+            note right: Use parent service itself
         end
-        Service --> Controller : 1.1.2 Trả danh sách JobSummaryResponseDTO
+        deactivate ServiceEntity
+    end
+
+    ServiceSvc -> ServiceSvc: Flatten to List<ServiceResponseDTO>
+    ServiceSvc --> BookingSvc: List<ServiceResponseDTO>
+    deactivate ServiceSvc
+
+    BookingSvc -> BookingSvc: Extract serviceIds from services
+    BookingSvc -> BookingSvc: serviceIds = services.stream()\n.map(ServiceResponseDTO::getId)\n.toList()
+
+    alt ServiceIds is Empty
+        BookingSvc --> Controller: Collections.emptyList()
+        Controller --> Worker: Empty Job List
+    else ServiceIds Not Empty
+
+        == Get Jobs by Service IDs ==
+        loop For Each ServiceId
+            BookingSvc -> JobSvc: getJobsByServiceId(serviceId)
+            activate JobSvc
+
+            JobSvc -> JobRepo: findByServiceIdAndStatus(serviceId, PENDING)
+            activate JobRepo
+            JobRepo -> JobEntity: query by serviceId and status=PENDING
+            activate JobEntity
+            JobEntity --> JobRepo: List<Job> instances
+            deactivate JobEntity
+            JobRepo --> JobSvc: List<Job>
+            deactivate JobRepo
+
+            JobSvc -> JobSvc: convert to JobSummaryResponseDTO
+            JobSvc --> BookingSvc: List<JobSummaryResponseDTO>
+            deactivate JobSvc
+        end
+
+        BookingSvc -> BookingSvc: Flatten all jobs to single list
+
+        == Calculate Distance for Each Job ==
+        loop For Each Job
+            BookingSvc -> BookingSvc: setDistance(job, workerAddress)
+
+            BookingSvc -> BookingSvc: haversine(HaversineRequestDTO.builder()\n.latCustomer(job.getLatitude())\n.lonCustomer(job.getLongitude())\n.latWorker(workerAddress.getLatitude())\n.lonWorker(workerAddress.getLongitude())\n.build())
+
+            note right: Calculate distance using\nHaversine formula:\nd = 2r × arcsin(√(sin²(Δφ/2) + cos(φ1) × cos(φ2) × sin²(Δλ/2)))\nwhere r = Earth radius (6371 km)
+
+            BookingSvc -> BookingSvc: job.setDistance(distance)
+        end
+
+        BookingSvc --> Controller: List<JobSummaryResponseDTO>
+        deactivate BookingSvc
+
+        Controller -> Controller: ApiResponse.builder()\n.message("Pending jobs retrieved successfully")\n.result(jobList)\n.build()
+
+        Controller --> Worker: ApiResponse<List<JobSummaryResponseDTO>>
+        deactivate Controller
     end
 end
-
-deactivate Service
-Controller --> View : 1.1.3 Trả ApiResponse<List<JobSummaryResponseDTO>>
-deactivate Controller
-View --> Worker : 1.1.4 Hiển thị danh sách việc phù hợp
-deactivate View
-deactivate Worker
 
 @enduml

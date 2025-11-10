@@ -2,63 +2,153 @@
 !include sequence-style.puml
 title Create Worker Test Sequence Diagram
 
-actor "Worker" as W
-participant "UI" as UI
-participant "WorkerVerifyController" as C
-participant "WorkerVerifyService" as S
-participant "WorkerServiceService" as WS
-participant "QuestionCategoryService" as QC
-participant "WorkerVerificationTestService" as TS
-participant "WorkerVerificationService" as VS
-participant "QuestionService" as Q
-database "DB" as DB
+actor Client
+participant "Controller\n(WorkerController)" as Controller
+participant "WorkerVerifyService" as VerifyService
+participant "WorkerServiceService" as WSService
+participant "WorkerServiceRepository" as WSRepo
+participant "<<entity>>\nWorkerService" as WSEntity
+participant "QuestionCategoryService" as QCService
+participant "QuestionCategoryRepository" as QCRepo
+participant "<<entity>>\nQuestionCategory" as QCEntity
+participant "WorkerVerificationTestService" as WVTService
+participant "WorkerVerificationTestRepository" as WVTRepo
+participant "<<entity>>\nWorkerVerificationTest" as WVTEntity
+participant "WorkerVerificationService" as WVService
+participant "WorkerVerificationRepository" as WVRepo
+participant "<<entity>>\nWorkerVerification" as WVEntity
+participant "QuestionService" as QService
+participant "QuestionRepository" as QRepo
+participant "<<entity>>\nQuestion" as QEntity
 
-activate W
-W -> UI : 1 Click "Thêm nghiệp vụ"
-activate UI
+Client -> Controller: POST /create-test\n(WorkerTestRequestDTO)
+activate Controller
 
-UI -> C : 1.1 POST /createWorkerTest(request)
-activate C
-C -> S : 1.1.1 Gọi createWorkerTest(request)
-activate S
+Controller -> VerifyService: createWorkerTest(request)
+activate VerifyService
 
-S -> WS : 1.1.1.1 checkWorkerServiceExists(request.getServiceId())
-activate WS
-WS --> S : 1.1.1.2 Kết quả: true/false
-deactivate WS
+== Check Worker Service Exists ==
+VerifyService -> WSService: checkWorkerServiceExists(serviceId)
+activate WSService
 
-alt Worker đã có nghiệp vụ
-    S -> S : 1.1.1.3a Ném lỗi WORKER_SERVICE_EXISTS
-else Chưa có
-    S -> QC : 1.1.1.3b getCategoryEntityByServiceId(request.getServiceId())
-    activate QC
-    QC --> S : 1.1.1.4 Trả về QuestionCategory
-    deactivate QC
+WSService -> WSService: SecurityUtils.getCurrentUserId()
+WSService -> WSRepo: existsByUserIdAndServiceId(userId, serviceId)
+activate WSRepo
 
-    S -> TS : 1.1.1.5 saveWorkerVerificationTest(...)
-    activate TS
-    TS -> DB : 1.1.1.5.1 INSERT WorkerVerificationTest
-    DB --> TS : 1.1.1.5.2 OK
-    TS --> S : 1.1.1.6 Trả về WorkerVerificationTest
-    deactivate TS
+WSRepo -> WSEntity: query entities
+activate WSEntity
+WSEntity --> WSRepo: exists result
+deactivate WSEntity
 
-    S -> VS : 1.1.1.7 saveWorkerVerification(...)
-    activate VS
-    VS -> DB : 1.1.1.7.1 INSERT WorkerVerification
-    DB --> VS : 1.1.1.7.2 OK
-    VS --> S : 1.1.1.8 Trả về WorkerVerification
-    deactivate VS
+WSRepo --> WSService: boolean
+deactivate WSRepo
 
-    S -> Q : 1.1.1.9 findRandomQuestions(questionCategory.getId())
-    activate Q
-    Q --> S : 1.1.1.10 Trả về List<QuestionResponseDTO>
-    deactivate Q
+alt Worker Service Already Exists
+    WSService --> VerifyService: true
+    VerifyService --> Controller: throw AppException\n(WORKER_SERVICE_EXISTS)
+    Controller --> Client: Error Response
+else Worker Service Not Exists
+    WSService --> VerifyService: false
+    deactivate WSService
+
+    == Get Question Category ==
+    VerifyService -> QCService: getCategoryEntityByServiceId(serviceId)
+    activate QCService
+
+    QCService -> QCRepo: findByServiceId(serviceId)
+    activate QCRepo
+
+    QCRepo -> QCEntity: query by serviceId
+    activate QCEntity
+
+    alt Category Not Found
+        QCEntity --> QCRepo: null
+        deactivate QCEntity
+        QCRepo --> QCService: Optional.empty()
+        deactivate QCRepo
+        QCService --> VerifyService: throw AppException\n(QUESTION_CATEGORY_NOT_FOUND)
+        VerifyService --> Controller: Error
+        Controller --> Client: Error Response
+    else Category Found
+        QCEntity --> QCRepo: QuestionCategory instance
+        deactivate QCEntity
+        QCRepo --> QCService: Optional<QuestionCategory>
+        deactivate QCRepo
+        QCService --> VerifyService: QuestionCategory
+        deactivate QCService
+
+        == Create Worker Verification Test ==
+        VerifyService -> WVTService: saveWorkerVerificationTest(requestDTO)
+        activate WVTService
+
+        WVTService -> WVTRepo: save(workerVerificationTest)
+        activate WVTRepo
+
+        WVTRepo -> WVTEntity: persist entity
+        activate WVTEntity
+        WVTEntity --> WVTRepo: saved entity
+        deactivate WVTEntity
+
+        WVTRepo --> WVTService: WorkerVerificationTest
+        deactivate WVTRepo
+        WVTService --> VerifyService: WorkerVerificationTest
+        deactivate WVTService
+
+        == Create Worker Verification ==
+        VerifyService -> WVService: saveWorkerVerification(requestDTO)
+        activate WVService
+
+        WVService -> WVRepo: save(workerVerification)
+        activate WVRepo
+
+        WVRepo -> WVEntity: persist entity
+        activate WVEntity
+        WVEntity --> WVRepo: saved entity
+        deactivate WVEntity
+
+        WVRepo --> WVService: WorkerVerification
+        deactivate WVRepo
+        WVService --> VerifyService: WorkerVerification
+        deactivate WVService
+
+        == Get Random Questions ==
+        VerifyService -> QService: findRandomQuestions(categoryId)
+        activate QService
+
+        loop For Each Difficulty Level (EASY, MEDIUM, HARD)
+            QService -> QService: getRandomQuestions(categoryId, level, needed)
+
+            QService -> QRepo: findRandomByDifficulty(categoryId, level, needed*2)
+            activate QRepo
+
+            QRepo -> QEntity: query by categoryId and level
+            activate QEntity
+            QEntity --> QRepo: List<Question> instances
+            deactivate QEntity
+
+            QRepo --> QService: List<Question>
+            deactivate QRepo
+
+            QService -> QService: Collections.shuffle(questions)
+            QService -> QService: stream().limit(needed)
+        end
+
+        QService -> QService: convert to QuestionResponseDTO
+        QService --> VerifyService: List<QuestionResponseDTO>
+        deactivate QService
+
+        == Build Response ==
+        VerifyService -> VerifyService: CreateTestResponseDTO.builder()\n.questions(randomQuestions)\n.testId(testId)\n.build()
+
+        VerifyService --> Controller: CreateTestResponseDTO
+        deactivate VerifyService
+
+        Controller -> Controller: ApiResponse.builder()\n.message("Create worker test successfully")\n.result(responseDTO)\n.build()
+
+        Controller --> Client: ApiResponse<CreateTestResponseDTO>
+        deactivate Controller
+    end
 end
-
-S --> C : 1.1.2 Trả về CreateTestResponseDTO(testId, questions)
-deactivate S
-C --> UI : 1.1.3 Giao diện danh sách câu hỏi
-deactivate C
 
 
 @enduml

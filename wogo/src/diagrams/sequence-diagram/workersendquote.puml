@@ -2,110 +2,200 @@
 !include sequence-style.puml
 title Worker Send Quote Sequence Diagram (Business-Level, Unified Format)
 
-actor "Worker" as Worker
-participant "<u>UI" as View
-participant "<u>BookingController" as Controller
-participant "BookingService" as BookingService
-participant "JobService" as JobService
-participant "WorkerService" as WorkerService
-participant "WebSocketBroker" as Socket
-database "Database" as DB
+actor Worker
+participant "Controller\n(BookingController)" as Controller
+participant "BookingService" as BookingSvc
+participant "JobService" as JobSvc
+participant "JobRepository" as JobRepo
+participant "<<entity>>\nJob" as JobEntity
+participant "<<entity>>\nUser" as UserEntity
+participant "WorkerService" as WorkerSvc
+participant "WorkerRepository" as WorkerRepo
+participant "<<entity>>\nWorker" as WorkerEntity
+participant "<<entity>>\nWorkerQuote" as QuoteEntity
+participant "<<entity>>\nService" as ServiceEntity
+participant "MessagingTemplate\n(WebSocket)" as WebSocket
 
-activate Worker
-Worker -> View : 1 Click "Gửi báo giá"
-activate View
-
-View -> Controller : 1.1 POST /send-quote(request)
+Worker -> Controller: POST /send-quote\n(SendQuoteRequestDTO)
 activate Controller
 
-' --- Kiểm tra tính hợp lệ của Job ---
-Controller -> BookingService : 1.2 verifyJobRequest(request)
-activate BookingService
+== Verify Job Request ==
+Controller -> BookingSvc: verifyJobRequest(request)
+activate BookingSvc
 
-BookingService -> BookingService : 1.2.1 getJobAndValidate(request)
-note right of BookingService
-Hàm nội bộ kiểm tra:
-- Job có còn PENDING không
-- Worker có tồn tại không
-- Worker có gửi báo giá trước đó chưa
-- Worker có phải chủ job không
-end note
+BookingSvc -> BookingSvc: getJobAndValidate(request)
 
-BookingService -> JobService : 1.2.2 getJobByJobRequestCode(jobRequestCode)
-activate JobService
-JobService -> DB : 1.2.2.1 GET JobRequest
-activate DB
-DB --> JobService : 1.2.2.2 JobResponseDTO
-deactivate DB
-JobService --> BookingService : 1.2.2.3 Trả về JobResponseDTO
-deactivate JobService
+== Get Job by Request Code ==
+BookingSvc -> JobSvc: getJobByJobRequestCode(jobRequestCode)
+activate JobSvc
 
-' --- Kiểm tra trạng thái Job ---
-BookingService -> BookingService : 1.2.3 Kiểm tra job.status == PENDING
-alt Job không còn PENDING
-    BookingService --> Controller : 1.2.4a Trả về false (job không hợp lệ)
-else Job còn PENDING
-    ' --- Lấy Worker hiện tại ---
-    BookingService -> WorkerService : 1.2.4b getWorkerByUserId(currentUserId)
-    activate WorkerService
-    WorkerService -> DB : 1.2.4b.1 GET Worker
-    activate DB
-    DB --> WorkerService : 1.2.4b.2 Worker entity
-    deactivate DB
-    WorkerService --> BookingService : 1.2.4c Trả về Worker
-    deactivate WorkerService
+JobSvc -> JobRepo: findByJobRequestCode(jobRequestCode)
+activate JobRepo
+JobRepo -> JobEntity: query by jobRequestCode
+activate JobEntity
 
-    BookingService -> BookingService : 1.2.5 Kiểm tra điều kiện báo giá (đã gửi / chủ job)
-    alt Worker đã gửi báo giá trước đó
-        BookingService -> Controller : 1.2.6a Ném lỗi YOU_ALREADY_SEND_QUOTE
-        Controller --> View : 1.2.6a.1 Thông báo lỗi
-    else Worker hợp lệ
-        BookingService --> Controller : 1.2.6b Trả về true (job hợp lệ)
+alt Job Not Found
+    JobEntity --> JobRepo: null
+    deactivate JobEntity
+    JobRepo --> JobSvc: Optional.empty()
+    deactivate JobRepo
+    JobSvc --> BookingSvc: throw AppException\n(JOB_NOT_FOUND)
+    BookingSvc --> Controller: Error
+    Controller --> Worker: Error Response
+else Job Found
+    JobEntity --> JobRepo: Job instance
+    deactivate JobEntity
+    JobRepo --> JobSvc: Optional<Job>
+    deactivate JobRepo
+
+    JobSvc -> JobSvc: convertToResponseDTO(job)
+    JobSvc --> BookingSvc: JobResponseDTO
+    deactivate JobSvc
+
+    == Validate Job Status ==
+    BookingSvc -> BookingSvc: Check job.getStatus()
+
+    alt Status != PENDING
+        BookingSvc --> Controller: return null → isValid = false
+
+        == Send Error via WebSocket ==
+        Controller -> Controller: SecurityUtils.getCurrentUserId()
+        Controller -> WebSocket: convertAndSendToUser(\nuserId.toString(),\n"/queue/errors",\n"Job is not available")
+        activate WebSocket
+        WebSocket --> WebSocket: Send to specific worker
+        note right: Private message to\nthis worker only
+        deactivate WebSocket
+
+        Controller --> Worker: ApiResponse\n(message="Job request is no longer available")
+
+    else Status = PENDING
+
+        == Get Current Worker ==
+        BookingSvc -> BookingSvc: SecurityUtils.getCurrentUserId()
+
+        BookingSvc -> WorkerSvc: getWorkerByUserId(userId)
+        activate WorkerSvc
+
+        WorkerSvc -> WorkerRepo: findByUserId(userId)
+        activate WorkerRepo
+        WorkerRepo -> WorkerEntity: query by userId
+        activate WorkerEntity
+
+        alt Worker Not Found
+            WorkerEntity --> WorkerRepo: null
+            deactivate WorkerEntity
+            WorkerRepo --> WorkerSvc: Optional.empty()
+            deactivate WorkerRepo
+            WorkerSvc --> BookingSvc: throw AppException\n(WORKER_NOT_FOUND)
+            BookingSvc --> Controller: Error
+            Controller --> Worker: Error Response
+        else Worker Found
+            WorkerEntity --> WorkerRepo: Worker instance
+            deactivate WorkerEntity
+            WorkerRepo --> WorkerSvc: Worker
+            deactivate WorkerRepo
+            WorkerSvc --> BookingSvc: Worker
+            deactivate WorkerSvc
+
+            == Get Job Owner ==
+            BookingSvc -> JobEntity: getUser()
+            activate JobEntity
+            JobEntity -> UserEntity: User instance (job owner)
+            activate UserEntity
+            JobEntity --> BookingSvc: User
+            deactivate JobEntity
+
+            BookingSvc -> UserEntity: getId()
+            UserEntity --> BookingSvc: Long jobOwnerId
+
+            == Check if Worker is Job Owner ==
+            BookingSvc -> WorkerEntity: getId()
+            activate WorkerEntity
+            WorkerEntity --> BookingSvc: Long currentWorkerId
+            deactivate WorkerEntity
+
+            alt Worker is Job Owner (userId == jobOwnerId)
+                BookingSvc --> Controller: throw AppException\n(CANNOT_ACCEPT_OWN_JOB)
+                Controller --> Worker: Error Response
+            else Worker is Not Job Owner
+
+                == Check Existing Quotes ==
+                BookingSvc -> JobEntity: getWorkerQuotes()
+                activate JobEntity
+                JobEntity -> QuoteEntity: List<WorkerQuote> instances
+                activate QuoteEntity
+                QuoteEntity --> JobEntity: List<WorkerQuote>
+                deactivate QuoteEntity
+                JobEntity --> BookingSvc: List<SendQuotedResponseDTO>
+                deactivate JobEntity
+
+                alt Worker Already Sent Quote
+                    BookingSvc -> BookingSvc: existingQuotes.stream()\n.anyMatch(quote -> quote.getWorker().getId() == currentWorkerId)
+                    BookingSvc --> Controller: throw AppException\n(YOU_ALREADY_SEND_QUOTE)
+                    Controller --> Worker: Error Response
+                else Worker Has Not Sent Quote
+
+                    BookingSvc --> BookingSvc: return JobResponseDTO → isValid = true
+                    BookingSvc --> Controller: true
+                    deactivate BookingSvc
+
+                    == Get Job Details ==
+                    Controller -> JobSvc: getJobByJobRequestCode(jobRequestCode)
+                    activate JobSvc
+
+                    JobSvc -> JobRepo: findByJobRequestCode(jobRequestCode)
+                    activate JobRepo
+                    JobRepo -> JobEntity: query by jobRequestCode
+                    activate JobEntity
+                    JobEntity --> JobRepo: Job instance
+                    deactivate JobEntity
+                    JobRepo --> JobSvc: Job
+                    deactivate JobRepo
+
+                    JobSvc -> JobSvc: convertToResponseDTO(job)
+
+                    JobSvc -> JobEntity: getService()
+                    activate JobEntity
+                    JobEntity -> ServiceEntity: Service instance
+                    activate ServiceEntity
+                    JobEntity --> JobSvc: Service
+                    deactivate JobEntity
+
+                    JobSvc --> Controller: JobResponseDTO
+                    deactivate JobSvc
+
+                    == Broadcast Quote to Customer via WebSocket ==
+                    Controller -> ServiceEntity: getId()
+                    ServiceEntity --> Controller: Long serviceId
+
+                    Controller -> WebSocket: convertAndSend(\n"/topic/send-quote/" + serviceId,\njobResponseDTO)
+                    activate WebSocket
+                    WebSocket --> WebSocket: Broadcast to customers\nsubscribed to this service
+                    note right: Customer subscribes to\n/topic/send-quote/{serviceId}\nto receive quotes
+                    deactivate WebSocket
+
+                    note over Controller: Worker should subscribe to:\n/topic/job-placed/{jobRequestCode}\nto receive customer's response\n(accept or reject)
+
+                    == Save Quote ==
+                    Controller -> BookingSvc: sendQuote(request)
+                    activate BookingSvc
+
+                    BookingSvc -> BookingSvc: Save WorkerQuote entity\n(details not shown)
+
+                    BookingSvc --> Controller: WorkerQuoteResponseDTO
+                    deactivate BookingSvc
+
+                    == Build Response ==
+                    Controller -> Controller: ApiResponse.builder()\n.message("Job accepted successfully")\n.result(workerQuoteResponseDTO)\n.build()
+
+                    Controller --> Worker: ApiResponse<WorkerQuoteResponseDTO>
+                    deactivate Controller
+                    deactivate ServiceEntity
+                    deactivate UserEntity
+                end
+            end
+        end
     end
 end
-deactivate BookingService
-
-' --- Xử lý theo kết quả verify ---
-alt Job hợp lệ (isValid == true)
-    Controller -> JobService : 1.3 jobService.getJobByJobRequestCodeEntity(request.getJobRequestCode())
-    activate JobService
-    JobService -> DB : 1.3.1 GET JobByJobRequest
-    activate DB
-    DB --> JobService : 1.3.2 JobResponseDTO
-    deactivate DB
-    JobService --> Controller : 1.3.3 Trả về JobResponseDTO
-    deactivate JobService
-
-    ' --- Push WebSocket tới khách hàng ---
-    Controller -> Socket : 1.4 convertAndSend("/topic/send-quote/{serviceId}", job)
-    activate Socket
-    Socket --> Customer : 1.4.1 Gửi realtime “Job đã được gửi báo giá”
-    deactivate Socket
-
-    ' --- Thực hiện gửi báo giá ---
-    Controller -> BookingService : 1.5 sendQuote(request)
-    activate BookingService
-    BookingService -> DB : 1.5.1 INSERT INTO worker_quote (...)
-    activate DB
-    DB --> BookingService : 1.5.2 WorkerQuote entity
-    deactivate DB
-    BookingService --> Controller : 1.5.3 Trả về WorkerQuoteResponseDTO
-    deactivate BookingService
-
-    Controller --> View : 1.6 Trả ApiResponse<WorkerQuoteResponseDTO>
-else Job không hợp lệ (isValid == false)
-    ' --- Push lỗi qua WebSocket riêng của thợ ---
-    Controller -> Socket : 1.7 convertAndSendToUser(workerId, "/queue/errors", "Job is not available")
-    activate Socket
-    Socket --> Worker : 1.7.1 Gửi realtime “Job is not available”
-    deactivate Socket
-
-    Controller --> View : 1.8 Trả ApiResponse với message “Job request is no longer available”
-end
-
-deactivate Controller
-View --> Worker : 1.9 Hiển thị thông báo báo giá thành công
-deactivate View
-deactivate Worker
 
 @enduml

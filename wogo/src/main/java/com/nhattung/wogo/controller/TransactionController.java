@@ -6,6 +6,7 @@ import com.nhattung.wogo.dto.request.ProcessWithdrawalRequestDTO;
 import com.nhattung.wogo.dto.request.WithdrawalRequestDTO;
 import com.nhattung.wogo.dto.response.ApiResponse;
 import com.nhattung.wogo.dto.response.CreateDepositResponseDTO;
+import com.nhattung.wogo.dto.response.WalletTransactionResponseDTO;
 import com.nhattung.wogo.dto.response.WithdrawalResponseDTO;
 import com.nhattung.wogo.entity.Deposit;
 import com.nhattung.wogo.enums.PaymentStatus;
@@ -14,11 +15,13 @@ import com.nhattung.wogo.service.transaction.deposit.IDepositService;
 import com.nhattung.wogo.service.transaction.withdrawal.IWithdrawalService;
 import com.nhattung.wogo.service.wallet.expense.IWorkerWalletExpenseService;
 import com.nhattung.wogo.service.wallet.revenue.IWorkerWalletRevenueService;
+import com.nhattung.wogo.service.wallet.transaction.IWalletTransactionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
@@ -31,6 +34,7 @@ public class TransactionController {
     private final IDepositService depositService;
     private final ISepayVerifyService sepayVerifyService;
     private final SimpMessagingTemplate messagingTemplate;
+    private final IWalletTransactionService walletTransactionService;
 
 
     @GetMapping("/walletRevenueBalance")
@@ -46,6 +50,22 @@ public class TransactionController {
         return ApiResponse.<BigDecimal>builder()
                 .message("Wallet expense balance retrieved successfully")
                 .result(walletExpenseService.getWalletByUserId().getExpenseBalance())
+                .build();
+    }
+
+    @GetMapping("/withdrawals/history/{workerId}")
+    public ApiResponse<List<WalletTransactionResponseDTO>> getHistoryWithdrawals(@PathVariable Long workerId) {
+        return ApiResponse.<List<WalletTransactionResponseDTO>>builder()
+                .message("Withdrawal history retrieved successfully")
+                .result(walletTransactionService.getHistoryWithdrawalTransactions(workerId))
+                .build();
+    }
+
+    @GetMapping("/deposits/history/{workerId}")
+    public ApiResponse<List<WalletTransactionResponseDTO>> getHistoryDeposits(@PathVariable Long workerId) {
+        return ApiResponse.<List<WalletTransactionResponseDTO>>builder()
+                .message("Deposit history retrieved successfully")
+                .result(walletTransactionService.getHistoryDepositTransactions(workerId))
                 .build();
     }
 
@@ -80,7 +100,7 @@ public class TransactionController {
     //Call mỗi 3s để check trạng thái thanh toán
     @PostMapping("/deposits/verify/{depositId}")
     public ApiResponse<Boolean> verifyDeposit(@PathVariable Long depositId) {
-        boolean isDepositSuccess = sepayVerifyService.checkTransactionForDeposit();
+        boolean isDepositSuccess = sepayVerifyService.checkTransactionForDeposit(depositId);
 
         if(isDepositSuccess){
 

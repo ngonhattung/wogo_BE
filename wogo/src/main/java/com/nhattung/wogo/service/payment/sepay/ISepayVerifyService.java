@@ -6,7 +6,7 @@ import com.nhattung.wogo.entity.Deposit;
 
 public interface ISepayVerifyService {
     boolean checkTransactionForPayment(String bookingCode);
-    boolean checkTransactionForDeposit();
+    boolean checkTransactionForDeposit(Long depositId);
     String createQRCodeForPayment(Booking booking);
     CreateDepositResponseDTO createQRCodeForDeposit(Deposit deposit);
 }

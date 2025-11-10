@@ -2,73 +2,148 @@
 !include sequence-style.puml
 title Create Payment Sequence Diagram
 
-actor "Customer" as Customer
-participant "<u>UI" as View
-participant "<u>PaymentController" as Controller
-participant "BookingService" as BookingService
-participant "WorkerWalletRevenueService" as WalletService
-participant "WalletTransactionService" as TransactionService
-participant "SepayVerifyService" as SepayService
-database "Database" as DB
+actor Client
+participant "Controller\n(BookingController)" as Controller
+participant "BookingService" as BookingSvc
+participant "BookingRepository" as BookingRepo
+participant "<<entity>>\nBooking" as BookingEntity
+participant "WorkerWalletRevenueService" as WWRSvc
+participant "WorkerWalletRevenueRepository" as WWRRepo
+participant "<<entity>>\nWorkerWalletRevenue" as WWREntity
+participant "WalletTransactionService" as WTSvc
+participant "WalletTransactionRepository" as WTRepo
+participant "<<entity>>\nWalletTransaction" as WTEntity
+participant "PaymentService" as PaymentSvc
+participant "PaymentRepository" as PaymentRepo
+participant "<<entity>>\nPayment" as PaymentEntity
+participant "SepayVerifyService" as SepaySvc
 
-activate Customer
-Customer -> View : 1 Click thanh toán
-activate View
-
-View -> Controller : 1.1 POST /create-payment/{bookingCode}
+Client -> Controller: POST /create-payment/{bookingCode}
 activate Controller
-Controller -> BookingService : 1.1.1 createBookingTransaction(bookingCode)
-activate BookingService
 
-' --- Lấy thông tin booking ---
-BookingService -> DB : 1.1.1.1 findByBookingCode(bookingCode)
-activate DB
-DB --> BookingService : 1.1.1.2 Trả về Booking entity
-deactivate DB
+Controller -> BookingSvc: createBookingTransaction(bookingCode)
+activate BookingSvc
 
-' --- Kiểm tra số tiền hợp lệ ---
-BookingService -> BookingService : 1.1.1.3 Kiểm tra totalAmount > 0
-alt Số tiền không hợp lệ
-    BookingService -> Controller : 1.1.1.4a Ném lỗi INVALID_BOOKING_AMOUNT
-    Controller --> View : 1.1.1.4a.1 Trả lỗi "INVALID_BOOKING_AMOUNT"
-    note right of Controller
-    Luồng kết thúc nếu số tiền không hợp lệ.
-    end note
-else Hợp lệ
-    ' --- Lấy ví của Worker ---
-    BookingService -> WalletService : 1.1.1.4b getWalletByUserId()
-    activate WalletService
-    WalletService -> DB : 1.1.1.4b.1 workerWalletRevenueService.getWalletByUserId()
-    activate DB
-    DB --> WalletService : 1.1.1.4b.2 WorkerWalletRevenue entity
-    deactivate DB
-    WalletService --> BookingService : 1.1.1.5 Trả về WalletRevenue
-    deactivate WalletService
+== Get Booking ==
+BookingSvc -> BookingRepo: findByBookingCode(bookingCode)
+activate BookingRepo
+BookingRepo -> BookingEntity: query by bookingCode
+activate BookingEntity
 
-    ' --- Tạo giao dịch ví (WalletTransaction) ---
-    BookingService -> TransactionService : 1.1.1.6 saveWalletTransaction(PAYMENT)
-    activate TransactionService
-    TransactionService -> DB : 1.1.1.6.1 walletTransactionService.saveWalletTransaction(WalletTransactionRequestDTO) (status=PENDING)
-    activate DB
-    DB --> TransactionService : 1.1.1.6.2 Trả về WalletTransaction
-    deactivate DB
-    TransactionService --> BookingService : 1.1.1.7 OK
-    deactivate TransactionService
+alt Booking Not Found
+    BookingEntity --> BookingRepo: null
+    deactivate BookingEntity
+    BookingRepo --> BookingSvc: Optional.empty()
+    deactivate BookingRepo
+    BookingSvc --> Controller: throw AppException\n(BOOKING_NOT_FOUND)
+    Controller --> Client: Error Response
+else Booking Found
+    BookingEntity --> BookingRepo: Booking instance
+    deactivate BookingEntity
+    BookingRepo --> BookingSvc: Optional<Booking>
+    deactivate BookingRepo
 
-    ' --- Gọi Sepay để tạo QR ---
-    BookingService -> SepayService : 1.1.1.8 createQRCodeForPayment(booking)
-    activate SepayService
-    SepayService --> BookingService : 1.1.1.9 Trả về link QR (linkTransaction)
-    deactivate SepayService
+    == Validate Booking Amount ==
+    BookingSvc -> BookingEntity: getTotalAmount()
+    activate BookingEntity
+    BookingEntity --> BookingSvc: BigDecimal totalAmount
+    deactivate BookingEntity
 
-    BookingService --> Controller : 1.1.2 Trả TransactionResponseDTO(linkQR, status=false)
+    alt Invalid Amount (null or <= 0)
+        BookingSvc --> Controller: throw AppException\n(INVALID_BOOKING_AMOUNT)
+        Controller --> Client: Error Response
+    else Valid Amount
+
+        == Get Worker Wallet Revenue ==
+        BookingSvc -> WWRSvc: getWalletByUserId()
+        activate WWRSvc
+
+        WWRSvc -> WWRSvc: SecurityUtils.getCurrentUserId()
+
+        WWRSvc -> WWRRepo: findByWorkerId(userId)
+        activate WWRRepo
+        WWRRepo -> WWREntity: query by workerId
+        activate WWREntity
+        WWREntity --> WWRRepo: WorkerWalletRevenue instance
+        deactivate WWREntity
+        WWRRepo --> WWRSvc: WorkerWalletRevenue
+        deactivate WWRRepo
+
+        WWRSvc --> BookingSvc: WorkerWalletRevenue
+        deactivate WWRSvc
+
+        == Calculate Worker Amount ==
+        BookingSvc -> BookingEntity: getPlatformFee()
+        activate BookingEntity
+        BookingEntity --> BookingSvc: BigDecimal platformFee
+        deactivate BookingEntity
+
+        BookingSvc -> BookingSvc: workerAmount = totalAmount - platformFee
+        note right: Worker receives amount\nminus platform commission
+
+        == Get Current Balance ==
+        BookingSvc -> WWREntity: getRevenueBalance()
+        activate WWREntity
+        WWREntity --> BookingSvc: BigDecimal revenueBalance
+        deactivate WWREntity
+
+        BookingSvc -> BookingSvc: balanceAfter = revenueBalance + workerAmount
+
+        == Save Wallet Transaction ==
+        BookingSvc -> WTSvc: saveWalletTransaction(WalletTransactionRequestDTO)
+        activate WTSvc
+
+        WTSvc -> WTRepo: save(walletTransaction)
+        activate WTRepo
+        WTRepo -> WTEntity: persist new WalletTransaction\n(amount=totalAmount,\ntransactionType=PAYMENT,\nstatus=PENDING,\ndescription="Payment for booking: " + bookingCode,\nwalletRevenue=walletRevenue,\nbalanceBefore=revenueBalance,\nbalanceAfter=revenueBalance + workerAmount)
+        activate WTEntity
+        WTEntity --> WTRepo: WalletTransaction instance
+        deactivate WTEntity
+        WTRepo --> WTSvc: WalletTransaction
+        deactivate WTRepo
+
+        WTSvc --> BookingSvc: WalletTransaction
+        deactivate WTSvc
+
+        == Save Payment ==
+        BookingSvc -> PaymentSvc: savePayment(PaymentRequestDTO)
+        activate PaymentSvc
+
+        PaymentSvc -> PaymentRepo: save(payment)
+        activate PaymentRepo
+        PaymentRepo -> PaymentEntity: persist new Payment\n(booking=booking,\namount=totalAmount,\npaymentMethod=BANK_TRANSFER)
+        activate PaymentEntity
+        PaymentEntity --> PaymentRepo: Payment instance
+        deactivate PaymentEntity
+        PaymentRepo --> PaymentSvc: Payment
+        deactivate PaymentRepo
+
+        PaymentSvc --> BookingSvc: Payment
+        deactivate PaymentSvc
+
+        == Generate QR Code for Payment ==
+        BookingSvc -> SepaySvc: createQRCodeForPayment(booking)
+        activate SepaySvc
+
+        SepaySvc -> SepaySvc: Call Sepay API\nwith booking details
+        note right: External API call\nto Sepay payment gateway\nNo entity involved
+
+        SepaySvc --> BookingSvc: String linkQR
+        deactivate SepaySvc
+
+        == Build Response ==
+        BookingSvc -> BookingSvc: TransactionResponseDTO.builder()\n.linkTransaction(linkQR)\n.transactionStatus(false)\n.build()
+        note right: transactionStatus=false\nmeans payment is pending
+
+        BookingSvc --> Controller: TransactionResponseDTO
+        deactivate BookingSvc
+
+        Controller -> Controller: ApiResponse.builder()\n.message("Create payment successfully")\n.result(transactionResponseDTO)\n.build()
+
+        Controller --> Client: ApiResponse<TransactionResponseDTO>
+        deactivate Controller
+    end
 end
 
-deactivate BookingService
-Controller --> View : 1.1.3 Trả ApiResponse<TransactionResponseDTO>
-deactivate Controller
-View --> Customer : 1.1.4 Hiển thị QR code thanh toán
-deactivate View
-deactivate Customer
 
 @enduml
