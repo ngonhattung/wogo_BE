@@ -24,7 +24,6 @@ public class WorkerDocumentFileService implements IWorkerDocumentFileService {
     @Override
     public void saveWorkerDocumentFile(List<MultipartFile> files, WorkerDocument workerDocument) {
         for(MultipartFile file : files) {
-            try {
                 // Upload to S3
                 UploadS3Response s3Response = uploadToS3.uploadFileToS3(file);
 
@@ -37,11 +36,6 @@ public class WorkerDocumentFileService implements IWorkerDocumentFileService {
                                 .fileUrl(s3Response.getFileUrl())
                                 .build()
                 );
-            } catch (Exception e) {
-                // Log the error and throw a custom exception
-                e.printStackTrace();
-                throw new AppException(ErrorCode.UPLOAD_IMAGE_ERROR);
-            }
         }
 
     }
