@@ -27,8 +27,9 @@ public class PaymentService  implements IPaymentService{
                 .paymentStatus(PaymentStatus.PENDING)
                 .paymentMethod(request.getPaymentMethod());
 
-        if (request.getBooking() != null) {
+        if (request.getBooking() != null && request.getWalletTransaction() != null) {
             paymentBuilder.booking(request.getBooking());
+            paymentBuilder.walletTransaction(request.getWalletTransaction());
         }
         else if (request.getWalletTransaction() != null) {
             paymentBuilder.walletTransaction(request.getWalletTransaction());

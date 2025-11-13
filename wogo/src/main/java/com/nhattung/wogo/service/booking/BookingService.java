@@ -434,6 +434,7 @@ public class BookingService implements IBookingService {
                             .build()
             );
         }
+
     }
 
     private void handleCashPayment(Booking booking) {
@@ -487,7 +488,7 @@ public class BookingService implements IBookingService {
         BigDecimal workerAmount = booking.getTotalAmount()
                 .subtract(booking.getPlatformFee());
 
-        walletTransactionService.saveWalletTransaction(WalletTransactionRequestDTO.builder()
+        WalletTransaction walletTransaction =  walletTransactionService.saveWalletTransaction(WalletTransactionRequestDTO.builder()
                 .amount(booking.getTotalAmount())
                 .transactionType(TransactionType.PAYMENT)
                 .status(PaymentStatus.PENDING)
@@ -501,6 +502,7 @@ public class BookingService implements IBookingService {
                 .booking(booking)
                 .amount(booking.getTotalAmount())
                 .paymentMethod(PaymentMethod.BANK_TRANSFER)
+                .walletTransaction(walletTransaction)
                 .build());
 
         String linkQR = sepayVerifyService.createQRCodeForPayment(booking);
@@ -538,14 +540,6 @@ public class BookingService implements IBookingService {
 
         // Lưu booking sau khi cập nhật
         Booking savedBooking = bookingRepository.save(booking);
-
-        // Nếu chưa có payment thì tạo mới
-        if (savedBooking.getBookingPayment() == null) {
-            paymentService.savePayment(PaymentRequestDTO.builder()
-                    .booking(savedBooking)
-                    .amount(savedBooking.getTotalAmount())
-                    .build());
-        }
 
         // Trả về thông tin booking sau khi cập nhật
         return convertToBookingResponseDTO(savedBooking);
