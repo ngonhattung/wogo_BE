@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -157,6 +158,12 @@ public class WithdrawalService implements IWithdrawalService {
         );
 
         withdrawalRepository.save(withdrawal);
+    }
+
+    @Override
+    public List<WithdrawalResponseDTO> getWithdrawalsByApprovalStatus(Boolean isApproved) {
+        return withdrawalRepository.findWithdrawalsByApprovalStatus(isApproved);
+
     }
 
 

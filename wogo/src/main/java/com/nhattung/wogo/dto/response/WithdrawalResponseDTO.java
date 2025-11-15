@@ -23,4 +23,5 @@ public class WithdrawalResponseDTO {
     private PaymentStatus paymentStatus;
     private TransactionType transactionType;
     private String transactionCode;
+    private boolean isApproved;
 }

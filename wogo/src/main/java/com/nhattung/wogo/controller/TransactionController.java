@@ -70,6 +70,16 @@ public class TransactionController {
     }
 
 
+    @GetMapping("/withdrawals/getWithdrawalsByStatus")
+    public ApiResponse<List<WithdrawalResponseDTO>> getWithdrawalsByStatus(
+            @RequestParam(required = false) Boolean isApproved
+    ) {
+        return ApiResponse.<List<WithdrawalResponseDTO>>builder()
+                .message("Withdrawals retrieved successfully")
+                .result(withdrawalService.getWithdrawalsByApprovalStatus(isApproved))
+                .build();
+    }
+
     @PostMapping("/withdrawals")
     public ApiResponse<WithdrawalResponseDTO> createWithdrawal(@RequestBody WithdrawalRequestDTO request) {
         return ApiResponse.<WithdrawalResponseDTO>builder()
