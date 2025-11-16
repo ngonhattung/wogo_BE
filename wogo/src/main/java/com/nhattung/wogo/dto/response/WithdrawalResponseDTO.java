@@ -16,6 +16,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 public class WithdrawalResponseDTO {
+    private Long id;
     private BigDecimal amount;
     private String bankAccountNumber;
     private Bank bankName;

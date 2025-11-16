@@ -7,6 +7,9 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
+
 @Data
 @Builder
 @NoArgsConstructor
@@ -18,4 +21,5 @@ public class NotificationResponseDTO {
     private String imageUrl;
     private ROLE targetRole;
     private UserResponseDTO user;
+    private Timestamp createdAt;
 }

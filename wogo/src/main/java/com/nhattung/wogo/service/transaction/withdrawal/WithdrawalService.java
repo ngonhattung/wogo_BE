@@ -162,7 +162,10 @@ public class WithdrawalService implements IWithdrawalService {
 
     @Override
     public List<WithdrawalResponseDTO> getWithdrawalsByApprovalStatus(Boolean isApproved) {
-        return withdrawalRepository.findWithdrawalsByApprovalStatus(isApproved);
+        return withdrawalRepository.findWithdrawalsByApprovalStatus(isApproved)
+                .stream()
+                .map(this::convertToDTO)
+                .toList();
 
     }
 

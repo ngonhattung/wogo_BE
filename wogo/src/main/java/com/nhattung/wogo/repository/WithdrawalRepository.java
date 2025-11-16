@@ -12,20 +12,10 @@ import java.util.List;
 public interface WithdrawalRepository extends JpaRepository<Withdrawal, Long> {
 
     @Query("""
-        select new com.nhattung.wogo.dto.response.WithdrawalResponseDTO(
-            w.amount,
-            w.bankAccountNumber,
-            w.bankName,
-            w.requestedAt,
-            wt.paymentStatus,
-            wt.transactionType,
-            wt.transactionCode,
-            w.approved
-        )
-        from Withdrawal w
-        join w.walletTransaction wt
-        where (:isApproved is null or w.approved = :isApproved)
-        order by w.requestedAt desc
-    """)
-    List<WithdrawalResponseDTO> findWithdrawalsByApprovalStatus(Boolean isApproved);
+    select w
+    from Withdrawal w
+    where (:isApproved is null or w.approved = :isApproved)
+    order by w.requestedAt desc
+""")
+    List<Withdrawal> findWithdrawalsByApprovalStatus(Boolean isApproved);
 }

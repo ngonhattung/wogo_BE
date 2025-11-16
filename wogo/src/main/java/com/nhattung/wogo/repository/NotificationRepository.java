@@ -11,5 +11,5 @@ import java.util.Optional;
 
 @Repository
 public interface NotificationRepository extends JpaRepository<Notification,Long> {
-    List<Notification> findByTargetRole(ROLE role);
+    List<Notification> findByTargetRoleOrderByCreatedAtDesc(ROLE role);
 }

@@ -41,7 +41,7 @@ public class NotificationService implements INotificationService{
 
     @Override
     public List<NotificationResponseDTO> getNotificationsForCurrentUser(ROLE role) {
-        return notificationRepository.findByTargetRole(role)
+        return notificationRepository.findByTargetRoleOrderByCreatedAtDesc(role)
                 .stream()
                 .map(this::convertToDTO)
                 .toList();
