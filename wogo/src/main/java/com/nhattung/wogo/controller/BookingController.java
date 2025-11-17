@@ -269,16 +269,16 @@ public class BookingController {
 
         if(request.getCanceller().equals(ActorType.CUSTOMER))
         {
-            //Push realtime cho thợ đã được chọn (subscribe theo workerId để gửi riêng cho thợ đó)
+            //Push realtime cho thợ đã được chọn
             messagingTemplate.convertAndSend(
-                    "/topic/cancel-job/" + booking.getUser().getId(),
+                    "/topic/cancel-job/" + booking.getWorker().getId(),
                     booking
             );
         }
 
-        //Push realtime cho thợ đã được chọn (subscribe theo workerId để gửi riêng cho thợ đó)
+        //Push realtime cho khách
         messagingTemplate.convertAndSend(
-                "/topic/cancel-job/" + booking.getWorker().getId(),
+                "/topic/cancel-job/" + booking.getUser().getId(),
                 booking
         );
 
