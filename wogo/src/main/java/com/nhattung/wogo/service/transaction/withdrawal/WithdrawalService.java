@@ -71,6 +71,7 @@ public class WithdrawalService implements IWithdrawalService {
                         .walletTransaction(walletTransaction)
                         .amount(withdrawal.getAmount())
                         .paymentMethod(PaymentMethod.BANK_TRANSFER)
+                        .paymentStatus(PaymentStatus.PENDING)
                         .build()
         );
 

@@ -65,6 +65,7 @@ public class DepositService implements IDepositService {
                         .walletTransaction(walletTransaction)
                         .amount(deposit.getAmount())
                         .paymentMethod(PaymentMethod.BANK_TRANSFER)
+                        .paymentStatus(PaymentStatus.PENDING)
                         .build()
         );
 

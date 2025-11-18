@@ -24,7 +24,7 @@ public class PaymentService  implements IPaymentService{
     public void savePayment(PaymentRequestDTO request) {
         Payment.PaymentBuilder paymentBuilder = Payment.builder()
                 .totalAmount(request.getAmount())
-                .paymentStatus(PaymentStatus.PENDING)
+                .paymentStatus(request.getPaymentStatus())
                 .paymentMethod(request.getPaymentMethod());
 
         if (request.getBooking() != null && request.getWalletTransaction() != null) {
@@ -35,7 +35,7 @@ public class PaymentService  implements IPaymentService{
             paymentBuilder.walletTransaction(request.getWalletTransaction());
         }
         else {
-            throw new AppException(ErrorCode.INVALID_PAYMENT);
+            paymentBuilder.booking(request.getBooking());
         }
 
         paymentRepository.save(paymentBuilder.build());
@@ -87,19 +87,6 @@ public class PaymentService  implements IPaymentService{
             throw new AppException(ErrorCode.INVALID_PAYMENT_METHOD);
         }
     }
-
-    // Kiểm tra tính hợp lệ của phương thức thanh toán
-    private boolean isValidPaymentMethod(PaymentMethod paymentMethod) {
-        return paymentMethod == PaymentMethod.CASH || paymentMethod == PaymentMethod.BANK_TRANSFER;
-    }
-
-    // Cập nhật trạng thái thanh toán
-    private Payment updatePayment(Payment payment) {
-        payment.setPaymentStatus(PaymentStatus.COMPLETED);
-        payment.setPaidAt(LocalDateTime.now());
-        return paymentRepository.save(payment);
-    }
-
 
 
 }

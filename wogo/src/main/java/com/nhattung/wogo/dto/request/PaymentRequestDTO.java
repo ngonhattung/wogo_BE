@@ -3,6 +3,7 @@ package com.nhattung.wogo.dto.request;
 import com.nhattung.wogo.entity.Booking;
 import com.nhattung.wogo.entity.WalletTransaction;
 import com.nhattung.wogo.enums.PaymentMethod;
+import com.nhattung.wogo.enums.PaymentStatus;
 import lombok.Builder;
 import lombok.Data;
 
@@ -16,4 +17,5 @@ public class PaymentRequestDTO {
     private WalletTransaction walletTransaction;
     private PaymentMethod paymentMethod;
     private BigDecimal amount;
+    private PaymentStatus paymentStatus;
 }

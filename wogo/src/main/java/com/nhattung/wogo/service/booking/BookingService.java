@@ -415,26 +415,6 @@ public class BookingService implements IBookingService {
         } else {
             return;
         }
-
-        // 2. Update Payment Status
-        Payment payment = paymentService.updatePaymentStatus(
-                PaymentRequestDTO.builder()
-                        .booking(booking)
-                        .paymentMethod(method)
-                        .build()
-        );
-
-        // 3. ONLY process wallet for BANK_TRANSFER
-        if (method == PaymentMethod.BANK_TRANSFER) {
-            walletTransactionService.processWalletTransaction(
-                    ProcessWalletTransactionRequestDTO.builder()
-                            .transactionId(payment.getWalletTransaction().getId())
-                            .status(PaymentStatus.COMPLETED)
-                            .processedAt(LocalDateTime.now())
-                            .build()
-            );
-        }
-
     }
 
     private void handleCashPayment(Booking booking) {
@@ -442,14 +422,36 @@ public class BookingService implements IBookingService {
                 .amount(booking.getPlatformFee())
                 .isAdd(false)
                 .build());
+
+        paymentService.savePayment(PaymentRequestDTO.builder()
+                .booking(booking)
+                .paymentStatus(PaymentStatus.COMPLETED)
+                .amount(booking.getTotalAmount())
+                .paymentMethod(PaymentMethod.CASH)
+                .build());
     }
 
     private void handleBankTransfer(Booking booking) {
+
         BigDecimal workerAmount = booking.getTotalAmount().subtract(booking.getPlatformFee());
         workerWalletRevenueService.updateWalletRevenue(UpdateWalletRequestDTO.builder()
                 .amount(workerAmount)
                 .isAdd(true)
                 .build());
+
+        Payment payment = paymentService.updatePaymentStatus(
+                PaymentRequestDTO.builder()
+                        .booking(booking)
+                        .paymentMethod(PaymentMethod.BANK_TRANSFER)
+                        .build()
+        );
+        walletTransactionService.processWalletTransaction(
+                ProcessWalletTransactionRequestDTO.builder()
+                        .transactionId(payment.getWalletTransaction().getId())
+                        .status(PaymentStatus.COMPLETED)
+                        .processedAt(LocalDateTime.now())
+                        .build()
+        );
     }
 
     @Override
@@ -502,6 +504,7 @@ public class BookingService implements IBookingService {
                 .booking(booking)
                 .amount(booking.getTotalAmount())
                 .paymentMethod(PaymentMethod.BANK_TRANSFER)
+                .paymentStatus(PaymentStatus.PENDING)
                 .walletTransaction(walletTransaction)
                 .build());
 
