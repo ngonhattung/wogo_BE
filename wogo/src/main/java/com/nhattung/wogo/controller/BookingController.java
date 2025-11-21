@@ -120,7 +120,7 @@ public class BookingController {
     public ApiResponse<Void> cancelJob(@RequestBody CancelJobRequestDTO request) {
 
 
-        jobService.updateStatusCancelJob(request.getReason(), ActorType.CUSTOMER, request.getJobRequestCode());
+        jobService.cancelJobByJobRequestCode(request.getReason(), request.getJobRequestCode());
 
         //Push realtime cho tất cả thợ là job đã bị huỷ (subscribe theo requestCode (để gửi cho tất cả thợ báo giá) ngay sau khi gửi quote )
         messagingTemplate.convertAndSend(
@@ -265,7 +265,7 @@ public class BookingController {
     @PostMapping("/cancel-booking")
     public ApiResponse<Void> cancelBooking(@RequestBody CancelBookingRequestDTO request) {
 
-        Booking booking = bookingService.cancelBooking(request);
+        BookingResponseDTO booking = bookingService.cancelBooking(request);
 
         if(request.getCanceller().equals(ActorType.CUSTOMER))
         {

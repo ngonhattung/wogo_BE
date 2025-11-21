@@ -364,7 +364,7 @@ public class BookingService implements IBookingService {
     }
 
     @Override
-    public Booking cancelBooking(CancelBookingRequestDTO request) {
+    public BookingResponseDTO cancelBooking(CancelBookingRequestDTO request) {
         Booking booking = bookingRepository.findByBookingCode(request.getBookingCode())
                 .orElseThrow(() -> new AppException(ErrorCode.BOOKING_NOT_FOUND));
 
@@ -401,7 +401,7 @@ public class BookingService implements IBookingService {
 
         //Update thông báo
 
-        return booking;
+        return convertToBookingResponseDTO(booking);
     }
 
     private void handlePaymentAndWallet(Booking booking, UpdateStatusBookingRequestDTO request) {

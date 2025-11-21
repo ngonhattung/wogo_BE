@@ -18,4 +18,5 @@ public interface IJobService {
     List<JobSummaryResponseDTO> getJobsByServiceId(Long serviceId);
     void updateStatusAcceptJob(String jobRequestCode,Long workerId);
     void updateStatusCancelJob(String reason, ActorType canceller, String jobRequestCode);
+    void cancelJobByJobRequestCode(String reason, String jobRequestCode);
 }

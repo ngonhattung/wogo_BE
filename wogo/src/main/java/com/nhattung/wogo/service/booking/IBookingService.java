@@ -29,5 +29,5 @@ public interface IBookingService {
     Booking getBookingById(Long id);
     BookingResponseDTO getBookingByBookingCode(String bookingCode);
 
-    Booking cancelBooking(CancelBookingRequestDTO request);
+    BookingResponseDTO cancelBooking(CancelBookingRequestDTO request);
 }

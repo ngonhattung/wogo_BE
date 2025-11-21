@@ -119,6 +119,24 @@ public class JobService implements IJobService {
         }).toList());
     }
 
+    @Override
+    public void cancelJobByJobRequestCode(String reason, String jobRequestCode) {
+        Job job = jobRepository.findByJobRequestCode(jobRequestCode)
+                .orElseThrow(() -> new AppException(ErrorCode.JOB_NOT_FOUND));
+        if(job.getStatus() == JobRequestStatus.CANCELLED){
+            throw new AppException(ErrorCode.JOB_ALREADY_CANCELLED);
+        }
+        if(job.getStatus() == JobRequestStatus.PENDING){
+            job.setStatus(JobRequestStatus.CANCELLED);
+            job.setCancelledBy(ActorType.CUSTOMER);
+            job.setCancelReason(reason);
+            jobRepository.save(job);
+        }else {
+            throw new AppException(ErrorCode.JOB_CANNOT_CANCEL);
+        }
+
+    }
+
 
     private <T extends JobBaseResponseDTO> T convertToResponse(Job job, Class<T> targetType) {
         T responseDTO = modelMapper.map(job, targetType);
