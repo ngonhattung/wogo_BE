@@ -1,38 +1,16 @@
 @startuml
 <style>
-    sequenceDiagram {
-       FontSize 45
-       ActorFontSize 45
-       ParticipantFontSize 45
-       TitleFontSize 45
+sequenceDiagram {
+  Title {
+    FontSize 25
+  }
+  Participant {
+    FontSize 25
+    FontStyle bold
+  }
 
-       ParticipantPadding 25          ' Tăng khoảng giữa các participant
-       ParticipantMargin 45           ' Tăng độ rộng tổng thể
-
-       actor {
-            BackgroundColor white
-            LineThickness 1.0
-       }
-       participant {
-            BackgroundColor white
-            RoundCorner 0
-       }
-       database {
-            BackgroundColor white
-       }
-       groupHeader {
-            BackgroundColor white
-       }
-       referenceHeader {
-            BackgroundColor white
-       }
-       reference {
-            BackgroundColor white
-       }
-    }
+}
 </style>
-
-scale max 2000 width
 
 hide footbox
 @enduml

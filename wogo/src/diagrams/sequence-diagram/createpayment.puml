@@ -1,149 +1,90 @@
 @startuml
 !include sequence-style.puml
-title Create Payment Sequence Diagram
 
-actor Client
-participant "Controller\n(BookingController)" as Controller
+actor Client as "<size:27>Client</size>"
+participant "BookingController" as Controller
 participant "BookingService" as BookingSvc
 participant "BookingRepository" as BookingRepo
-participant "<<entity>>\nBooking" as BookingEntity
 participant "WorkerWalletRevenueService" as WWRSvc
 participant "WorkerWalletRevenueRepository" as WWRRepo
-participant "<<entity>>\nWorkerWalletRevenue" as WWREntity
 participant "WalletTransactionService" as WTSvc
 participant "WalletTransactionRepository" as WTRepo
-participant "<<entity>>\nWalletTransaction" as WTEntity
 participant "PaymentService" as PaymentSvc
 participant "PaymentRepository" as PaymentRepo
-participant "<<entity>>\nPayment" as PaymentEntity
 participant "SepayVerifyService" as SepaySvc
 
-Client -> Controller: POST /create-payment/{bookingCode}
+Client -> Controller: <size:27>1. POST /create-payment/{bookingCode}</size>
 activate Controller
 
-Controller -> BookingSvc: createBookingTransaction(bookingCode)
+Controller -> BookingSvc: <size:27>1.1. createBookingTransaction(bookingCode)</size>
 activate BookingSvc
 
-== Get Booking ==
-BookingSvc -> BookingRepo: findByBookingCode(bookingCode)
+BookingSvc -> BookingRepo: <size:27>2.1. findByBookingCode(bookingCode)</size>
 activate BookingRepo
-BookingRepo -> BookingEntity: query by bookingCode
-activate BookingEntity
+BookingRepo --> BookingSvc: <size:27>Optional<Booking></size>
+deactivate BookingRepo
 
-alt Booking Not Found
-    BookingEntity --> BookingRepo: null
-    deactivate BookingEntity
-    BookingRepo --> BookingSvc: Optional.empty()
-    deactivate BookingRepo
-    BookingSvc --> Controller: throw AppException\n(BOOKING_NOT_FOUND)
-    Controller --> Client: Error Response
-else Booking Found
-    BookingEntity --> BookingRepo: Booking instance
-    deactivate BookingEntity
-    BookingRepo --> BookingSvc: Optional<Booking>
-    deactivate BookingRepo
+alt <size:27>[2.2. Booking Not Found]</size>
+    BookingSvc --> Controller: <size:27>throw AppException\n<size:27>(BOOKING_NOT_FOUND)</size>
+    Controller --> Client: <size:27>Error Response</size>
+else <size:27>2.3. Booking Found</size>
 
-    == Validate Booking Amount ==
-    BookingSvc -> BookingEntity: getTotalAmount()
-    activate BookingEntity
-    BookingEntity --> BookingSvc: BigDecimal totalAmount
-    deactivate BookingEntity
+    BookingSvc -> BookingSvc: <size:27>2.3.1. Get totalAmount & Validate</size>
 
-    alt Invalid Amount (null or <= 0)
-        BookingSvc --> Controller: throw AppException\n(INVALID_BOOKING_AMOUNT)
-        Controller --> Client: Error Response
-    else Valid Amount
+    alt <size:27>[2.3.2. Invalid Amount (null or <= 0)]</size>
+        BookingSvc --> Controller: <size:27>throw AppException\n<size:27>(INVALID_BOOKING_AMOUNT)</size>
+        Controller --> Client: <size:27>Error Response</size>
+    else <size:27>[2.3.3. Valid Amount]</size>
 
-        == Get Worker Wallet Revenue ==
-        BookingSvc -> WWRSvc: getWalletByUserId()
+        BookingSvc -> WWRSvc: <size:27>3.1. getWalletByUserId()</size>
         activate WWRSvc
-
-        WWRSvc -> WWRSvc: SecurityUtils.getCurrentUserId()
-
-        WWRSvc -> WWRRepo: findByWorkerId(userId)
+        WWRSvc -> WWRSvc: <size:27>SecurityUtils.getCurrentUserId()</size>
+        WWRSvc -> WWRRepo: <size:27>3.1.1. findByWorkerId(userId)</size>
         activate WWRRepo
-        WWRRepo -> WWREntity: query by workerId
-        activate WWREntity
-        WWREntity --> WWRRepo: WorkerWalletRevenue instance
-        deactivate WWREntity
-        WWRRepo --> WWRSvc: WorkerWalletRevenue
+        WWRRepo --> WWRSvc: <size:27>WorkerWalletRevenue</size>
         deactivate WWRRepo
-
-        WWRSvc --> BookingSvc: WorkerWalletRevenue
+        WWRSvc --> BookingSvc: <size:27>WorkerWalletRevenue</size>
         deactivate WWRSvc
 
-        == Calculate Worker Amount ==
-        BookingSvc -> BookingEntity: getPlatformFee()
-        activate BookingEntity
-        BookingEntity --> BookingSvc: BigDecimal platformFee
-        deactivate BookingEntity
+        BookingSvc -> BookingSvc: <size:27>3.2. Calculate workerAmount</size>
+        note right: <size:27>workerAmount = \n<size:27>totalAmount - platformFee
 
-        BookingSvc -> BookingSvc: workerAmount = totalAmount - platformFee
-        note right: Worker receives amount\nminus platform commission
+        BookingSvc -> BookingSvc: <size:27>3.3. Get revenueBalance & Calculate balanceAfter</size>
 
-        == Get Current Balance ==
-        BookingSvc -> WWREntity: getRevenueBalance()
-        activate WWREntity
-        WWREntity --> BookingSvc: BigDecimal revenueBalance
-        deactivate WWREntity
-
-        BookingSvc -> BookingSvc: balanceAfter = revenueBalance + workerAmount
-
-        == Save Wallet Transaction ==
-        BookingSvc -> WTSvc: saveWalletTransaction(WalletTransactionRequestDTO)
+        BookingSvc -> WTSvc: <size:27>4.1. saveWalletTransaction(WalletTransactionRequestDTO)</size>
         activate WTSvc
-
-        WTSvc -> WTRepo: save(walletTransaction)
+        WTSvc -> WTRepo: <size:27>4.1.1. save(walletTransaction)</size>
         activate WTRepo
-        WTRepo -> WTEntity: persist new WalletTransaction\n(amount=totalAmount,\ntransactionType=PAYMENT,\nstatus=PENDING,\ndescription="Payment for booking: " + bookingCode,\nwalletRevenue=walletRevenue,\nbalanceBefore=revenueBalance,\nbalanceAfter=revenueBalance + workerAmount)
-        activate WTEntity
-        WTEntity --> WTRepo: WalletTransaction instance
-        deactivate WTEntity
-        WTRepo --> WTSvc: WalletTransaction
+        WTRepo --> WTSvc: <size:27>WalletTransaction</size>
         deactivate WTRepo
-
-        WTSvc --> BookingSvc: WalletTransaction
         deactivate WTSvc
 
-        == Save Payment ==
-        BookingSvc -> PaymentSvc: savePayment(PaymentRequestDTO)
+        BookingSvc -> PaymentSvc: <size:27>5.1. savePayment(PaymentRequestDTO)</size>
         activate PaymentSvc
-
-        PaymentSvc -> PaymentRepo: save(payment)
+        PaymentSvc -> PaymentRepo: <size:27>5.1.1. save(payment)</size>
         activate PaymentRepo
-        PaymentRepo -> PaymentEntity: persist new Payment\n(booking=booking,\namount=totalAmount,\npaymentMethod=BANK_TRANSFER)
-        activate PaymentEntity
-        PaymentEntity --> PaymentRepo: Payment instance
-        deactivate PaymentEntity
-        PaymentRepo --> PaymentSvc: Payment
+        PaymentRepo --> PaymentSvc: <size:27>Payment</size>
         deactivate PaymentRepo
-
-        PaymentSvc --> BookingSvc: Payment
         deactivate PaymentSvc
 
-        == Generate QR Code for Payment ==
-        BookingSvc -> SepaySvc: createQRCodeForPayment(booking)
+        BookingSvc -> SepaySvc: <size:27>6.1. createQRCodeForPayment(booking)</size>
         activate SepaySvc
+        SepaySvc -> SepaySvc: <size:27>Call Sepay API</size>
+        note right: <size:27> External API call\n<size:27>to Sepay payment gateway
 
-        SepaySvc -> SepaySvc: Call Sepay API\nwith booking details
-        note right: External API call\nto Sepay payment gateway\nNo entity involved
-
-        SepaySvc --> BookingSvc: String linkQR
+        SepaySvc --> BookingSvc: <size:27>String linkQR</size>
         deactivate SepaySvc
 
-        == Build Response ==
-        BookingSvc -> BookingSvc: TransactionResponseDTO.builder()\n.linkTransaction(linkQR)\n.transactionStatus(false)\n.build()
-        note right: transactionStatus=false\nmeans payment is pending
+        BookingSvc -> BookingSvc: <size:27>7.1. Build TransactionResponseDTO</size>
+        note right: <size:27>transactionStatus=false\n<size:27>(payment is pending)
 
-        BookingSvc --> Controller: TransactionResponseDTO
+        BookingSvc --> Controller: <size:27>7.2. TransactionResponseDTO</size>
         deactivate BookingSvc
 
-        Controller -> Controller: ApiResponse.builder()\n.message("Create payment successfully")\n.result(transactionResponseDTO)\n.build()
+        Controller -> Controller: <size:27>8. Build ApiResponse</size>
 
-        Controller --> Client: ApiResponse<TransactionResponseDTO>
+        Controller --> Client: <size:27>8.1. ApiResponse</size>
         deactivate Controller
     end
 end
-
-
 @enduml

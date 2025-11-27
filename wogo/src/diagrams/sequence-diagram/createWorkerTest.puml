@@ -1,154 +1,105 @@
 @startuml
 !include sequence-style.puml
-title Create Worker Test Sequence Diagram
 
-actor Client
-participant "Controller\n(WorkerController)" as Controller
+actor Client as "<size:27>Client</size>"
+participant "WorkerController" as Controller
 participant "WorkerVerifyService" as VerifyService
 participant "WorkerServiceService" as WSService
 participant "WorkerServiceRepository" as WSRepo
-participant "<<entity>>\nWorkerService" as WSEntity
 participant "QuestionCategoryService" as QCService
 participant "QuestionCategoryRepository" as QCRepo
-participant "<<entity>>\nQuestionCategory" as QCEntity
 participant "WorkerVerificationTestService" as WVTService
 participant "WorkerVerificationTestRepository" as WVTRepo
-participant "<<entity>>\nWorkerVerificationTest" as WVTEntity
 participant "WorkerVerificationService" as WVService
 participant "WorkerVerificationRepository" as WVRepo
-participant "<<entity>>\nWorkerVerification" as WVEntity
 participant "QuestionService" as QService
 participant "QuestionRepository" as QRepo
-participant "<<entity>>\nQuestion" as QEntity
 
-Client -> Controller: POST /create-test\n(WorkerTestRequestDTO)
+Client -> Controller: <size:27>1. POST /create-test</size>
 activate Controller
 
-Controller -> VerifyService: createWorkerTest(request)
+Controller -> VerifyService: <size:27>1.1. createWorkerTest(request)</size>
 activate VerifyService
 
-== Check Worker Service Exists ==
-VerifyService -> WSService: checkWorkerServiceExists(serviceId)
+VerifyService -> WSService: <size:27>2.1. checkWorkerServiceExists(serviceId)</size>
 activate WSService
 
-WSService -> WSService: SecurityUtils.getCurrentUserId()
-WSService -> WSRepo: existsByUserIdAndServiceId(userId, serviceId)
+WSService -> WSService: <size:27>SecurityUtils.getCurrentUserId()</size>
+WSService -> WSRepo: <size:27>2.1.1. existsByUserIdAndServiceId\n<size:27>(userId, serviceId)</size>
 activate WSRepo
-
-WSRepo -> WSEntity: query entities
-activate WSEntity
-WSEntity --> WSRepo: exists result
-deactivate WSEntity
-
-WSRepo --> WSService: boolean
+WSRepo --> WSService: <size:27>boolean</size>
 deactivate WSRepo
 
-alt Worker Service Already Exists
-    WSService --> VerifyService: true
-    VerifyService --> Controller: throw AppException\n(WORKER_SERVICE_EXISTS)
-    Controller --> Client: Error Response
-else Worker Service Not Exists
-    WSService --> VerifyService: false
+alt <size:27>2.2. Worker Service Already Exists</size>
+    WSService --> VerifyService: <size:27>true</size>
+    deactivate WSService
+    VerifyService --> Controller: <size:27>throw AppException\n<size:27>(WORKER_SERVICE_EXISTS)</size>
+    Controller --> Client: <size:27>Error Response</size>
+else <size:27>2.3. Worker Service Not Exists</size>
+    WSService --> VerifyService: <size:27>false</size>
     deactivate WSService
 
-    == Get Question Category ==
-    VerifyService -> QCService: getCategoryEntityByServiceId(serviceId)
+    VerifyService -> QCService: <size:27>3.1. getCategoryEntityByServiceId(serviceId)</size>
     activate QCService
 
-    QCService -> QCRepo: findByServiceId(serviceId)
+    QCService -> QCRepo: <size:27>3.1.1. findByServiceId(serviceId)</size>
     activate QCRepo
+    QCRepo --> QCService: <size:27>Optional<QuestionCategory></size>
+    deactivate QCRepo
 
-    QCRepo -> QCEntity: query by serviceId
-    activate QCEntity
-
-    alt Category Not Found
-        QCEntity --> QCRepo: null
-        deactivate QCEntity
-        QCRepo --> QCService: Optional.empty()
-        deactivate QCRepo
-        QCService --> VerifyService: throw AppException\n(QUESTION_CATEGORY_NOT_FOUND)
-        VerifyService --> Controller: Error
-        Controller --> Client: Error Response
-    else Category Found
-        QCEntity --> QCRepo: QuestionCategory instance
-        deactivate QCEntity
-        QCRepo --> QCService: Optional<QuestionCategory>
-        deactivate QCRepo
-        QCService --> VerifyService: QuestionCategory
+    alt <size:27>3.2. Category Not Found</size>
+        QCService --> VerifyService: <size:27>throw AppException\n<size:27>(QUESTION_CATEGORY_NOT_FOUND)</size>
+        VerifyService --> Controller: <size:27>Error</size>
+        Controller --> Client: <size:27>Error Response</size>
+    else <size:27>3.3. Category Found</size>
+        QCService --> VerifyService: <size:27>QuestionCategory</size>
         deactivate QCService
 
-        == Create Worker Verification Test ==
-        VerifyService -> WVTService: saveWorkerVerificationTest(requestDTO)
+        VerifyService -> WVTService: <size:27>4.1. saveWorkerVerificationTest(requestDTO)</size>
         activate WVTService
-
-        WVTService -> WVTRepo: save(workerVerificationTest)
+        WVTService -> WVTRepo: <size:27>4.1.1. save(workerVerificationTest)</size>
         activate WVTRepo
-
-        WVTRepo -> WVTEntity: persist entity
-        activate WVTEntity
-        WVTEntity --> WVTRepo: saved entity
-        deactivate WVTEntity
-
-        WVTRepo --> WVTService: WorkerVerificationTest
+        WVTRepo --> WVTService: <size:27>WorkerVerificationTest</size>
         deactivate WVTRepo
-        WVTService --> VerifyService: WorkerVerificationTest
         deactivate WVTService
+        VerifyService --> WVTService: <size:27>WorkerVerificationTest</size>
 
-        == Create Worker Verification ==
-        VerifyService -> WVService: saveWorkerVerification(requestDTO)
+        VerifyService -> WVService: <size:27>5.1. saveWorkerVerification(requestDTO)</size>
         activate WVService
-
-        WVService -> WVRepo: save(workerVerification)
+        WVService -> WVRepo: <size:27>5.1.1. save(workerVerification)</size>
         activate WVRepo
-
-        WVRepo -> WVEntity: persist entity
-        activate WVEntity
-        WVEntity --> WVRepo: saved entity
-        deactivate WVEntity
-
-        WVRepo --> WVService: WorkerVerification
+        WVRepo --> WVService: <size:27>WorkerVerification</size>
         deactivate WVRepo
-        WVService --> VerifyService: WorkerVerification
         deactivate WVService
+        VerifyService --> WVService: <size:27>WorkerVerification</size>
 
-        == Get Random Questions ==
-        VerifyService -> QService: findRandomQuestions(categoryId)
+        VerifyService -> QService: <size:27>6.1. findRandomQuestions(categoryId)</size>
         activate QService
 
-        loop For Each Difficulty Level (EASY, MEDIUM, HARD)
-            QService -> QService: getRandomQuestions(categoryId, level, needed)
+        loop <size:27>For Each Difficulty Level \n<size:27>(EASY, MEDIUM, HARD)</size>
+            QService -> QService: <size:27>getRandomQuestions\n<size:27>(categoryId, level, needed)</size>
 
-            QService -> QRepo: findRandomByDifficulty(categoryId, level, needed*2)
+            QService -> QRepo: <size:27>6.1.1. findRandomByDifficulty\n<size:27>(categoryId, level, needed*2)</size>
             activate QRepo
-
-            QRepo -> QEntity: query by categoryId and level
-            activate QEntity
-            QEntity --> QRepo: List<Question> instances
-            deactivate QEntity
-
-            QRepo --> QService: List<Question>
+            QRepo --> QService: <size:27>List<Question></size>
             deactivate QRepo
 
-            QService -> QService: Collections.shuffle(questions)
-            QService -> QService: stream().limit(needed)
+            QService -> QService: <size:27>Shuffle & Limit questions</size>
         end
 
-        QService -> QService: convert to QuestionResponseDTO
-        QService --> VerifyService: List<QuestionResponseDTO>
+        QService -> QService: <size:27>convert to QuestionResponseDTO</size>
+        QService --> VerifyService: <size:27>List<QuestionResponseDTO></size>
         deactivate QService
 
-        == Build Response ==
-        VerifyService -> VerifyService: CreateTestResponseDTO.builder()\n.questions(randomQuestions)\n.testId(testId)\n.build()
+        VerifyService -> VerifyService: <size:27>7.1. Build CreateTestResponseDTO</size>
 
-        VerifyService --> Controller: CreateTestResponseDTO
+        VerifyService --> Controller: <size:27>7.2. CreateTestResponseDTO</size>
         deactivate VerifyService
 
-        Controller -> Controller: ApiResponse.builder()\n.message("Create worker test successfully")\n.result(responseDTO)\n.build()
+        Controller -> Controller: <size:27>8. Build ApiResponse</size>
 
-        Controller --> Client: ApiResponse<CreateTestResponseDTO>
+        Controller --> Client: <size:27>8.1. ApiResponse</size>
         deactivate Controller
     end
 end
-
-
 @enduml

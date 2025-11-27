@@ -1,236 +1,135 @@
 @startuml
 !include sequence-style.puml
-title Create Job Sequence Diagram (Fixed UML-compliant + WebSocket + Timeline)
 
-actor Client
-participant "Controller\n(BookingController)" as Controller
-participant "BookingService" as BookingSvc
-participant "JobService" as JobSvc
-participant "JobRepository" as JobRepo
-participant "<<entity>>\nJob" as JobEntity
-participant "ServiceService" as ServiceSvc
-participant "ServiceRepository" as ServiceRepo
-participant "<<entity>>\nService" as ServiceEntity
-participant "UserService" as UserSvc
-participant "<<entity>>\nUser" as UserEntity
-participant "JobFileService" as JobFileSvc
-participant "UploadToS3" as S3Upload
-participant "JobFileRepository" as JobFileRepo
-participant "<<entity>>\nJobFile" as JobFileEntity
-participant "AddressService" as AddressSvc
-participant "AddressRepository" as AddressRepo
-participant "<<entity>>\nAddress" as AddressEntity
-participant "NotificationService" as NotifSvc
-participant "NotificationRepository" as NotifRepo
-participant "<<entity>>\nNotification" as NotifEntity
-participant "MessagingTemplate\n(WebSocket)" as WebSocket
 
-Client -> Controller: POST /create-job\n(FindServiceRequestDTO + files)
+actor Client as "<size:27>Client</size>"
+participant Controller as "BookingController"
+participant BookingSvc as "BookingService"
+participant JobSvc as "JobService"
+participant JobRepo as "JobRepository"
+participant JobEntity as "Job"
+participant ServiceSvc as "ServiceService"
+participant ServiceRepo as "ServiceRepository"
+participant UserSvc as "UserService"
+participant JobFileSvc as "JobFileService"
+participant S3 as "UploadToS3"
+participant JobFileRepo as "JobFileRepository"
+participant AddressSvc as "AddressService"
+participant AddressRepo as "AddressRepository"
+participant NotifSvc as "NotificationService"
+participant NotifRepo as "NotificationRepository"
+participant WebSocket as "MessagingTemplate\n(WebSocket)"
+
+Client -> Controller: <size:27>1. POST /create-job</size>
 activate Controller
-
-Controller -> BookingSvc: createJob(request, files)
+Controller -> BookingSvc: <size:27>1.1. createJob(request, files)</size>
 activate BookingSvc
 
-== Check Existing Pending Job ==
-BookingSvc -> JobSvc: getJobsByUserIdByStatus(PENDING)
+BookingSvc -> JobSvc: <size:27>2.1. getJobsByUserIdByStatus(PENDING)</size>
 activate JobSvc
-
-JobSvc -> JobSvc: SecurityUtils.getCurrentUserId()
-
-JobSvc -> JobRepo: findByUserIdAndStatus(userId, PENDING)
+JobSvc -> JobSvc: <size:27>2.1.1. SecurityUtils.getCurrentUserId()</size>
+JobSvc -> JobRepo: <size:27>2.1.2. findByUserIdAndStatus(userId, PENDING)</size>
 activate JobRepo
-JobRepo -> JobEntity: query by userId and status=PENDING
-activate JobEntity
-JobEntity --> JobRepo: List<Job> instances
-deactivate JobEntity
-JobRepo --> JobSvc: List<Job>
+JobRepo --> JobSvc: <size:27>2.1.3. List<Job></size>
 deactivate JobRepo
-
-JobSvc -> JobSvc: convert to JobResponseDTO
-JobSvc --> BookingSvc: List<JobResponseDTO>
+JobSvc -> JobSvc: <size:27>2.1.4. to JobResponseDTO</size>
+JobSvc --> BookingSvc: <size:27>2.1.5. List<JobResponseDTO></size>
 deactivate JobSvc
 
-BookingSvc -> BookingSvc: existingJobs.stream()\n.anyMatch(job -> serviceId matches && status=PENDING)
+BookingSvc -> BookingSvc: <size:27>2.2. existingJobs.anyMatch</size>
+alt <size:27>2.3. Same service</size>
+    BookingSvc --> Controller: <size:27>2.3.1. throw AppException</size>
+    Controller --> Client: <size:27>2.3.2. Error Response</size>
+    deactivate BookingSvc
+else <size:27>2.4. No pending job</size>
 
-alt Has Pending Job for Same Service
-    BookingSvc --> Controller: throw AppException\n(EXISTING_PENDING_JOB_REQUEST)
-    Controller --> Client: Error Response
-else No Pending Job
-
-    == Save or Update Customer Address ==
-    BookingSvc -> AddressSvc: saveOrUpdateAddress(AddressRequestDTO)
+    BookingSvc -> AddressSvc: <size:27>3.1. saveOrUpdateAddress</size>
     activate AddressSvc
-
-    AddressSvc -> AddressSvc: SecurityUtils.getCurrentUserId()
-
-    AddressSvc -> AddressRepo: findByUserIdAndRole(userId, "CUSTOMER")
+    AddressSvc -> AddressSvc: <size:27>3.1.1. SecurityUtils.getCurrentUserId()</size>
+    AddressSvc -> AddressRepo: <size:27>3.1.2. findByUserIdAndRole(userId, CUSTOMER)</size>
     activate AddressRepo
-    AddressRepo -> AddressEntity: query by userId and role
-    activate AddressEntity
-
-    alt Address Exists
-        AddressEntity --> AddressRepo: Address instance
-        AddressRepo --> AddressSvc: Optional<Address>
-        deactivate AddressRepo
-
-        AddressSvc -> AddressEntity: setLatitude(latitude)
-        AddressSvc -> AddressEntity: setLongitude(longitude)
-
-        AddressSvc -> AddressRepo: save(address)
-        activate AddressRepo
-        AddressRepo -> AddressEntity: persist updated entity
-        AddressRepo --> AddressSvc: Address
-        deactivate AddressRepo
-
-    else Address Not Exists
-        AddressEntity --> AddressRepo: null
-        deactivate AddressEntity
-        AddressRepo --> AddressSvc: Optional.empty()
-        deactivate AddressRepo
-
-        AddressSvc -> AddressRepo: save(new Address)
-        activate AddressRepo
-        AddressRepo -> AddressEntity: persist new Address\n(latitude, longitude, role=CUSTOMER)
-        activate AddressEntity
-        AddressEntity --> AddressSvc: Address instance
-        deactivate AddressEntity
-        AddressRepo --> AddressSvc: Address
-        deactivate AddressRepo
+    AddressRepo --> AddressSvc: <size:27>3.1.3. Address?</size>
+    alt <size:27>3.2. Address exists</size>
+        AddressSvc -> AddressSvc: <size:27>3.2.1. update latitude/longitude</size>
+        AddressSvc -> AddressRepo: <size:27>3.2.2. save(address)</size>
+    else <size:27>3.3. New address</size>
+        AddressSvc -> AddressRepo: <size:27>3.3.1. save(new Address(role=CUSTOMER))</size>
     end
-
-    AddressSvc --> BookingSvc: Address
+    deactivate AddressRepo
+    AddressSvc --> BookingSvc: <size:27>3.4. Address</size>
     deactivate AddressSvc
 
-    == Save Job ==
-    BookingSvc -> JobSvc: saveJob(CreateJobRequestDTO, files)
+    BookingSvc -> JobSvc: <size:27>4.1. saveJob</size>
     activate JobSvc
 
-    == Get Service Entity ==
-    JobSvc -> ServiceSvc: getServiceByIdEntity(serviceId)
+    JobSvc -> ServiceSvc: <size:27>4.1.1. getServiceByIdEntity(serviceId)</size>
     activate ServiceSvc
-    ServiceSvc -> ServiceRepo: findById(serviceId)
+    ServiceSvc -> ServiceRepo: <size:27>4.1.1.1. findById(serviceId)</size>
     activate ServiceRepo
-    ServiceRepo -> ServiceEntity: query by serviceId
-    activate ServiceEntity
-    ServiceEntity --> ServiceRepo: Service instance
-    deactivate ServiceEntity
-    ServiceRepo --> ServiceSvc: Service
+    ServiceRepo --> ServiceSvc: <size:27>4.1.1.2. Service</size>
     deactivate ServiceRepo
-    ServiceSvc --> JobSvc: Service
+    ServiceSvc --> JobSvc: <size:27>4.1.2. Service</size>
     deactivate ServiceSvc
 
-    == Create Job Entity ==
-    JobSvc -> JobSvc: createJob(request, service)
-
-    JobSvc -> UserSvc: getCurrentUser()
+    JobSvc -> UserSvc: <size:27>4.2. getCurrentUser()</size>
     activate UserSvc
-    UserSvc -> UserSvc: SecurityUtils.getCurrentUserId()
-    UserSvc -> UserEntity: get current User
-    activate UserEntity
-    UserEntity --> UserSvc: User instance
-    deactivate UserEntity
-    UserSvc --> JobSvc: User
+    UserSvc -> UserSvc: <size:27>4.2.1. SecurityUtils.getCurrentUserId()</size>
+    UserSvc --> JobSvc: <size:27>4.2.2. User</size>
     deactivate UserSvc
 
-    JobSvc -> JobSvc: generateJobRequestCode()
-    note right: Generate unique code\nfor job request
+    JobSvc -> JobSvc: <size:27>4.3. generateJobRequestCode()</size>
+    JobSvc -> JobEntity: <size:27>4.4. new Job() / set fields</size>
 
-    JobSvc -> JobSvc: Job.builder()\n.service(service)\n.user(user)\n.jobRequestCode(code)\n.description(description)\n.bookingDate(bookingDate)\n.status(PENDING)\n.bookingAddress(address)\n.estimatedPriceLower(lower)\n.estimatedPriceHigher(higher)\n.longitude(longitude)\n.latitude(latitude)\n.build()
-
-    create JobEntity
-    JobSvc -> JobEntity: new Job()
-    activate JobEntity
-
-    == Save Job Files ==
-    JobSvc -> JobFileSvc: saveJobFile(job, files)
+    JobSvc -> JobFileSvc: <size:27>4.5.1. saveJobFile(job, files)</size>
     activate JobFileSvc
+    alt <size:27> [4.5.2. Files provided]</size>
+        loop <size:27>[each file]</size>
+            JobFileSvc -> S3: <size:27>4.5.2.1. uploadFileToS3(file)</size>
+            activate S3
+            S3 --> JobFileSvc: <size:27>4.5.2.2. UploadS3Response (url, etc.)</size>
+            deactivate S3
 
-    alt Files Provided
-        loop For Each File
-            JobFileSvc -> S3Upload: uploadFileToS3(file)
-            activate S3Upload
-            S3Upload -> S3Upload: Upload to AWS S3
-            S3Upload --> JobFileSvc: UploadS3Response\n(fileName, fileType, fileUrl)
-            deactivate S3Upload
-
-            JobFileSvc -> JobFileRepo: save(jobFile)
+            JobFileSvc -> JobFileRepo: <size:27>4.5.2.3. save(jobFile)</size>
             activate JobFileRepo
-            JobFileRepo -> JobFileEntity: persist new JobFile\n(job, fileName, fileType, fileUrl)
-            activate JobFileEntity
-            JobFileEntity --> JobFileRepo: JobFile instance
-            deactivate JobFileEntity
-            JobFileRepo --> JobFileSvc: JobFile
+            JobFileRepo --> JobFileSvc: <size:27>4.5.2.4. JobFile</size>
             deactivate JobFileRepo
         end
-    else No Files or Empty
-        note right of JobFileSvc: Skip file processing
+    else <size:27>[4.5.3. No files]</size>
+        note right: <size:27>skip file processing</size>
     end
-
-    JobFileSvc --> JobSvc: void
+    JobFileSvc --> JobSvc: <size:27>4.5.4. void</size>
     deactivate JobFileSvc
 
-    == Persist Job ==
-    JobSvc -> JobRepo: save(job)
+    JobSvc -> JobRepo: <size:27>4.6.1. save(job)</size>
     activate JobRepo
-    JobRepo -> JobEntity: persist Job entity
-    JobEntity --> JobRepo: saved Job instance
-    JobRepo --> JobSvc: Job
+    JobRepo --> JobSvc: <size:27>4.6.2. saved Job</size>
     deactivate JobRepo
 
-    == Convert to Response DTO ==
-    JobSvc -> JobSvc: convertToResponseDTO(savedJob)
-    JobSvc -> JobEntity: getService()
-    JobEntity -> ServiceEntity: Service instance
-    activate ServiceEntity
-    JobEntity --> JobSvc: Service
-    JobSvc -> JobEntity: getUser()
-    JobEntity -> UserEntity: User instance
-    activate UserEntity
-    JobEntity --> JobSvc: User
-    JobSvc -> JobEntity: getJobFiles()
-    JobEntity -> JobFileEntity: List<JobFile> instances
-    activate JobFileEntity
-    JobEntity --> JobSvc: List<JobFile>
-    deactivate JobFileEntity
-
-    JobSvc --> BookingSvc: JobResponseDTO
+    JobSvc -> JobSvc: <size:27>4.7. convertToResponseDTO(savedJob)</size>
+    JobSvc --> BookingSvc: <size:27>4.8. JobResponseDTO</size>
     deactivate JobSvc
-    deactivate JobEntity
 
-    == Save Notification ==
-    BookingSvc -> NotifSvc: saveNotification(NotificationRequestDTO)
+    BookingSvc -> NotifSvc: <size:27>5.1. saveNotification</size>
     activate NotifSvc
-
-    NotifSvc -> NotifRepo: save(notification)
+    NotifSvc -> NotifRepo: <size:27>5.1.1. save(notification)</size>
     activate NotifRepo
-    NotifRepo -> NotifEntity: persist new Notification\n(title="Tình hình dịch vụ#" + jobCode,\ndescription="Yêu cầu dịch vụ đã được tạo",\ntype=SERVICE, targetRole=CUSTOMER,\ntargetUserId=userId)
-    activate NotifEntity
-    NotifEntity --> NotifRepo: Notification instance
-    deactivate NotifEntity
-    NotifRepo --> NotifSvc: Notification
+    NotifRepo --> NotifSvc: <size:27>5.1.2. Notification</size>
     deactivate NotifRepo
-
-    NotifSvc --> BookingSvc: Notification
+    NotifSvc --> BookingSvc: <size:27>5.2. Notification</size>
     deactivate NotifSvc
 
-    BookingSvc --> Controller: JobResponseDTO
+    BookingSvc --> Controller: <size:27>6. JobResponseDTO</size>
     deactivate BookingSvc
 
-    == Push Real-time Notification to Workers ==
-    Controller -> WebSocket: convertAndSend(\n"/topic/new-job/" + serviceId,\njobResponseDTO)
+    Controller -> WebSocket: <size:27>7.1. convertAndSend\n<size:27>("/topic/new-job/"+serviceId, jobResponseDTO)</size>
     activate WebSocket
-    WebSocket --> WebSocket: Broadcast to subscribed workers
-    note right: Workers subscribe to\n/topic/new-job/{serviceId}\nto receive new jobs
+    WebSocket --> WebSocket: <size:27>7.1.1. broadcast</size> \n <size:27>to subscribers</size>
     deactivate WebSocket
 
-    == Build Response ==
-    Controller -> Controller: ApiResponse.builder()\n.message("Find workers request sent successfully")\n.result(job)\n.build()
-
-    Controller --> Client: ApiResponse<JobResponseDTO>
+    Controller -> Controller: <size:27>8. build ApiResponse</size>
+    Controller --> Client: <size:27>9. ApiResponse</size>
     deactivate Controller
 
-    deactivate ServiceEntity
-    deactivate UserEntity
 end
 
 @enduml

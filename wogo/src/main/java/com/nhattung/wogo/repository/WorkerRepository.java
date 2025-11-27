@@ -1,9 +1,11 @@
 package com.nhattung.wogo.repository;
 
+import com.nhattung.wogo.dto.response.WorkerServiceResponseDTO;
 import com.nhattung.wogo.entity.Worker;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository

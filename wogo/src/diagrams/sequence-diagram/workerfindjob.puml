@@ -1,164 +1,108 @@
 @startuml
 !include sequence-style.puml
-title Worker Find Available Jobs Sequence Diagram (Business-Level, Unified Format)
 
-actor Worker
-participant "Controller\n(BookingController)" as Controller
+actor Worker as "<size:27>Worker</size>"
+participant "BookingController" as Controller
 participant "BookingService" as BookingSvc
 participant "WorkerWalletExpenseService" as WWESvc
-participant "WorkerWalletExpenseRepository" as WWERepo
-participant "<<entity>>\nWorkerWalletExpense" as WWEEntity
+participant "WWERepo" as WWERepo
 participant "AddressService" as AddressSvc
-participant "AddressRepository" as AddressRepo
-participant "<<entity>>\nAddress" as AddressEntity
+participant "AddressRepo" as AddressRepo
 participant "ServiceService" as ServiceSvc
-participant "WorkerServiceRepository" as WSRepo
-participant "<<entity>>\nWorkerService" as WSEntity
-participant "<<entity>>\nService" as ServiceEntity
+participant "WSRepo" as WSRepo
 participant "JobService" as JobSvc
-participant "JobRepository" as JobRepo
-participant "<<entity>>\nJob" as JobEntity
+participant "JobRepo" as JobRepo
 
-Worker -> Controller: GET /job-available
+Worker -> Controller: <size:27>1. GET /job-available</size>
 activate Controller
 
-Controller -> BookingSvc: getListPendingJobsMatchWorker()
+Controller -> BookingSvc: <size:27>1.1. getListPendingJobsMatchWorker()</size>
 activate BookingSvc
 
-== Check Wallet Balance ==
-BookingSvc -> WWESvc: getWalletByUserId()
+BookingSvc -> WWESvc: <size:27>2.1. getWalletByUserId()</size>
 activate WWESvc
 
-WWESvc -> WWESvc: SecurityUtils.getCurrentUserId()
-
-WWESvc -> WWERepo: findByWorkerId(userId)
+WWESvc -> WWESvc: <size:27>SecurityUtils.getCurrentUserId()</size>
+WWESvc -> WWERepo: <size:27>2.1.1. findByWorkerId(userId)</size>
 activate WWERepo
-WWERepo -> WWEEntity: query by workerId
-activate WWEEntity
-WWEEntity --> WWERepo: WorkerWalletExpense instance
-deactivate WWEEntity
-WWERepo --> WWESvc: WorkerWalletExpense
+WWERepo --> WWESvc: <size:27>WorkerWalletExpense</size>
 deactivate WWERepo
 
-WWESvc --> BookingSvc: WorkerWalletExpense
+WWESvc --> BookingSvc: <size:27>WorkerWalletExpense</size>
 deactivate WWESvc
 
-BookingSvc -> WWEEntity: getExpenseBalance()
-activate WWEEntity
-WWEEntity --> BookingSvc: BigDecimal expenseBalance
-deactivate WWEEntity
+BookingSvc -> BookingSvc: <size:27>2.2. Get expenseBalance</size>
 
-alt Balance < MINIMUM_WALLET_BALANCE
-    BookingSvc --> Controller: throw AppException\n(WALLET_BALANCE_NOT_ENOUGH)
-    Controller --> Worker: Error Response
-else Balance >= MINIMUM_WALLET_BALANCE
+alt <size:27>2.3. Balance \n<size:27>< MINIMUM_WALLET_BALANCE</size>
+    BookingSvc --> Controller: <size:27>throw AppException\n<size:27>(WALLET_BALANCE_NOT_ENOUGH)</size>
+    Controller --> Worker: <size:27>Error Response</size>
+else <size:27>2.4. Balance \n<size:27>>= MINIMUM_WALLET_BALANCE</size>
 
-    == Get Worker Address ==
-    BookingSvc -> BookingSvc: SecurityUtils.getCurrentUserId()
+    BookingSvc -> BookingSvc: <size:27>SecurityUtils.getCurrentUserId()</size>
 
-    BookingSvc -> AddressSvc: findByWorkerId(workerId)
+    BookingSvc -> AddressSvc: <size:27>3.1. findByWorkerId(workerId)</size>
     activate AddressSvc
-
-    AddressSvc -> AddressRepo: findByUserIdAndRole(workerId, "WORKER")
+    AddressSvc -> AddressRepo: <size:27>3.1.1. findByUserIdAndRole(workerId, "WORKER")</size>
     activate AddressRepo
-    AddressRepo -> AddressEntity: query by userId and role=WORKER
-    activate AddressEntity
-    AddressEntity --> AddressRepo: Address instance
-    deactivate AddressEntity
-    AddressRepo --> AddressSvc: Address
+    AddressRepo --> AddressSvc: <size:27>Address (workerAddress)</size>
     deactivate AddressRepo
-
-    AddressSvc --> BookingSvc: Address (workerAddress)
+    AddressSvc --> BookingSvc: <size:27>Address</size>
     deactivate AddressSvc
 
-    == Get Worker's Services ==
-    BookingSvc -> ServiceSvc: getAllServicesOfWorker()
+    BookingSvc -> ServiceSvc: <size:27>4.1. getAllServicesOfWorker()</size>
     activate ServiceSvc
 
-    ServiceSvc -> ServiceSvc: SecurityUtils.getCurrentUserId()
-
-    ServiceSvc -> WSRepo: findByWorkerId(workerId)
+    ServiceSvc -> WSRepo: <size:27>4.1.1. findByWorkerId(workerId)</size>
     activate WSRepo
-    WSRepo -> WSEntity: query by workerId
-    activate WSEntity
-    WSEntity --> WSRepo: List<WorkerService> instances
-    deactivate WSEntity
-    WSRepo --> ServiceSvc: List<WorkerService>
+    WSRepo --> ServiceSvc: <size:27>List<WorkerService></size>
     deactivate WSRepo
 
-    loop For Each WorkerService
-        ServiceSvc -> WSEntity: getService()
-        activate WSEntity
-        WSEntity -> ServiceEntity: Service instance
-        activate ServiceEntity
-        WSEntity --> ServiceSvc: Service
-        deactivate WSEntity
-
-        ServiceSvc -> ServiceEntity: getChildServices()
-        alt Has Child Services
-            ServiceEntity --> ServiceSvc: List<Service> children
-            note right: If service has children\n(e.g., "Plumbing" has\n"Fix Pipe", "Install Sink")
-        else No Child Services
-            ServiceEntity --> ServiceSvc: null or empty
-            ServiceSvc -> ServiceEntity: getParentService()
-            ServiceEntity --> ServiceSvc: Service parent
-            note right: Use parent service itself
-        end
-        deactivate ServiceEntity
+    loop <size:27>For Each WorkerService (Handle Child/Parent)</size>
+        ServiceSvc -> ServiceSvc: <size:27>Determine effective service list</size>
+        note right: <size:27>Dùng parent service\n<size:27>cho các service con
     end
 
-    ServiceSvc -> ServiceSvc: Flatten to List<ServiceResponseDTO>
-    ServiceSvc --> BookingSvc: List<ServiceResponseDTO>
+    ServiceSvc --> BookingSvc: <size:27>List<ServiceResponseDTO></size>
     deactivate ServiceSvc
 
-    BookingSvc -> BookingSvc: Extract serviceIds from services
-    BookingSvc -> BookingSvc: serviceIds = services.stream()\n.map(ServiceResponseDTO::getId)\n.toList()
+    BookingSvc -> BookingSvc: <size:27>4.2. Extract serviceIds</size>
 
-    alt ServiceIds is Empty
-        BookingSvc --> Controller: Collections.emptyList()
-        Controller --> Worker: Empty Job List
-    else ServiceIds Not Empty
+    alt <size:27>4.3. ServiceIds is Empty</size>
+        BookingSvc --> Controller: <size:27>Collections.emptyList()</size>
+        Controller --> Worker: <size:27>Empty Job List</size>
+    else <size:27>4.4. ServiceIds Not Empty</size>
 
-        == Get Jobs by Service IDs ==
-        loop For Each ServiceId
-            BookingSvc -> JobSvc: getJobsByServiceId(serviceId)
+        loop <size:27>For Each ServiceId</size>
+            BookingSvc -> JobSvc: <size:27>5.1. getJobsByServiceId(serviceId)</size>
             activate JobSvc
 
-            JobSvc -> JobRepo: findByServiceIdAndStatus(serviceId, PENDING)
+            JobSvc -> JobRepo: <size:27>5.1.1. findByServiceIdAndStatus\n<size:27>(serviceId, PENDING)</size>
             activate JobRepo
-            JobRepo -> JobEntity: query by serviceId and status=PENDING
-            activate JobEntity
-            JobEntity --> JobRepo: List<Job> instances
-            deactivate JobEntity
-            JobRepo --> JobSvc: List<Job>
+            JobRepo --> JobSvc: <size:27>List<Job></size>
             deactivate JobRepo
 
-            JobSvc -> JobSvc: convert to JobSummaryResponseDTO
-            JobSvc --> BookingSvc: List<JobSummaryResponseDTO>
+            JobSvc -> JobSvc: <size:27>convert to JobSummaryResponseDTO</size>
+            JobSvc --> BookingSvc: <size:27>List<JobSummaryResponseDTO></size>
             deactivate JobSvc
         end
 
-        BookingSvc -> BookingSvc: Flatten all jobs to single list
+        BookingSvc -> BookingSvc: <size:27>5.2. Flatten all jobs</size>
 
-        == Calculate Distance for Each Job ==
-        loop For Each Job
-            BookingSvc -> BookingSvc: setDistance(job, workerAddress)
+        loop <size:27>For Each Job</size>
+            BookingSvc -> BookingSvc: <size:27>6.1. setDistance(job, workerAddress)</size>
 
-            BookingSvc -> BookingSvc: haversine(HaversineRequestDTO.builder()\n.latCustomer(job.getLatitude())\n.lonCustomer(job.getLongitude())\n.latWorker(workerAddress.getLatitude())\n.lonWorker(workerAddress.getLongitude())\n.build())
+            BookingSvc -> BookingSvc: <size:27>Calculate distance (Haversine)</size>
+            note right : <size:27>Haversine formula\n<size:27>d = 2r × arcsin(√(sin²(Δφ/2) + cos(φ1) × cos(φ2) × sin²(Δλ/2)))\n<size:27>where r = Earth radius (6371 km)
+            end
 
-            note right: Calculate distance using\nHaversine formula:\nd = 2r × arcsin(√(sin²(Δφ/2) + cos(φ1) × cos(φ2) × sin²(Δλ/2)))\nwhere r = Earth radius (6371 km)
-
-            BookingSvc -> BookingSvc: job.setDistance(distance)
+            BookingSvc -> BookingSvc: <size:27>6.2. job.setDistance(distance)</size>
         end
 
-        BookingSvc --> Controller: List<JobSummaryResponseDTO>
+        BookingSvc --> Controller: <size:27>6.3. List<JobSummaryResponseDTO></size>
         deactivate BookingSvc
 
-        Controller -> Controller: ApiResponse.builder()\n.message("Pending jobs retrieved successfully")\n.result(jobList)\n.build()
-
-        Controller --> Worker: ApiResponse<List<JobSummaryResponseDTO>>
+        Controller -> Controller: <size:27>7. Build ApiResponse</size>
+        Controller --> Worker: <size:27>7.1. ApiResponse</size>
         deactivate Controller
     end
-end
-
 @enduml

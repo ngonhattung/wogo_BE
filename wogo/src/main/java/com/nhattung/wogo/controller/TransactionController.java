@@ -18,6 +18,7 @@ import com.nhattung.wogo.service.wallet.revenue.IWorkerWalletRevenueService;
 import com.nhattung.wogo.service.wallet.transaction.IWalletTransactionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
@@ -71,6 +72,7 @@ public class TransactionController {
 
 
     @GetMapping("/withdrawals/getWithdrawalsByStatus")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     public ApiResponse<List<WithdrawalResponseDTO>> getWithdrawalsByStatus(
             @RequestParam(required = false) Boolean isApproved
     ) {
@@ -89,6 +91,7 @@ public class TransactionController {
 
     }
     @PutMapping("/withdrawals/process")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     public ApiResponse<Void> processWithdrawal(@RequestBody ProcessWithdrawalRequestDTO request) {
         withdrawalService.processWithdrawal(request);
         return ApiResponse.<Void>builder()

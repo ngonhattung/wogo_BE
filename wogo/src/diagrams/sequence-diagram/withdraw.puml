@@ -1,170 +1,95 @@
 @startuml
 !include sequence-style.puml
-title Create Withdrawal Request Sequence Diagram
 
-actor Worker
-participant "Controller\n(WithdrawalController)" as Controller
+actor Worker as "<size:27>Worker</size>"
+participant "WithdrawalController" as Controller
 participant "WithdrawalService" as WithdrawalSvc
 participant "WorkerService" as WorkerSvc
 participant "WorkerRepository" as WorkerRepo
-participant "<<entity>>\nWorker" as WorkerEntity
 participant "WorkerWalletRevenueService" as WWRSvc
 participant "WorkerWalletRevenueRepository" as WWRRepo
-participant "<<entity>>\nWorkerWalletRevenue" as WWREntity
 participant "WithdrawalRepository" as WithdrawalRepo
-participant "<<entity>>\nWithdrawal" as WithdrawalEntity
 participant "WalletTransactionService" as WTSvc
 participant "WalletTransactionRepository" as WTRepo
-participant "<<entity>>\nWalletTransaction" as WTEntity
 participant "PaymentService" as PaymentSvc
 participant "PaymentRepository" as PaymentRepo
-participant "<<entity>>\nPayment" as PaymentEntity
 
-Worker -> Controller: POST /withdrawals\n(WithdrawalRequestDTO)
+Worker -> Controller: <size:27>1. POST /withdrawals</size>
 activate Controller
 
-Controller -> WithdrawalSvc: createWithdrawalRequest(request)
+Controller -> WithdrawalSvc: <size:27>1.1. createWithdrawalRequest(request)</size>
 activate WithdrawalSvc
 
-== Get Current Worker ==
-WithdrawalSvc -> WithdrawalSvc: SecurityUtils.getCurrentUserId()
+WithdrawalSvc -> WithdrawalSvc: <size:27>SecurityUtils.getCurrentUserId()</size>
 
-WithdrawalSvc -> WorkerSvc: getWorkerByUserId(userId)
+WithdrawalSvc -> WorkerSvc: <size:27>2.1. getWorkerByUserId(userId)</size>
 activate WorkerSvc
-
-WorkerSvc -> WorkerRepo: findByUserId(userId)
+WorkerSvc -> WorkerRepo: <size:27>2.1.1. findByUserId(userId)</size>
 activate WorkerRepo
-WorkerRepo -> WorkerEntity: query by userId
-activate WorkerEntity
+WorkerRepo --> WorkerSvc: <size:27>Worker</size>
+deactivate WorkerRepo
+WorkerSvc --> WithdrawalSvc: <size:27>Worker</size>
+deactivate WorkerSvc
 
-alt Worker Not Found
-    WorkerEntity --> WorkerRepo: null
-    deactivate WorkerEntity
-    WorkerRepo --> WorkerSvc: Optional.empty()
-    deactivate WorkerRepo
-    WorkerSvc --> WithdrawalSvc: throw AppException\n(WORKER_NOT_FOUND)
-    WithdrawalSvc --> Controller: Error
-    Controller --> Worker: Error Response
-else Worker Found
-    WorkerEntity --> WorkerRepo: Worker instance
-    deactivate WorkerEntity
-    WorkerRepo --> WorkerSvc: Worker
-    deactivate WorkerRepo
-    WorkerSvc --> WithdrawalSvc: Worker
-    deactivate WorkerSvc
+alt <size:27>2.2. Worker Not Found</size>
+    WithdrawalSvc --> Controller: <size:27>throw AppException\n<size:27>(WORKER_NOT_FOUND)</size>
+    Controller --> Worker: <size:27>Error Response</size>
+else <size:27>2.3. Worker Found</size>
 
-    == Get Worker Wallet Revenue ==
-    WithdrawalSvc -> WWRSvc: getWalletByUserId()
+    WithdrawalSvc -> WWRSvc: <size:27>2.4. getWalletByUserId()</size>
     activate WWRSvc
-
-    WWRSvc -> WWRSvc: SecurityUtils.getCurrentUserId()
-
-    WWRSvc -> WWRRepo: findByWorkerId(userId)
+    WWRSvc -> WWRRepo: <size:27>2.4.1. findByWorkerId(userId)</size>
     activate WWRRepo
-    WWRRepo -> WWREntity: query by workerId
-    activate WWREntity
-    WWREntity --> WWRRepo: WorkerWalletRevenue instance
-    deactivate WWREntity
-    WWRRepo --> WWRSvc: WorkerWalletRevenue
+    WWRRepo --> WWRSvc: <size:27>WorkerWalletRevenue (wallet)</size>
     deactivate WWRRepo
-
-    WWRSvc --> WithdrawalSvc: WorkerWalletRevenue
+    WWRSvc --> WithdrawalSvc: <size:27>WorkerWalletRevenue</size>
     deactivate WWRSvc
 
-    == Check Balance ==
-    WithdrawalSvc -> WWREntity: getRevenueBalance()
-    activate WWREntity
-    WWREntity --> WithdrawalSvc: BigDecimal revenueBalance
-    deactivate WWREntity
+    WithdrawalSvc -> WithdrawalSvc: <size:27>3.1. Get revenueBalance</size>
+    WithdrawalSvc -> WithdrawalSvc: <size:27>3.2. Check balance >= request.amount</size>
 
-    WithdrawalSvc -> WithdrawalSvc: revenueBalance.compareTo(request.getAmount())
+    alt <size:27>3.3. Insufficient Balance</size>
+        WithdrawalSvc --> Controller: <size:27>throw AppException\n<size:27>(INSUFFICIENT_BALANCE)</size>
+        Controller --> Worker: <size:27>Error Response</size>
+    else <size:27>3.4. Sufficient Balance</size>
 
-    alt Insufficient Balance (balance < amount)
-        WithdrawalSvc --> Controller: throw AppException\n(INSUFFICIENT_BALANCE)
-        Controller --> Worker: Error Response
-    else Sufficient Balance (balance >= amount)
+        WithdrawalSvc -> WithdrawalSvc: <size:27>4.1. createWithdrawal(request, worker)</size>
+        note right: <size:27>Build Withdrawal entity\n<size:27>with PENDING status
 
-        == Create Withdrawal Entity ==
-        WithdrawalSvc -> WithdrawalSvc: createWithdrawal(request, worker)
-
-        WithdrawalSvc -> WithdrawalSvc: Withdrawal.builder()\n.worker(worker)\n.amount(request.getAmount())\n.bankName(request.getBankName())\n.accountNumber(request.getAccountNumber())\n.accountHolderName(request.getAccountHolderName())\n.status(WithdrawalStatus.PENDING)\n.requestedAt(LocalDateTime.now())\n.build()
-
-        create WithdrawalEntity
-        WithdrawalSvc -> WithdrawalEntity: new Withdrawal()
-        activate WithdrawalEntity
-
-        == Save Withdrawal ==
-        WithdrawalSvc -> WithdrawalRepo: save(withdrawal)
+        WithdrawalSvc -> WithdrawalRepo: <size:27>4.2. save(withdrawal)</size>
         activate WithdrawalRepo
-        WithdrawalRepo -> WithdrawalEntity: persist Withdrawal entity
-        WithdrawalEntity --> WithdrawalRepo: saved Withdrawal instance
-        WithdrawalRepo --> WithdrawalSvc: Withdrawal
+        WithdrawalRepo --> WithdrawalSvc: <size:27>Withdrawal (saved)</size>
         deactivate WithdrawalRepo
 
-        == Calculate Balance After ==
-        WithdrawalSvc -> WithdrawalSvc: balanceAfter = revenueBalance - amount
+        WithdrawalSvc -> WithdrawalSvc: <size:27>4.3. Calculate balanceAfter</size>
 
-        == Create Wallet Transaction ==
-        WithdrawalSvc -> WTSvc: saveWalletTransaction(WalletTransactionRequestDTO)
+        WithdrawalSvc -> WTSvc: <size:27>5.1. saveWalletTransaction</size>
         activate WTSvc
-
-        WTSvc -> WTRepo: save(walletTransaction)
+        WTSvc -> WTRepo: <size:27>5.1.1. save(walletTransaction)</size>
         activate WTRepo
-        WTRepo -> WTEntity: persist new WalletTransaction\n(amount=withdrawal.amount,\ntransactionType=WITHDRAW,\nstatus=PENDING,\ndescription="Yêu cầu rút số tiền: " + amount + " VNĐ",\nwithdrawal=withdrawal,\nwalletRevenue=walletRevenue,\nbalanceBefore=revenueBalance,\nbalanceAfter=revenueBalance - amount)
-        activate WTEntity
-        WTEntity --> WTRepo: WalletTransaction instance
-        deactivate WTEntity
-        WTRepo --> WTSvc: WalletTransaction
+        WTRepo --> WTSvc: <size:27>WalletTransaction</size>
         deactivate WTRepo
-
-        WTSvc --> WithdrawalSvc: WalletTransaction
         deactivate WTSvc
+        note right: <size:27>Txn created with WITHDRAW type, PENDING status
 
-        == Create Payment ==
-        WithdrawalSvc -> PaymentSvc: savePayment(PaymentRequestDTO)
+        WithdrawalSvc -> PaymentSvc: <size:27>6.1. savePayment(PaymentRequestDTO)</size>
         activate PaymentSvc
-
-        PaymentSvc -> PaymentRepo: save(payment)
+        PaymentSvc -> PaymentRepo: <size:27>6.1.1. save(payment)</size>
         activate PaymentRepo
-        PaymentRepo -> PaymentEntity: persist new Payment\n(walletTransaction=walletTransaction,\namount=withdrawal.amount,\npaymentMethod=BANK_TRANSFER)
-        activate PaymentEntity
-        PaymentEntity --> PaymentRepo: Payment instance
-        deactivate PaymentEntity
-        PaymentRepo --> PaymentSvc: Payment
+        PaymentRepo --> PaymentSvc: <size:27>Payment</size>
         deactivate PaymentRepo
-
-        PaymentSvc --> WithdrawalSvc: Payment
         deactivate PaymentSvc
 
-        == Build Response ==
-        WithdrawalSvc -> WithdrawalSvc: convertToDTO(withdrawal)
+        WithdrawalSvc -> WithdrawalSvc: <size:27>7.1. convertToDTO(withdrawal)</size>
+        WithdrawalSvc -> WTSvc: <size:27>7.2. Get transactionCode & type</size>
+        WithdrawalSvc -> WithdrawalSvc: <size:27>7.3. Set DTO fields</size>
 
-        WithdrawalSvc -> WithdrawalEntity: Get withdrawal fields
-        WithdrawalEntity --> WithdrawalSvc: Withdrawal data
-
-        WithdrawalSvc -> WTEntity: getTransactionCode()
-        activate WTEntity
-        WTEntity --> WithdrawalSvc: String transactionCode
-        deactivate WTEntity
-
-        WithdrawalSvc -> WTEntity: getTransactionType()
-        activate WTEntity
-        WTEntity --> WithdrawalSvc: TransactionType.WITHDRAW
-        deactivate WTEntity
-
-        WithdrawalSvc -> WithdrawalSvc: responseDTO.setTransactionCode(transactionCode)
-        WithdrawalSvc -> WithdrawalSvc: responseDTO.setTransactionType(WITHDRAW)
-
-        WithdrawalSvc --> Controller: WithdrawalResponseDTO
+        WithdrawalSvc --> Controller: <size:27>7.4. WithdrawalResponseDTO</size>
         deactivate WithdrawalSvc
-        deactivate WithdrawalEntity
 
-        == Build API Response ==
-        Controller -> Controller: ApiResponse.builder()\n.message("Withdrawal request created successfully")\n.result(withdrawalResponseDTO)\n.build()
-
-        Controller --> Worker: ApiResponse<WithdrawalResponseDTO>
+        Controller -> Controller: <size:27>8.1. Build ApiResponse</size>
+        Controller --> Worker: <size:27>8.2. ApiResponse</size>
         deactivate Controller
     end
 end
-
 @enduml

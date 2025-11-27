@@ -12,6 +12,8 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
+
 @RequiredArgsConstructor
 @RestController
 @RequestMapping("/api/v1/users")
@@ -30,6 +32,25 @@ public class UserController {
                 .build();
     }
 
+
+
+    @GetMapping("/{id}")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    public ApiResponse<UserResponseDTO> getUserById(@PathVariable Long id) {
+        return ApiResponse.<UserResponseDTO>builder()
+                .message("User retrieved successfully")
+                .result(userService.getUserById(id))
+                .build();
+    }
+
+    @GetMapping("/searchByPhone")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    public ApiResponse<List<UserResponseDTO>> searchUsersByPhone(@RequestParam String phone) {
+        return ApiResponse.<List<UserResponseDTO>>builder()
+                .message("Users retrieved successfully")
+                .result(userService.searchUsersByPhone(phone))
+                .build();
+    }
 
     @PutMapping("/update")
     @PreAuthorize("hasRole('ROLE_ADMIN')")

@@ -2,19 +2,26 @@ package com.nhattung.wogo.service.worker;
 
 import com.nhattung.wogo.dto.request.UpdateWorkerRequestDTO;
 import com.nhattung.wogo.dto.request.WorkerRequestDTO;
+import com.nhattung.wogo.dto.response.WorkerResponseDTO;
+import com.nhattung.wogo.dto.response.WorkerServiceResponseDTO;
 import com.nhattung.wogo.entity.Worker;
 import com.nhattung.wogo.enums.ErrorCode;
 import com.nhattung.wogo.enums.WorkStatus;
 import com.nhattung.wogo.exception.AppException;
 import com.nhattung.wogo.repository.WorkerRepository;
 import lombok.RequiredArgsConstructor;
+import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 public class WorkerService implements IWorkerService {
 
     private final WorkerRepository workerRepository;
+    private final ModelMapper modelMapper;
+
     @Override
     public Worker saveWorker(WorkerRequestDTO request) {
         Worker worker = createWorker(request);
@@ -52,6 +59,19 @@ public class WorkerService implements IWorkerService {
                 .orElseThrow(() -> new AppException(ErrorCode.WORKER_NOT_FOUND));
     }
 
+    @Override
+    public List<WorkerResponseDTO> getAllWorker() {
+        return workerRepository.findAll()
+                .stream()
+                .map(this::convertWorkerToDto)
+                .toList();
+    }
+
+    @Override
+    public long countTotalWorker() {
+        return workerRepository.count();
+    }
+
     private Worker createWorker(WorkerRequestDTO request) {
         return Worker.builder()
                 .user(request.getUser())
@@ -61,6 +81,10 @@ public class WorkerService implements IWorkerService {
                 .ratingAverage(0.0)
                 .status(WorkStatus.BUSY)
                 .build();
+    }
+
+    private WorkerResponseDTO convertWorkerToDto(Worker worker) {
+        return modelMapper.map(worker, WorkerResponseDTO.class);
     }
 
 }

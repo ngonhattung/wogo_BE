@@ -4,6 +4,7 @@ import com.nhattung.wogo.dto.request.RegisterRequestDTO;
 import com.nhattung.wogo.dto.request.UserRequestDTO;
 import com.nhattung.wogo.dto.response.PageResponse;
 import com.nhattung.wogo.dto.response.UploadS3Response;
+import com.nhattung.wogo.dto.response.UserRegistrationStatsResponseDTO;
 import com.nhattung.wogo.dto.response.UserResponseDTO;
 import com.nhattung.wogo.entity.Role;
 import com.nhattung.wogo.entity.User;
@@ -26,6 +27,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -182,6 +184,41 @@ public class UserService implements IUserService {
         userRepository.save(user);
         return true;
     }
+
+    @Override
+    public List<UserResponseDTO> searchUsersByPhone(String phone) {
+        List<User> users = userRepository.findUsersByPhoneContaining(phone);
+        return users.stream()
+                .map(this::convertUserToDto)
+                .toList();
+    }
+
+    @Override
+    public int countTotalCustomers() {
+        return userRepository.countCustomer();
+    }
+
+    @Override
+    public long countTotalUsers() {
+        return userRepository.count();
+    }
+
+    @Override
+    public List<UserRegistrationStatsResponseDTO> countRegisteredUsersByYear(int year) {
+        List<Object[]> results = userRepository.countRegisteredUsersByYear(year);
+
+        List<UserRegistrationStatsResponseDTO> responseList = new ArrayList<>();
+
+        for (Object[] row : results) {
+            int month = ((Number) row[0]).intValue();
+            long total = ((Number) row[1]).longValue();
+
+            responseList.add(new UserRegistrationStatsResponseDTO(month, total));
+        }
+
+        return responseList;
+    }
+
 
     public UserResponseDTO convertUserToDto(User user) {
         return modelMapper.map(user, UserResponseDTO.class);
