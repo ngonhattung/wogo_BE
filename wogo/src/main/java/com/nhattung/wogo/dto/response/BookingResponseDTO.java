@@ -21,4 +21,5 @@ public class BookingResponseDTO {
     private WorkerResponseDTO worker;
     private List<BookingFileDTO> files;
     private ReviewResponseDTO review;
+    private PaymentResponseDTO bookingPayment;
 }

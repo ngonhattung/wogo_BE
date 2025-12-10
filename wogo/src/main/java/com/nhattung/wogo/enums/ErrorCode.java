@@ -100,8 +100,8 @@ public enum ErrorCode {
     INSUFFICIENT_BALANCE(5013, "Số dư không đủ để thực hiện giao dịch", HttpStatus.BAD_REQUEST),
     INVALID_PAYMENT(5014, "Cần ít nhất Booking hoặc WalletTransaction.", HttpStatus.BAD_REQUEST),
     JOB_ALREADY_CANCELLED(5015, "Yêu cầu công việc đã bị hủy", HttpStatus.BAD_REQUEST),
-    JOB_CANNOT_CANCEL(5016, "Yêu cầu công việc không thể hủy ở trạng thái hiện tại", HttpStatus.BAD_REQUEST)
-    ;
+    JOB_CANNOT_CANCEL(5016, "Yêu cầu công việc không thể hủy ở trạng thái hiện tại", HttpStatus.BAD_REQUEST),
+    PAYMENT_ALREADY_EXISTS(5017, "Giao dịch thanh toán đã tồn tại cho đơn đặt dịch vụ này", HttpStatus.BAD_REQUEST);
 
     ErrorCode(int code, String message, HttpStatusCode statusCode) {
         this.code = code;

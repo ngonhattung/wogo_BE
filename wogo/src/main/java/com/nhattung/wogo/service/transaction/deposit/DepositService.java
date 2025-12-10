@@ -62,7 +62,7 @@ public class DepositService implements IDepositService {
         // 4) Tạo Payment từ giao dịch ví
         paymentService.savePayment(
                 PaymentRequestDTO.builder()
-                        .walletTransaction(walletTransaction)
+                        .walletTransactionId( walletTransaction.getId())
                         .amount(deposit.getAmount())
                         .paymentMethod(PaymentMethod.BANK_TRANSFER)
                         .paymentStatus(PaymentStatus.PENDING)
@@ -96,7 +96,7 @@ public class DepositService implements IDepositService {
                 .build());
 
         paymentService.updatePaymentStatus(PaymentRequestDTO.builder()
-                .walletTransaction(deposit.getWalletTransaction())
+                .walletTransactionId(deposit.getWalletTransaction().getId())
                 .build());
 
         return depositRepository.save(deposit);

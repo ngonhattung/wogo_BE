@@ -42,13 +42,13 @@ aws:
   s3:
     bucketName: wogo-app
   region: ap-southeast-1
-  accessKey: AKIAXNGUU5D6G5FHWH63
-  secretKey: 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
+  accessKey:
+  secretKey:
 
 
 sepay:
-  key: KBaIFNmtMGgk7rNtnoRTl1LMFEaOIr5uu+xBtzhaiK258/RRq3XRKap0/iEZEkbs
-  token: RPXS3OBCLMQGXFJY3ODGUIWS7XEFQMIKBPNOKUTBC7VGP2V2TZXWWFACOGA6I1YN
+  key:
+  token:
   historyUrl: https://my.sepay.vn/userapi/transactions/list
 
 logging:

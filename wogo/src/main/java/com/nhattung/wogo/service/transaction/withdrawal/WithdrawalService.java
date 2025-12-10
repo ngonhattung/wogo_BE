@@ -68,7 +68,7 @@ public class WithdrawalService implements IWithdrawalService {
         // 5) Tạo Payment
         paymentService.savePayment(
                 PaymentRequestDTO.builder()
-                        .walletTransaction(walletTransaction)
+                        .walletTransactionId( walletTransaction.getId())
                         .amount(withdrawal.getAmount())
                         .paymentMethod(PaymentMethod.BANK_TRANSFER)
                         .paymentStatus(PaymentStatus.PENDING)
@@ -131,6 +131,7 @@ public class WithdrawalService implements IWithdrawalService {
                     UpdateWalletRequestDTO.builder()
                             .amount(withdrawal.getAmount())
                             .isAdd(false)
+                            .userId(withdrawal.getWorker().getUser().getId())
                             .build()
             );
         }
@@ -144,7 +145,7 @@ public class WithdrawalService implements IWithdrawalService {
                 request.getRejectionReason() != null ? request.getRejectionReason() : "Không có lý do cung cấp");
 
         paymentService.updatePaymentStatus(PaymentRequestDTO.builder()
-                .walletTransaction(withdrawal.getWalletTransaction())
+                .walletTransactionId(withdrawal.getWalletTransaction().getId())
                 .build());
 
         // Gửi thông báo

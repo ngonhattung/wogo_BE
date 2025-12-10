@@ -13,4 +13,8 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
     Optional<Payment> findByBooking(Booking booking);
 
     Optional<Payment> findByWalletTransaction(WalletTransaction walletTransaction);
+
+    boolean existsByBooking(Booking booking);
+
+    boolean existsByWalletTransaction(WalletTransaction walletTransaction);
 }

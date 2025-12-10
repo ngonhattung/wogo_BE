@@ -424,7 +424,7 @@ public class BookingService implements IBookingService {
                 .build());
 
         paymentService.savePayment(PaymentRequestDTO.builder()
-                .booking(booking)
+                .bookingId(booking.getId())
                 .paymentStatus(PaymentStatus.COMPLETED)
                 .amount(booking.getTotalAmount())
                 .paymentMethod(PaymentMethod.CASH)
@@ -441,7 +441,7 @@ public class BookingService implements IBookingService {
 
         Payment payment = paymentService.updatePaymentStatus(
                 PaymentRequestDTO.builder()
-                        .booking(booking)
+                        .bookingId(booking.getId())
                         .paymentMethod(PaymentMethod.BANK_TRANSFER)
                         .build()
         );
@@ -501,11 +501,11 @@ public class BookingService implements IBookingService {
                 .build());
 
         paymentService.savePayment(PaymentRequestDTO.builder()
-                .booking(booking)
+                .bookingId(booking.getId())
                 .amount(booking.getTotalAmount())
                 .paymentMethod(PaymentMethod.BANK_TRANSFER)
                 .paymentStatus(PaymentStatus.PENDING)
-                .walletTransaction(walletTransaction)
+                .walletTransactionId(walletTransaction.getId())
                 .build());
 
         String linkQR = sepayVerifyService.createQRCodeForPayment(booking);
@@ -589,11 +589,23 @@ public class BookingService implements IBookingService {
                 .build();
     }
 
-
     private BookingResponseDTO convertToBookingResponseDTO(Booking booking) {
         BookingResponseDTO response = modelMapper.map(booking, BookingResponseDTO.class);
+
+        // Set files
         List<BookingFileDTO> files = bookingFileService.getFilesByBookingId(booking.getId());
         response.setFiles(files);
+
+        // Set bookingPayment thủ công
+        if (booking.getBookingPayment() != null) {
+            Payment p = booking.getBookingPayment();
+            PaymentResponseDTO paymentDTO = modelMapper.map(p, PaymentResponseDTO.class);
+
+            response.setBookingPayment(paymentDTO);
+        }
+
         return response;
     }
+
+
 }

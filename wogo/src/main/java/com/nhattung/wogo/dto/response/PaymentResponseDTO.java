@@ -8,7 +8,6 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Data
-@Builder
 public class PaymentResponseDTO {
     private Long id;
     private PaymentMethod paymentMethod;
