@@ -437,6 +437,7 @@ public class BookingService implements IBookingService {
         workerWalletRevenueService.updateWalletRevenue(UpdateWalletRequestDTO.builder()
                 .amount(workerAmount)
                 .isAdd(true)
+                .workerId(booking.getWorker().getId())
                 .build());
 
         Payment payment = paymentService.updatePaymentStatus(

@@ -9,6 +9,7 @@ import com.nhattung.wogo.enums.ROLE;
 import com.nhattung.wogo.exception.AppException;
 import com.nhattung.wogo.repository.NotificationRepository;
 import com.nhattung.wogo.service.user.IUserService;
+import com.nhattung.wogo.utils.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
@@ -41,7 +42,7 @@ public class NotificationService implements INotificationService{
 
     @Override
     public List<NotificationResponseDTO> getNotificationsForCurrentUser(ROLE role) {
-        return notificationRepository.findByTargetRoleOrderByCreatedAtDesc(role)
+        return notificationRepository.findByTargetRoleAndUserIdOrderByCreatedAtDesc(role, SecurityUtils.getCurrentUserId())
                 .stream()
                 .map(this::convertToDTO)
                 .toList();

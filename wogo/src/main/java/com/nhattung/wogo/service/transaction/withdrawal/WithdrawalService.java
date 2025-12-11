@@ -131,7 +131,7 @@ public class WithdrawalService implements IWithdrawalService {
                     UpdateWalletRequestDTO.builder()
                             .amount(withdrawal.getAmount())
                             .isAdd(false)
-                            .userId(withdrawal.getWorker().getUser().getId())
+                            .workerId(withdrawal.getWorker().getId())
                             .build()
             );
         }

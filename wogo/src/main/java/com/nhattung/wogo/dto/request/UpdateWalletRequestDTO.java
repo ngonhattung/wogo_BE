@@ -10,5 +10,5 @@ import java.math.BigDecimal;
 public class UpdateWalletRequestDTO {
     private BigDecimal amount;
     private boolean isAdd; // true: add, false: subtract
-    private Long userId;
+    private Long workerId;
 }

@@ -11,4 +11,6 @@ public interface WorkerWalletRevenueRepository extends JpaRepository<WorkerWalle
     boolean existsByWorkerId(Long workerId);
     @Query("SELECT wwr FROM WorkerWalletRevenue wwr WHERE wwr.worker.user.id = :userId")
     WorkerWalletRevenue getWalletByUserId(Long userId);
+
+    WorkerWalletRevenue getWorkerWalletRevenuesByWorkerId(Long workerId);
 }

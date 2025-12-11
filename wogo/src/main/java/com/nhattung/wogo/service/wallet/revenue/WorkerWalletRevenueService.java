@@ -37,7 +37,7 @@ public class WorkerWalletRevenueService implements IWorkerWalletRevenueService {
 
     @Override
     public void updateWalletRevenue(UpdateWalletRequestDTO request) {
-        WorkerWalletRevenue walletRevenue = workerWalletRevenueRepository.getWalletByUserId(SecurityUtils.getCurrentUserId());
+        WorkerWalletRevenue walletRevenue = workerWalletRevenueRepository.getWorkerWalletRevenuesByWorkerId(request.getWorkerId());
         if(request.isAdd()){
             walletRevenue.setTotalRevenue(walletRevenue.getTotalRevenue().add(request.getAmount()));
             walletRevenue.setRevenueBalance(walletRevenue.getRevenueBalance().add(request.getAmount()));
